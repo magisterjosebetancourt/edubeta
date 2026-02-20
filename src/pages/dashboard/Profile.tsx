@@ -231,7 +231,7 @@ export default function ProfilePage() {
                             value={fullName}
                             onChange={(e) => setFullName(e.target.value)}
                             className="pl-9"
-                            placeholder="Tu nombre aquí"
+                            placeholder="Ej. GÓMEZ, Roberto"
                         />
                     </div>
                 </div>

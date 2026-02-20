@@ -487,7 +487,7 @@ export default function AssignmentsPage() {
                       {teacher.full_name?.charAt(0) || "?"}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-slate-900 dark:text-white">
+                      <h3 className="font-semibold text-slate-900 dark:text-white uppercase">
                         {teacher.full_name || "Sin Nombre"}
                       </h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400">

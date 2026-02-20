@@ -263,11 +263,11 @@ export default function TeachersPage() {
                 </DialogHeader>
                 <form onSubmit={handleCreateInvite} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="fullName">Nombre Completo</Label>
+                    <Label htmlFor="fullName">Apellidos y Nombres</Label>
                     <Input
                       id="fullName"
                       name="fullName"
-                      placeholder="Ej. Roberto Gómez"
+                      placeholder="Ej. GÓMEZ, Roberto"
                       required
                     />
                   </div>
@@ -385,7 +385,7 @@ export default function TeachersPage() {
                       {teacher.full_name?.charAt(0) || "?"}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate uppercase">
                         {teacher.full_name || "Sin Nombre"}
                       </p>
                       <p className="text-xs text-slate-500 truncate flex items-center gap-1.5">
@@ -442,11 +442,12 @@ export default function TeachersPage() {
           </DialogHeader>
           <form onSubmit={handleUpdateTeacher} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-fullName">Nombre Completo</Label>
+              <Label htmlFor="edit-fullName">Apellidos y Nombres</Label>
               <Input
                 id="edit-fullName"
                 name="fullName"
                 defaultValue={editingTeacher?.full_name || ""}
+                placeholder="Ej. GÓMEZ, Roberto"
                 required
               />
             </div>

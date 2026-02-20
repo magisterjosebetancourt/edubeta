@@ -14,6 +14,8 @@ import TeacherRegister from './pages/TeacherRegister';
 import DashboardLayout from './components/DashboardLayout';
 import MobileMenuPage from './pages/dashboard/MobileMenuPage';
 import ProfilePage from './pages/dashboard/Profile';
+import StudentView from './pages/dashboard/StudentView';
+import InstitutionalInfo from './pages/dashboard/InstitutionalInfo';
 import { Toaster } from "@/components/ui/sonner";
 
 function App() {
@@ -27,6 +29,7 @@ function App() {
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="students" element={<StudentsPage />} />
+          <Route path="students/:id" element={<StudentView />} />
           <Route path="teachers" element={<TeachersPage />} />
           <Route path="grades" element={<GradesPage />} />
           <Route path="subjects" element={<SubjectsPage />} />
@@ -34,6 +37,7 @@ function App() {
           <Route path="attendance" element={<AttendancePage />} />
           <Route path="history" element={<AttendanceHistoryPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="institution" element={<InstitutionalInfo />} />
           <Route path="menu" element={<MobileMenuPage />} />
           <Route path="profile" element={<ProfilePage />} />
         </Route>

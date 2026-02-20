@@ -241,7 +241,7 @@ export default function AttendanceHistory() {
         .eq('subject_id', record.subject_id)
         .eq('teacher_id', record.teacher_id);
 
-      const { data: absencesData, error } = await supabase
+      const { data: rawAbsences, error } = await supabase
         .from('attendance_records')
         .select(`
           status,
@@ -255,6 +255,11 @@ export default function AttendanceHistory() {
         .in('status', ['absent', 'late']);
 
       if (error) throw error;
+
+      // Ordenar por apellido alfabéticamente
+      const sortedAbsences = (rawAbsences || []).sort((a: any, b: any) => 
+        (a.students.first_name || '').localeCompare(b.students.first_name || '')
+      );
 
       const stats = {
         present: (sessionStats || []).filter((s: any) => s.status === 'present').length,
@@ -390,9 +395,9 @@ export default function AttendanceHistory() {
               </tr>
             </thead>
             <tbody>
-              ${(absencesData || []).map((r: any) => `
+              ${(sortedAbsences || []).map((r: any) => `
                 <tr>
-                  <td style="font-weight: 600;">${r.students.last_name}, ${r.students.first_name}</td>
+                  <td style="font-weight: 600;">${r.students.first_name.toUpperCase()}, ${r.students.last_name}</td>
                   <td style="text-align: center; font-weight: 800; font-size: 10px; color: ${r.status === 'absent' ? '#dc2626' : '#ea580c'}">${r.status === 'absent' ? 'AUSENTE' : 'TARDE'}</td>
                   <td style="text-align: center; font-weight: 600;">${r.justified ? 'SÍ' : 'NO'}</td>
                 </tr>
@@ -428,7 +433,7 @@ export default function AttendanceHistory() {
     }
   };
   const filteredRecords = records.filter(r => {
-    const matchesSearch = `${r.student.first_name} ${r.student.last_name}`.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = `${r.student.first_name}, ${r.student.last_name}`.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesGrade = filterGradeId === "" || String(r.student.grade_id) === filterGradeId;
     const matchesSubject = filterSubjectId === "" || String(r.subject_id) === filterSubjectId;
     const matchesStatus = filterStatus === "all" || r.status === filterStatus;
@@ -631,8 +636,8 @@ export default function AttendanceHistory() {
                         {record.subject?.name}
                       </span>
                     </div>
-                    <h3 className="font-bold text-slate-900 dark:text-white truncate">
-                      {record.student.last_name}, {record.student.first_name}
+                    <h3 className="font-bold text-slate-900 dark:text-white truncate uppercase">
+                      {record.student.first_name}, {record.student.last_name}
                     </h3>
                     <p className="text-[9px] text-slate-400 mt-0.5 flex items-center gap-1">
                       <User className="w-2.5 h-2.5" />

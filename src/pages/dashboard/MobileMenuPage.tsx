@@ -9,6 +9,7 @@ import {
   Settings, 
   LogOut, 
   PieChart,
+  Building
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -37,6 +38,7 @@ export default function MobileMenuPage() {
                 { title: 'Grados', href: '/dashboard/grades', icon: School, color: 'text-green-500', bg: 'bg-green-50 dark:bg-green-900/20' },
                 { title: 'Asignaturas', href: '/dashboard/subjects', icon: BookOpen, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/20' },
                 { title: 'Asignación', href: '/dashboard/assignments', icon: BookOpen, color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-900/20' },
+                { title: 'Caracterización', href: '/dashboard/institution', icon: Building, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-900/20' },
             ]
         },
         {

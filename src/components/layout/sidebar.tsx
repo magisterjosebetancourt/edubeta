@@ -6,11 +6,11 @@ import {
   Users, 
   GraduationCap, 
   School, 
+  Building,
   BookOpen, 
   Settings, 
   LogOut, 
-  PieChart, 
-  School as SchoolIcon 
+  PieChart
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -20,6 +20,7 @@ const sidebarItems = [
     category: "Principal",
     items: [
       { title: 'Inicio', href: '/dashboard', icon: LayoutDashboard },
+      { title: 'Caracterización', href: '/dashboard/institution', icon: Building },
     ]
   },
   {
@@ -63,7 +64,7 @@ export function SidebarContent({ className, onLinkClick }: { className?: string,
       <div className="h-20 flex items-center px-6 border-b border-white/10 shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-            <SchoolIcon className="text-white w-6 h-6" />
+            <Building className="text-white w-6 h-6" />
           </div>
           <h1 className="text-xl font-bold tracking-tight font-display">EduBeta</h1>
         </div>

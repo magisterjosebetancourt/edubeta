@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { createClient } from "@/lib/supabase/client";
 import { CsvUploader } from "@/components/students/CsvUploader";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,12 @@ type Student = {
   grades?: {
     name: string;
   };
+  attendance_stats?: {
+    present: number;
+    absent: number;
+    late: number;
+    excused: number;
+  };
 };
 
 export default function StudentsPage() {
@@ -74,6 +81,15 @@ export default function StudentsPage() {
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterGradeId, setFilterGradeId] = useState<string>("");
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const gradeId = searchParams.get("gradeId");
+    if (gradeId) {
+      setFilterGradeId(gradeId);
+    }
+  }, [searchParams]);
 
   // Jerarquía de grades
   const [selectedLevelId, setSelectedLevelId] = useState<string>("");
@@ -89,18 +105,34 @@ export default function StudentsPage() {
 
   const fetchData = async () => {
     try {
-      const [studentsRes, gradesRes] = await Promise.all([
+      const [studentsRes, gradesRes, attendanceRes] = await Promise.all([
         supabase
           .from("students")
           .select(`*, grades (name)`)
-          .order("last_name", { ascending: true }),
+          .order("first_name", { ascending: true }),
         supabase.from("grades").select("*").eq("state", true).order("name", { ascending: true }),
+        supabase.from("attendance_records").select("student_id, status")
       ]);
 
       if (studentsRes.error) throw studentsRes.error;
       if (gradesRes.error) throw gradesRes.error;
+      if (attendanceRes.error) throw attendanceRes.error;
 
-      setStudents(studentsRes.data || []);
+      const attendanceData = (attendanceRes.data as any[]) || [];
+      const studentsWithStats = (studentsRes.data || []).map((student: any) => {
+        const studentAttendance = attendanceData.filter(a => a.student_id === student.id);
+        return {
+          ...student,
+          attendance_stats: {
+            present: studentAttendance.filter(a => a.status === 'present').length,
+            absent: studentAttendance.filter(a => a.status === 'absent').length,
+            late: studentAttendance.filter(a => a.status === 'late').length,
+            excused: studentAttendance.filter(a => a.status === 'excused').length,
+          }
+        };
+      });
+
+      setStudents(studentsWithStats);
       setGrades(gradesRes.data || []);
     } catch (error: any) {
       toast.error("Error al cargar datos", { description: error.message });
@@ -425,7 +457,7 @@ export default function StudentsPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-slate-100 dark:bg-[#1e2536] border-none rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-900 dark:text-white placeholder-slate-500 focus:ring-2 focus:ring-primary/50 transition-shadow outline-none"
-              placeholder="Buscar por nombre..."
+              placeholder="Buscar por apellido o nombre..."
               type="text"
             />
           </div>
@@ -463,9 +495,9 @@ export default function StudentsPage() {
                     {student.first_name.charAt(0)}
                     {student.last_name.charAt(0)}
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-white leading-tight">
-                      {student.first_name} {student.last_name}
+                  <div className="cursor-pointer" onClick={() => navigate(`/dashboard/students/${student.id}`)}>
+                    <h3 className="font-semibold text-slate-900 dark:text-white leading-tight hover:text-primary transition-colors uppercase">
+                      {student.first_name}, {student.last_name}
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                       Acudiente: No registrado
@@ -485,6 +517,20 @@ export default function StudentsPage() {
                     }`}
                   >
                     {student.state !== false ? "Activo" : "Inactivo"}
+                  </div>
+                  <div className="flex gap-1.5 mt-1">
+                    <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded text-[9px] font-bold border border-green-100 dark:border-green-800" title="Asistencias">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                      {student.attendance_stats?.present || 0}
+                    </div>
+                    <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded text-[9px] font-bold border border-red-100 dark:border-red-800" title="Inasistencias">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                      {student.attendance_stats?.absent || 0}
+                    </div>
+                    <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded text-[9px] font-bold border border-amber-100 dark:border-amber-800" title="Tardanzas">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      {student.attendance_stats?.late || 0}
+                    </div>
                   </div>
                 </div>
               </div>

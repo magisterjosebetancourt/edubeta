@@ -1,0 +1,2 @@
+﻿src/pages/dashboard/InstitutionalInfo.tsx(41,10): error TS6133: 'numPeriods' is declared but its value is never read.
+src/pages/dashboard/InstitutionalInfo.tsx(57,31): error TS2339: Property 'data' does not exist on type 'never'.

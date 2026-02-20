@@ -255,7 +255,7 @@ export default function AttendancePage() {
         .select('*')
         .eq('grade_id', parseInt(config.gradeId))
         .eq('state', true)
-        .order('last_name');
+        .order('first_name', { ascending: true });
 
       if (sErr) throw sErr;
 
@@ -381,11 +381,16 @@ export default function AttendancePage() {
         .eq('subject_id', session.subject_id)
         .eq('teacher_id', session.teacher_id)
         .eq('students.grade_id', session.grade_id);
-
+      
       if (error) throw error;
 
+      // Ordenar por apellido alfabéticamente
+      const sortedData = (data || []).sort((a: any, b: any) => 
+        (a.students.first_name || '').localeCompare(b.students.first_name || '')
+      );
+
       // 2. Filter only absences (and late?)
-      const absences = (data || []).filter((r: any) => r.status === 'absent' || r.status === 'late');
+      const absences = sortedData.filter((r: any) => r.status === 'absent' || r.status === 'late');
 
       // 3. Create HTML for printing
       const dateFormatted = format(new Date(session.date + 'T00:00:00'), 'PPP', { locale: es });
@@ -518,7 +523,7 @@ export default function AttendancePage() {
             <tbody>
               ${absences.length > 0 ? absences.map((r: any) => `
                 <tr>
-                  <td style="font-weight: 700;">${r.students.last_name}, ${r.students.first_name}</td>
+                  <td style="font-weight: 700;">${r.students.first_name.toUpperCase()}, ${r.students.last_name}</td>
                   <td style="text-align: center; color: ${r.status === 'absent' ? '#dc2626' : '#ea580c'}; font-weight: 800; font-size: 10px;">${r.status === 'absent' ? 'AUSENTE' : 'TARDE'}</td>
                   <td style="text-align: center; font-weight: 700;">${r.justified ? 'SÍ' : 'NO'}</td>
                 </tr>
@@ -867,7 +872,7 @@ export default function AttendancePage() {
             {/* Students List */}
             <div className="space-y-2 pb-20">
               {students
-                .filter(s => `${s.first_name} ${s.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()))
+                .filter(s => `${s.first_name}, ${s.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()))
                 .map((student) => (
                 <div
                   key={student.id}
@@ -897,7 +902,7 @@ export default function AttendancePage() {
                         )}
                       </div>
                       <h3 className="font-bold text-slate-900 dark:text-white leading-tight truncate pr-2">
-                        {student.last_name}, {student.first_name}
+                        {student.first_name}, {student.last_name}
                       </h3>
                     </div>
                   </div>

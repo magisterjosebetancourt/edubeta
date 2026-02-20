@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,6 +23,7 @@ type Grade = {
   name: string;
   state?: boolean;
   created_at?: string;
+  students?: { count: number }[];
 };
 
 // Estructura Ley 115 de 1994 (Colombia)
@@ -47,13 +49,14 @@ export default function GradesPage() {
   // Edit State
   const [editingGrade, setEditingGrade] = useState<Grade | null>(null);
   
+  const navigate = useNavigate()
   const supabase = createClient()
 
   const fetchGrades = async () => {
     try {
       const { data, error } = await supabase
         .from('grades')
-        .select('*')
+        .select('*, students(count)')
         .order('name', { ascending: true })
 
       if (error) throw error
@@ -344,7 +347,10 @@ export default function GradesPage() {
                           Grado
                         </span>
                         <div className="flex items-center gap-2">
-                          <span className="text-base font-bold text-slate-800 dark:text-white font-mono">
+                          <span 
+                            className="text-base font-bold text-slate-800 dark:text-white font-mono cursor-pointer hover:text-primary transition-colors"
+                            onClick={() => navigate(`/dashboard/students?gradeId=${group.id}`)}
+                          >
                             {group.name}
                           </span>
                           <div
@@ -358,6 +364,12 @@ export default function GradesPage() {
                             {group.state !== false ? "Activo" : "Inactivo"}
                           </div>
                         </div>
+                        <span 
+                          className="text-[10px] text-slate-500 font-medium cursor-pointer hover:underline"
+                          onClick={() => navigate(`/dashboard/students?gradeId=${group.id}`)}
+                        >
+                          {group.students?.[0]?.count || 0} Estudiantes matriculados
+                        </span>
                       </div>
                       <div className="flex gap-1">
                         <Button
