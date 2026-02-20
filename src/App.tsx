@@ -7,6 +7,7 @@ import TeachersPage from './pages/dashboard/Teachers';
 import GradesPage from './pages/dashboard/Grades';
 import SubjectsPage from './pages/dashboard/Subjects';
 import AttendancePage from './pages/dashboard/Attendance';
+import AttendanceHistoryPage from '@/pages/dashboard/AttendanceHistory';
 import SettingsPage from './pages/dashboard/Settings';
 import AssignmentsPage from './pages/dashboard/Assignments';
 import TeacherRegister from './pages/TeacherRegister';
@@ -31,6 +32,7 @@ function App() {
           <Route path="subjects" element={<SubjectsPage />} />
           <Route path="assignments" element={<AssignmentsPage />} />
           <Route path="attendance" element={<AttendancePage />} />
+          <Route path="history" element={<AttendanceHistoryPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="menu" element={<MobileMenuPage />} />
           <Route path="profile" element={<ProfilePage />} />

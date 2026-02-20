@@ -36,6 +36,7 @@ const sidebarItems = [
     category: "Reportes",
     items: [
       { title: 'Asistencia', href: '/dashboard/attendance', icon: PieChart },
+      { title: 'Historial', href: '/dashboard/history', icon: PieChart }, 
       { title: 'Configuración', href: '/dashboard/settings', icon: Settings },
     ]
   }

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { Trash2, Plus, BookOpen, Pencil } from 'lucide-react'
 import {
@@ -12,23 +11,26 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 
 type Subject = {
-  id: number
-  name: string
-  created_at?: string
-}
+  id: number;
+  name: string;
+  state?: boolean;
+  created_at?: string;
+};
 
 export default function SubjectsPage() {
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [loading, setLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
-  const [editingSubject, setEditingSubject] = useState<Subject | null>(null)
-  
-  const supabase = createClient()
+  const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const supabase = createClient();
 
   const fetchSubjects = async () => {
     try {
@@ -51,35 +53,52 @@ export default function SubjectsPage() {
   }, [])
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setIsCreating(true)
-    
-    const form = e.currentTarget
-    const formData = new FormData(form)
-    const name = formData.get('name') as string
+    e.preventDefault();
+    setIsCreating(true);
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const name = formData.get("name") as string;
 
     if (!name) {
-      toast.error('El nombre de la asignatura es requerido')
-      setIsCreating(false)
-      return
+      toast.error("El nombre de la asignatura es requerido");
+      setIsCreating(false);
+      return;
     }
 
     try {
-      const { error } = await supabase
-        .from('subjects')
-        .insert([{ name }] as any)
-      
-      if (error) throw error
+      const { error } = await supabase.from("subjects").insert([{ name }] as any);
 
-      toast.success('Asignatura creada correctamente')
-      form.reset()
-      fetchSubjects()
+      if (error) throw error;
+
+      toast.success("Asignatura creada correctamente");
+      form.reset();
+      setIsDialogOpen(false);
+      fetchSubjects();
     } catch (error: any) {
-      toast.error('Error al crear asignatura', { description: error.message })
+      toast.error("Error al crear asignatura", { description: error.message });
     } finally {
-      setIsCreating(false)
+      setIsCreating(false);
     }
-  }
+  };
+
+  const handleToggleState = async (subject: Subject) => {
+    try {
+      const newState = !subject.state;
+      const { error } = await (supabase.from("subjects") as any)
+        .update({ state: newState })
+        .eq("id", subject.id);
+
+      if (error) throw error;
+
+      toast.success(newState ? "Asignatura activada" : "Asignatura desactivada");
+      setSubjects((prev) =>
+        prev.map((s) => (s.id === subject.id ? { ...s, state: newState } : s)),
+      );
+    } catch (error: any) {
+      toast.error("Error al cambiar estado", { description: error.message });
+    }
+  };
 
   const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -134,74 +153,113 @@ export default function SubjectsPage() {
   if (loading) return <div className="p-8 text-center">Cargando asignaturas...</div>
 
   return (
-    <div className="space-y-6 p-6 h-full overflow-y-auto">
-      <div className="flex justify-between items-center">
-        <div>
-           <h1 className="hidden lg:block text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Asignaturas</h1>
-           <p className="hidden lg:block text-gray-500">Administra las materias del currículo escolar.</p>
+    <div className="bg-background-light dark:bg-background-dark min-h-screen pb-20">
+      {/* Header */}
+      <header className="sticky top-0 z-40 bg-white/80 dark:bg-[#151b2d]/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+            Asignaturas
+          </h1>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <button className="bg-primary hover:bg-primary/90 text-white p-2 rounded-full shadow-lg shadow-primary/30 transition-transform active:scale-95 flex items-center justify-center">
+                <Plus className="w-5 h-5" />
+              </button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Nueva Asignatura</DialogTitle>
+                <DialogDescription>
+                  Agregar materia al plan de estudios.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleCreate} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Nombre de la Asignatura</Label>
+                  <Input
+                    name="name"
+                    placeholder="Ej. Matemáticas, Historia..."
+                    required
+                  />
+                </div>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsDialogOpen(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={isCreating}>
+                    {isCreating ? "Registrando..." : "Registrar"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
-      </div>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+          Administra las materias del currículo escolar.
+        </p>
+      </header>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Nueva Asignatura</CardTitle>
-            <CardDescription>Agregar materia al plan de estudios</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleCreate} className="flex gap-4">
-              <Input name="name" placeholder="Nombre (Ej. Historia)" required />
-              <Button type="submit" disabled={isCreating}>
-                <Plus className="w-4 h-4 mr-2" />
-                Agregar
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+      <main className="p-4 space-y-4">
+        {subjects.length === 0 ? (
+          <div className="text-center py-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-white/50 dark:bg-slate-900/30">
+            <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+            <p className="text-slate-500 font-medium">
+              No hay asignaturas registradas.
+            </p>
+          </div>
+        ) : (
+          subjects.map((subject) => (
+            <div
+              key={subject.id}
+              className="bg-white dark:bg-[#151b2d] p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between"
+            >
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-300">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900 dark:text-white">
+                    {subject.name}
+                  </h3>
+                  <div
+                    onClick={() => handleToggleState(subject)}
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-colors ${
+                      subject.state !== false
+                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200"
+                        : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200"
+                    }`}
+                  >
+                    {subject.state !== false ? "Activa" : "Inactiva"}
+                  </div>
+                </div>
+              </div>
 
-        <Card>
-          <CardHeader>
-             <CardTitle>Lista de Asignaturas</CardTitle>
-             <CardDescription>Total: {subjects.length}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {subjects.length === 0 ? (
-               <p className="text-gray-500 text-sm">No hay asignaturas registradas.</p>
-            ) : (
-               <ul className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
-                 {subjects.map((subject) => (
-                   <li key={subject.id} className="flex items-center justify-between p-3 bg-white border rounded-lg shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-50 text-blue-600 rounded-md">
-                            <BookOpen className="w-4 h-4" />
-                        </div>
-                        <span className="font-medium text-slate-800">{subject.name}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="text-slate-400 hover:text-primary hover:bg-primary/10"
-                            onClick={() => setEditingSubject(subject)}
-                          >
-                             <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => handleDelete(subject.id)}
-                          >
-                             <Trash2 className="w-4 h-4" />
-                          </Button>
-                      </div>
-                   </li>
-                 ))}
-               </ul>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 text-slate-400 hover:text-primary hover:bg-primary/10"
+                  onClick={() => setEditingSubject(subject)}
+                >
+                  <Pencil className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
+                  onClick={() => handleDelete(subject.id)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          ))
+        )}
+      </main>
 
       {/* Edit Dialog */}
       <Dialog open={!!editingSubject} onOpenChange={(open) => !open && setEditingSubject(null)}>

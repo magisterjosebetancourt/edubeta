@@ -14,13 +14,15 @@ import {
     DialogTitle,
     DialogFooter,
     DialogDescription,
+    DialogTrigger,
 } from "@/components/ui/dialog"
 
 type Grade = {
-  id: number
-  name: string
-  created_at?: string
-}
+  id: number;
+  name: string;
+  state?: boolean;
+  created_at?: string;
+};
 
 // Estructura Ley 115 de 1994 (Colombia)
 const LEVELS = [
@@ -37,12 +39,13 @@ export default function GradesPage() {
   const [isUpdating, setIsUpdating] = useState(false)
   
   // Create Form States
-  const [selectedLevel, setSelectedLevel] = useState<string>('')
-  const [selectedGradeName, setSelectedGradeName] = useState<string>('')
-  const [groupSuffix, setGroupSuffix] = useState<string>('') 
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedLevel, setSelectedLevel] = useState<string>("");
+  const [selectedGradeName, setSelectedGradeName] = useState<string>("");
+  const [groupSuffix, setGroupSuffix] = useState<string>("");
 
   // Edit State
-  const [editingGrade, setEditingGrade] = useState<Grade | null>(null)
+  const [editingGrade, setEditingGrade] = useState<Grade | null>(null);
   
   const supabase = createClient()
 
@@ -141,213 +144,251 @@ export default function GradesPage() {
     }
   }
 
-  const handleDelete = async (id: number) => {
-     if(!confirm('¿Estás seguro de eliminar este grupo escolar? Se desconectarán los estudiantes asociados.')) return;
+  const handleToggleState = async (grade: Grade) => {
+    try {
+      const newState = !grade.state;
+      const { error } = await (supabase.from("grades") as any)
+        .update({ state: newState })
+        .eq("id", grade.id);
 
-     try {
-       const { error } = await supabase
-         .from('grades')
-         .delete()
-         .eq('id', id)
-       
-       if (error) throw error
-       
-       toast.success('Grupo eliminado')
-       setGrades(prev => prev.filter(g => g.id !== id))
-     } catch (error: any) {
-       toast.error('Error al eliminar', { description: error.message })
-     }
-  }
+      if (error) throw error;
+
+      toast.success(newState ? "Grupo activado" : "Grupo desactivado");
+      setGrades((prev) =>
+        prev.map((g) => (g.id === grade.id ? { ...g, state: newState } : g)),
+      );
+    } catch (error: any) {
+      toast.error("Error al cambiar estado", { description: error.message });
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (
+      !confirm(
+        "¿Estás seguro de eliminar este grupo escolar? Se desconectarán los estudiantes asociados.",
+      )
+    )
+      return;
+
+    try {
+      const { error } = await supabase.from("grades").delete().eq("id", id);
+
+      if (error) throw error;
+
+      toast.success("Grupo eliminado");
+      setGrades((prev) => prev.filter((g) => g.id !== id));
+    } catch (error: any) {
+      toast.error("Error al eliminar", { description: error.message });
+    }
+  };
   
   if (loading) return <div className="p-8 text-center">Cargando grupos escolares...</div>
 
   return (
-    <div className="space-y-6 p-6 h-full overflow-y-auto bg-background-light dark:bg-background-dark">
-      <div className="flex flex-col gap-1">
-           <h1 className="hidden lg:block text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Organización Académica</h1>
-           <p className="hidden lg:block text-gray-500">Gestión de Grados y Grupos según Ley 115 (Colombia).</p>
-      </div>
-
-      <div className="grid gap-8 lg:grid-cols-12">
-        {/* Formulario de Creación (Panel Izquierdo - Sticky Desktop) */}
-        <div className="lg:col-span-4 lg:sticky lg:top-6 h-fit">
-            <Card className="border-l-4 border-l-primary shadow-md">
-            <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2">
-                    <Plus className="w-5 h-5 text-primary" />
-                    Nuevo Grupo Escolar
-                </CardTitle>
-                <CardDescription>Crea un grupo asignado a un grado.</CardDescription>
-            </CardHeader>
-            <CardContent>
+    <div className="bg-background-light dark:bg-background-dark min-h-screen pb-20">
+      {/* Header */}
+      <header className="sticky top-0 z-40 bg-white/80 dark:bg-[#151b2d]/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+            Grados y Grupos
+          </h1>
+          <div className="flex gap-2">
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <button className="bg-primary hover:bg-primary/90 text-white p-2 rounded-full shadow-lg shadow-primary/30 transition-transform active:scale-95 flex items-center justify-center">
+                  <Plus className="w-5 h-5" />
+                </button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Nuevo Grupo Escolar</DialogTitle>
+                  <DialogDescription>
+                    Crea un grupo asignado a un grado (Ley 115).
+                  </DialogDescription>
+                </DialogHeader>
                 <form onSubmit={handleCreate} className="space-y-4">
-                    <div className="space-y-2">
-                        <Label>1. Nivel Educativo</Label>
-                        <div className="relative">
-                            <select 
-                                className="w-full flex h-9 items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1"
-                                onChange={(e) => {
-                                    setSelectedLevel(e.target.value)
-                                    setSelectedGradeName('')
-                                }} 
-                                value={selectedLevel}
-                            >
-                                <option value="">Seleccione Nivel</option>
-                                {LEVELS.map((level) => (
-                                    <option key={level.id} value={level.id}>{level.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
+                  <div className="space-y-2">
+                    <Label>1. Nivel Educativo</Label>
+                    <select
+                      className="w-full flex h-9 items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                      onChange={(e) => {
+                        setSelectedLevel(e.target.value);
+                        setSelectedGradeName("");
+                      }}
+                      value={selectedLevel}
+                    >
+                      <option value="">Seleccione Nivel</option>
+                      {LEVELS.map((level) => (
+                        <option key={level.id} value={level.id}>
+                          {level.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                    <div className="space-y-2">
-                        <Label>2. Grado (Ley 115)</Label>
-                        <div className="relative">
-                            <select 
-                                className="w-full flex h-9 items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1"
-                                onChange={(e) => setSelectedGradeName(e.target.value)} 
-                                value={selectedGradeName}
-                                disabled={!selectedLevel}
-                            >
-                                <option value="">Seleccione Grado</option>
-                                {selectedLevel && LEVELS.find(l => l.id === selectedLevel)?.grades.map((g) => (
-                                    <option key={g} value={g}>{g}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
+                  <div className="space-y-2">
+                    <Label>2. Grado (Ley 115)</Label>
+                    <select
+                      className="w-full h-9 rounded-md border px-3 py-2 text-sm"
+                      onChange={(e) => setSelectedGradeName(e.target.value)}
+                      value={selectedGradeName}
+                      disabled={!selectedLevel}
+                    >
+                      <option value="">Seleccione Grado</option>
+                      {selectedLevel &&
+                        LEVELS.find((l) => l.id === selectedLevel)?.grades.map(
+                          (g) => (
+                            <option key={g} value={g}>
+                              {g}
+                            </option>
+                          ),
+                        )}
+                    </select>
+                  </div>
 
-                    <div className="space-y-2">
-                        <Label>3. Grupo/Curso</Label>
-                        <div className="flex gap-2 items-center">
-                            <span className="text-sm font-bold text-slate-500 min-w-[30px]">
-                                {(() => {
-                                    if (!selectedGradeName) return '#';
-                                    if (selectedGradeName === 'Transición') return 'TR';
-                                    
-                                    const gradeMap: Record<string, string> = {
-                                        'Primero': '1', 'Segundo': '2', 'Tercero': '3', 'Cuarto': '4', 'Quinto': '5',
-                                        'Sexto': '6', 'Séptimo': '7', 'Octavo': '8', 'Noveno': '9',
-                                        'Décimo': '10', 'Once': '11'
-                                    };
-                                    
-                                    return gradeMap[selectedGradeName] || '?';
-                                })()}
-                            </span>
-                            <Input 
-                                value={groupSuffix}
-                                onChange={(e) => setGroupSuffix(e.target.value)}
-                                placeholder="Ej: 01, 02, A, B" 
-                                required 
-                                className="font-mono text-lg tracking-widest uppercase"
-                                maxLength={3}
-                            />
-                        </div>
-                        <p className="text-[10px] text-slate-400">
-                            Resultado Final: <strong className="text-primary">{
-                                selectedGradeName ? (
-                                   selectedGradeName === 'Transición' 
-                                     ? `Transición ${groupSuffix}`
-                                     : (() => {
-                                         const gradeMap: Record<string, string> = {
-                                            'Primero': '1', 'Segundo': '2', 'Tercero': '3', 'Cuarto': '4', 'Quinto': '5',
-                                            'Sexto': '6', 'Séptimo': '7', 'Octavo': '8', 'Noveno': '9',
-                                            'Décimo': '10', 'Once': '11'
-                                        };
-                                        return `${gradeMap[selectedGradeName] || ''}${groupSuffix}`;
-                                     })()
-                                ) : '...'
-                            }</strong>
-                        </p>
+                  <div className="space-y-2">
+                    <Label>3. Grupo/Curso</Label>
+                    <div className="flex gap-2 items-center">
+                      <Input
+                        value={groupSuffix}
+                        onChange={(e) => setGroupSuffix(e.target.value)}
+                        placeholder="Ej: 01, 02, A, B"
+                        required
+                        className="font-mono text-lg tracking-widest uppercase"
+                        maxLength={3}
+                      />
                     </div>
+                  </div>
 
-                    <Button type="submit" className="w-full" disabled={isCreating}>
-                        Registrar Grupo
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsDialogOpen(false)}
+                    >
+                      Cancelar
                     </Button>
+                    <Button type="submit" disabled={isCreating}>
+                      {isCreating ? "Registrando..." : "Registrar Grupo"}
+                    </Button>
+                  </DialogFooter>
                 </form>
-            </CardContent>
-            </Card>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+          Gestión de Grados y Grupos según Ley 115.
+        </p>
+      </header>
 
-        {/* Lista de Visualización con Jerarquía */}
-        <div className="lg:col-span-8 space-y-6">
+      <main className="p-4 space-y-6">
            <Card className="border-none shadow-none bg-transparent">
             <CardHeader className="px-0 pt-0">
                 <CardTitle>Grupos Activos por Nivel</CardTitle>
                 <CardDescription>Resumen de la organización escolar actual.</CardDescription>
             </CardHeader>
             <CardContent className="px-0 space-y-6">
-                {grades.length === 0 ? (
-                    <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-xl">
-                        <School className="w-12 h-12 text-slate-300 mx-auto mb-2" />
-                        <p className="text-slate-500 font-medium">No hay grupos configurados.</p>
-                        <p className="text-sm text-slate-400">Utiliza el formulario para crear el primer grupo.</p>
+        {grades.length === 0 ? (
+          <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-xl bg-white/50 dark:bg-slate-900/30">
+            <School className="w-12 h-12 text-slate-300 mx-auto mb-2" />
+            <p className="text-slate-500 font-medium">
+              No hay grupos configurados.
+            </p>
+            <p className="text-sm text-slate-400">
+              Utiliza el botón + para crear el primer grupo.
+            </p>
+          </div>
+        ) : (
+          LEVELS.map((level) => {
+            const levelGroups = grades.filter((g) => {
+              if (level.id === "preescolar") return g.name.includes("Transición");
+
+              const firstDigits = parseInt(
+                g.name.substring(0, g.name.length >= 4 ? 2 : 1),
+              ); // 1001 vs 601
+              if (isNaN(firstDigits)) return false;
+
+              if (level.id === "primaria") return firstDigits >= 1 && firstDigits <= 5;
+              if (level.id === "secundaria") return firstDigits >= 6 && firstDigits <= 9;
+              if (level.id === "media") return firstDigits >= 10 && firstDigits <= 11;
+              return false;
+            });
+
+            if (levelGroups.length === 0) return null;
+
+            return (
+              <div
+                key={level.id}
+                className="bg-white dark:bg-[#151b2d] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm"
+              >
+                <div className="bg-slate-50 dark:bg-slate-800/50 px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-primary" />
+                    <h3 className="font-bold text-slate-700 dark:text-slate-200 text-sm uppercase tracking-wide">
+                      {level.name}
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-500 bg-white dark:bg-slate-800 px-2 py-1 rounded-full border shadow-sm uppercase">
+                    {levelGroups.length} Grupos
+                  </span>
+                </div>
+                <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {levelGroups.map((group) => (
+                    <div
+                      key={group.id}
+                      className="relative group/item flex items-center justify-between p-3 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm hover:border-primary/50 transition-colors"
+                    >
+                      <div className="flex flex-col">
+                        <span className="text-[9px] text-slate-400 uppercase font-bold">
+                          Grado
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-base font-bold text-slate-800 dark:text-white font-mono">
+                            {group.name}
+                          </span>
+                          <div
+                            onClick={() => handleToggleState(group)}
+                            className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider cursor-pointer transition-colors ${
+                              group.state !== false
+                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200"
+                                : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200"
+                            }`}
+                          >
+                            {group.state !== false ? "Activo" : "Inactivo"}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors"
+                          onClick={() => setEditingGrade(group)}
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                          onClick={() => handleDelete(group.id)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
                     </div>
-                ) : (
-                    LEVELS.map((level) => {
-                        const levelGroups = grades.filter(g => {
-                            if (level.id === 'preescolar') return g.name.includes('Transición');
-                            
-                            const firstDigits = parseInt(g.name.substring(0, g.name.length >= 4 ? 2 : 1)); // 1001 vs 601
-                            if (isNaN(firstDigits)) return false;
-
-                            if (level.id === 'primaria') return firstDigits >= 1 && firstDigits <= 5;
-                            if (level.id === 'secundaria') return firstDigits >= 6 && firstDigits <= 9;
-                            if (level.id === 'media') return firstDigits >= 10 && firstDigits <= 11;
-                            return false;
-                        });
-
-                        if (levelGroups.length === 0) return null;
-
-                        return (
-                            <div key={level.id} className="bg-white dark:bg-[#1e1c30] rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden">
-                                <div className="bg-slate-50 dark:bg-slate-800/50 px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <Layers className="w-4 h-4 text-primary" />
-                                        <h3 className="font-bold text-slate-700 dark:text-slate-200 text-sm uppercase tracking-wide">{level.name}</h3>
-                                    </div>
-                                    <span className="text-xs font-medium text-slate-500 bg-white dark:bg-slate-800 px-2 py-1 rounded-full border shadow-sm">
-                                        {levelGroups.length} Grupos
-                                    </span>
-                                </div>
-                                <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                                    {levelGroups.map((group) => (
-                                        <div key={group.id} className="relative group/item flex items-center justify-between p-3 bg-white dark:bg-slate-900 border rounded-lg shadow-sm hover:border-primary/50 transition-colors">
-                                           <div className="flex flex-col">
-                                                <span className="text-xs text-slate-400 uppercase font-bold">Grado</span>
-                                                <span className="text-lg font-bold text-slate-800 dark:text-white font-mono">{group.name}</span>
-                                           </div>
-                                           <div className="flex gap-1 opacity-100 lg:opacity-0 lg:group-hover/item:opacity-100 transition-opacity">
-                                                <Button 
-                                                    type="button"
-                                                    variant="ghost" 
-                                                    size="icon"
-                                                    className="h-8 w-8 text-slate-400 hover:text-amber-500 hover:bg-amber-50"
-                                                    onClick={() => setEditingGrade(group)}
-                                                >
-                                                    <Pencil className="w-3 h-3" />
-                                                </Button>
-                                                <Button 
-                                                    type="button"
-                                                    variant="ghost" 
-                                                    size="icon"
-                                                    className="h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50"
-                                                    onClick={() => handleDelete(group.id)}
-                                                >
-                                                    <Trash2 className="w-3 h-3" />
-                                                </Button>
-                                           </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )
-                    })
-                )}
+                  ))}
+                </div>
+              </div>
+            );
+          })
+        )}
             </CardContent>
            </Card>
-        </div>
-      </div>
+      </main>
 
        {/* Edit Dialog */}
        <Dialog open={!!editingGrade} onOpenChange={(open) => !open && setEditingGrade(null)}>

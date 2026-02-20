@@ -1,296 +1,490 @@
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
-import { toast } from 'sonner'
-import { Trash2, GraduationCap, Copy, RefreshCw, Mail } from 'lucide-react'
-import { Badge } from "@/components/ui/badge"
-
-
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
+import {
+  Trash2,
+  Copy,
+  RefreshCw,
+  Mail,
+  Plus,
+  Pencil,
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 type Teacher = {
-  id: string
-  full_name: string | null
-  email?: string
-  avatar_url?: string | null
-}
+  id: string;
+  full_name: string | null;
+  email?: string;
+  avatar_url?: string | null;
+  state?: boolean;
+  role?: string;
+};
 
 type Invite = {
-    email: string
-    token: string
-    full_name: string
-    created_at: string
-}
+  email: string;
+  token: string;
+  full_name: string;
+  created_at: string;
+};
 
 export default function TeachersPage() {
-  const [teachers, setTeachers] = useState<Teacher[]>([])
-  const [invites, setInvites] = useState<Invite[]>([])
-  const [loading, setLoading] = useState(true)
-  const [isCreating, setIsCreating] = useState(false)
-  const [lastGeneratedToken, setLastGeneratedToken] = useState<string | null>(null)
-  
-  const supabase = createClient()
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [invites, setInvites] = useState<Invite[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [lastGeneratedToken, setLastGeneratedToken] = useState<string | null>(
+    null,
+  );
+
+  const [isCoordinator, setIsCoordinator] = useState(false);
+
+  const supabase = createClient();
 
   useEffect(() => {
-    fetchData()
-  }, [])
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (editingTeacher) {
+      setIsCoordinator(editingTeacher.role === 'coordinator');
+    }
+  }, [editingTeacher]);
 
   const fetchData = async () => {
-    setLoading(true)
-    await Promise.all([fetchTeachers(), fetchInvites()])
-    setLoading(false)
-  }
+    setLoading(true);
+    await Promise.all([fetchTeachers(), fetchInvites()]);
+    setLoading(false);
+  };
 
   const fetchTeachers = async () => {
     try {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('role', 'teacher')
-        .order('full_name', { ascending: true })
+        .from("profiles")
+        .select("*")
+        .in("role", ["teacher", "coordinator"])
+        .order("full_name", { ascending: true });
 
-      if (error) throw error
-      setTeachers(data || [])
+      if (error) throw error;
+      setTeachers(data || []);
     } catch (error: any) {
-      console.error('Error fetching teachers:', error)
+      console.error("Error fetching teachers:", error);
     }
-  }
+  };
 
   const fetchInvites = async () => {
     try {
-        const { data, error } = await supabase
-            .from('teacher_invites')
-            .select('*')
-            .order('created_at', { ascending: false })
-        
-        if (error) {
-            // If table doesn't exist yet (404/42P01), ignore silently or log
-            if (error.code !== '42P01') console.error('Error fetching invites:', error)
-        } else {
-            setInvites(data as Invite[] || [])
-        }
+      const { data, error } = await supabase
+        .from("teacher_invites")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        // If table doesn't exist yet (404/42P01), ignore silently or log
+        if (error.code !== "42P01")
+          console.error("Error fetching invites:", error);
+      } else {
+        setInvites((data as Invite[]) || []);
+      }
     } catch (error) {
-        // silent fail
+      // silent fail
     }
-  }
+  };
 
   const handleCreateInvite = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setIsCreating(true)
-    setLastGeneratedToken(null)
-    
-    const form = e.currentTarget
-    const formData = new FormData(form)
-    const fullName = formData.get('fullName') as string
-    const email = formData.get('email') as string
-    
+    e.preventDefault();
+    setIsCreating(true);
+    setLastGeneratedToken(null);
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const fullName = formData.get("fullName") as string;
+    const email = formData.get("email") as string;
+
     // Generate 5 digit token
-    const token = Math.floor(10000 + Math.random() * 90000).toString()
+    const token = Math.floor(10000 + Math.random() * 90000).toString();
 
     try {
-        const { error } = await supabase
-            .from('teacher_invites')
-            .insert([{ full_name: fullName, email, token }] as any)
+      const { error } = await supabase
+        .from("teacher_invites")
+        .insert([{ full_name: fullName, email, token }] as any);
 
-        if (error) throw error
+      if (error) throw error;
 
-        toast.success('Invitación generada correctamente')
-        setLastGeneratedToken(token)
-        fetchInvites()
-        
-        // Reset form safely
-        form.reset()
+      toast.success("Invitación creada correctamente");
+      setLastGeneratedToken(token);
+      setIsDialogOpen(false);
+      fetchInvites();
+      form.reset();
     } catch (error: any) {
-        toast.error('Error al generar invitación', { description: error.message })
+      toast.error("Error al generar invitación", {
+        description: error.message,
+      });
     } finally {
-        setIsCreating(false)
+      setIsCreating(false);
     }
-  }
+  };
 
   const handleDeleteInvite = async (email: string) => {
-      if (!confirm('¿Borrar esta invitación? El código dejará de funcionar.')) return;
+    if (!confirm("¿Eliminar esta invitación?")) return;
 
-      try {
-          const { error } = await supabase
-            .from('teacher_invites')
-            .delete()
-            .eq('email', email)
-          
-          if (error) throw error
-          toast.success('Invitación eliminada')
-          setInvites(prev => prev.filter(i => i.email !== email))
-      } catch (error: any) {
-          toast.error('Error al borrar', { description: error.message })
-      }
-  }
+    try {
+      const { error } = await supabase
+        .from("teacher_invites")
+        .delete()
+        .eq("email", email);
+
+      if (error) throw error;
+      toast.success("Invitación eliminada");
+      setInvites((prev) => prev.filter((i) => i.email !== email));
+    } catch (error: any) {
+      toast.error("Error al eliminar", { description: error.message });
+    }
+  };
 
   const copyToClipboard = (text: string) => {
-      navigator.clipboard.writeText(text)
-      toast.success('Código copiado al portapapeles')
-  }
+    navigator.clipboard.writeText(text);
+    toast.success("Código copiado");
+  };
 
-  /* 
-    Nota: Borrar un profesor real (auth.users) sigue requiriendo permisos de admin. 
-    Por ahora mantenemos solo borrado de perfil o advertencia.
-  */
   const handleDeleteTeacher = async (id: string) => {
-    if(!confirm('¿Eliminar perfil de profesor? La cuenta de acceso permanecerá (requiere admin DB explícito).')) return;
+    if (!confirm("¿Eliminar este docente?")) return;
     try {
-        const { error } = await supabase.from('profiles').delete().eq('id', id)
-        if (error) throw error
-        toast.success('Perfil eliminado')
-        setTeachers(prev => prev.filter(t => t.id !== id))
+      const { error } = await supabase.from("profiles").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Docente eliminado");
+      setTeachers((prev) => prev.filter((t) => t.id !== id));
     } catch (error: any) {
-        toast.error('No se pudo eliminar', { description: error.message })
+      toast.error("Error al eliminar", { description: error.message });
     }
-  }
+  };
 
-  if (loading && teachers.length === 0 && invites.length === 0) return <div className="p-8 text-center text-slate-500">Cargando gestión docente...</div>
+  const handleUpdateTeacher = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingTeacher) return;
+
+    setIsUpdating(true);
+    const formData = new FormData(e.currentTarget);
+    const fullName = formData.get("fullName") as string;
+    // Use the controlled state instead of formData for the switch
+
+    try {
+      const { error } = await (supabase
+        .from("profiles") as any)
+        .update({ 
+          full_name: fullName,
+          role: isCoordinator ? "coordinator" : "teacher"
+        })
+        .eq("id", editingTeacher.id);
+
+      if (error) throw error;
+
+      toast.success("Docente actualizado");
+      setEditingTeacher(null);
+      fetchTeachers();
+    } catch (error: any) {
+      toast.error("Error al actualizar", { description: error.message });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleToggleState = async (teacher: Teacher) => {
+    try {
+      const newState = !teacher.state;
+      const { error } = await (supabase
+        .from("profiles") as any)
+        .update({ state: newState })
+        .eq("id", teacher.id);
+
+      if (error) throw error;
+
+      toast.success(newState ? "Docente activado" : "Docente desactivado");
+      setTeachers((prev) =>
+        prev.map((t) => (t.id === teacher.id ? { ...t, state: newState } : t)),
+      );
+    } catch (error: any) {
+      toast.error("Error al cambiar estado", { description: error.message });
+    }
+  };
+
+  if (loading && teachers.length === 0 && invites.length === 0)
+    return (
+      <div className="p-8 text-center text-slate-500">
+        Cargando gestión docente...
+      </div>
+    );
 
   return (
-    <div className="space-y-6 p-6 h-full overflow-y-auto">
-      <div className="flex justify-between items-center">
-        <div>
-           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Cuerpo Docente</h1>
-           <p className="text-gray-500 underline decoration-dotted decoration-1 underline-offset-4">Sistema de Invitaciones y Gestión.</p>
-        </div>
-        <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Actualizar
-        </Button>
-      </div>
-
-      <div className="grid gap-8 lg:grid-cols-12">
-        {/* Formulario de Invitación (Izquierda) */}
-        <div className="lg:col-span-4 lg:sticky lg:top-6 h-fit space-y-6">
-            <Card className="border-l-4 border-l-primary shadow-md">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Mail className="w-5 h-5 text-primary" />
-                        Generar Invitación
-                    </CardTitle>
-                    <CardDescription>Crea un código de acceso para un nuevo docente.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleCreateInvite} className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="fullName">Nombre Completo</Label>
-                        <Input id="fullName" name="fullName" placeholder="Ej. Roberto Gómez" required />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="email">Correo Institucional</Label>
-                        <Input id="email" name="email" type="email" placeholder="profe@edubeta.com" required />
-                    </div>
-                    
-                    <Button type="submit" className="w-full" disabled={isCreating}>
-                        {isCreating ? 'Generando...' : 'Generar Código PIN'}
+    <div className="bg-background-light dark:bg-background-dark min-h-screen pb-20">
+      {/* Header */}
+      <header className="sticky top-0 z-40 bg-white/80 dark:bg-[#151b2d]/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+            Docentes
+          </h1>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchData}
+              disabled={loading}
+            >
+              <RefreshCw
+                className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+              />
+            </Button>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <button className="bg-primary hover:bg-primary/90 text-white p-2 rounded-full shadow-lg shadow-primary/30 transition-transform active:scale-95 flex items-center justify-center">
+                  <Plus className="w-5 h-5" />
+                </button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Generar Invitación</DialogTitle>
+                  <DialogDescription>
+                    Crea un código de acceso para un nuevo docente.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleCreateInvite} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName">Nombre Completo</Label>
+                    <Input
+                      id="fullName"
+                      name="fullName"
+                      placeholder="Ej. Roberto Gómez"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Correo Institucional</Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="profe@edubeta.com"
+                      required
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsDialogOpen(false)}
+                    >
+                      Cancelar
                     </Button>
-                    </form>
+                    <Button type="submit" disabled={isCreating}>
+                      {isCreating ? "Generando..." : "Generar"}
+                    </Button>
+                  </DialogFooter>
+                </form>
 
-                    {lastGeneratedToken && (
-                        <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-center animate-in fade-in zoom-in duration-300">
-                            <p className="text-sm text-green-800 dark:text-green-300 mb-1 font-medium">¡Invitación Creada!</p>
-                            <div className="text-3xl font-mono font-bold tracking-widest text-slate-900 dark:text-white my-2">
-                                {lastGeneratedToken}
-                            </div>
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="w-full mt-2 border-green-200 hover:bg-green-100 dark:border-green-800 dark:hover:bg-green-900/40"
-                                onClick={() => copyToClipboard(lastGeneratedToken)}
-                            >
-                                <Copy className="w-3 h-3 mr-2" /> Copiar Código
-                            </Button>
-                            <p className="text-xs text-slate-500 mt-2">Comparte este código y el correo con el docente.</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* Lista de Invitaciones Pendientes */}
-            <Card>
-                <CardHeader className="pb-3">
-                    <CardTitle className="text-base text-slate-600 dark:text-slate-300">
-                        Invitaciones Pendientes ({invites.length})
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="px-0 max-h-[300px] overflow-y-auto">
-                    {invites.length === 0 ? (
-                        <p className="text-center text-sm text-slate-400 py-4">No hay invitaciones activas.</p>
-                    ) : (
-                        <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {invites.map((invite) => (
-                                <div key={invite.email} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-center justify-between group">
-                                    <div className="min-w-0 flex-1 pr-3">
-                                        <p className="font-medium text-sm truncate text-slate-800 dark:text-slate-200">{invite.full_name}</p>
-                                        <p className="text-xs text-slate-500 truncate">{invite.email}</p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-xs font-mono font-bold text-slate-600 dark:text-slate-400 select-all">
-                                            {invite.token}
-                                        </div>
-                                        <Button 
-                                            variant="ghost" 
-                                            size="icon" 
-                                            className="h-6 w-6 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            onClick={() => handleDeleteInvite(invite.email)}
-                                        >
-                                            <Trash2 className="w-3 h-3" />
-                                        </Button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-        </div>
-
-        {/* Lista de Profesores Activos (Derecha) */}
-        <div className="lg:col-span-8">
-            <Card className="h-full border-none shadow-none bg-transparent">
-                <CardHeader className="px-0 pt-0 flex flex-row items-center justify-between">
-                    <div>
-                        <CardTitle>Docentes Registrados</CardTitle>
-                        <CardDescription>Usuarios activos con rol de profesor.</CardDescription>
+                {lastGeneratedToken && (
+                  <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-center">
+                    <p className="text-sm text-green-800 dark:text-green-300 mb-2 font-medium">
+                      ¡Invitación Creada!
+                    </p>
+                    <div className="text-3xl font-mono font-bold tracking-widest text-slate-900 dark:text-white my-3">
+                      {lastGeneratedToken}
                     </div>
-                </CardHeader>
-                <CardContent className="px-0">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {teachers.length === 0 ? (
-                             <div className="col-span-full text-center py-12 border-2 border-dashed rounded-xl">
-                                <GraduationCap className="w-12 h-12 text-slate-200 mx-auto mb-2" />
-                                <p className="text-slate-500">No hay docentes registrados aún.</p>
-                                <p className="text-sm text-slate-400">Genera una invitación para comenzar.</p>
-                             </div>
-                        ) : (
-                            teachers.map((teacher) => (
-                                <div key={teacher.id} className="flex items-center gap-4 p-4 bg-white dark:bg-slate-900 border rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                                        <GraduationCap className="w-6 h-6" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h3 className="font-bold text-slate-900 dark:text-white truncate">{teacher.full_name || 'Sin Nombre'}</h3>
-                                        <p className="text-sm text-slate-500 truncate">{teacher.email || 'Email no disponible'}</p>
-                                        <Badge variant="secondary" className="mt-1 text-xs">Docente</Badge>
-                                    </div>
-                                    <Button 
-                                        variant="ghost" 
-                                        size="icon"
-                                        className="text-slate-400 hover:text-red-500"
-                                        onClick={() => handleDeleteTeacher(teacher.id)}
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                </div>
-                            ))
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full border-green-200 hover:bg-green-100"
+                      onClick={() => copyToClipboard(lastGeneratedToken)}
+                    >
+                      <Copy className="w-3 h-3 mr-2" /> Copiar
+                    </Button>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+          Gestiona invitaciones y docentes activos.
+        </p>
+      </header>
+
+      {/* Main Content */}
+      <main className="p-4 space-y-4">
+        {/* Invitaciones Pendientes */}
+        {invites.length > 0 && (
+          <div className="bg-white dark:bg-[#151b2d] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4">
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">
+              Invitaciones Pendientes ({invites.length})
+            </h2>
+            <div className="space-y-2">
+              {invites.map((invite) => (
+                <div
+                  key={invite.email}
+                  className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg group"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Mail className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">
+                        {invite.full_name}
+                      </p>
+                      <p className="text-xs text-slate-500 truncate">
+                        {invite.email}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-xs font-mono font-bold text-slate-600 dark:text-slate-400">
+                      {invite.token}
+                    </div>
+                    <button
+                      onClick={() => handleDeleteInvite(invite.email)}
+                      className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-all"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Docentes Registrados */}
+        <div className="bg-white dark:bg-[#151b2d] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-4">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">
+            Docentes Activos ({teachers.length})
+          </h2>
+          <div className="space-y-2">
+            {teachers.length === 0 ? (
+              <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-6">
+                No hay docentes registrados aún.
+              </p>
+            ) : (
+              teachers.map((teacher) => (
+                <div
+                  key={teacher.id}
+                  className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg group"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
+                      {teacher.full_name?.charAt(0) || "?"}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">
+                        {teacher.full_name || "Sin Nombre"}
+                      </p>
+                      <p className="text-xs text-slate-500 truncate flex items-center gap-1.5">
+                        {teacher.email || "Email no disponible"}
+                        {teacher.role === 'coordinator' && (
+                          <span className="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                            Coordinador
+                          </span>
                         )}
+                      </p>
                     </div>
-                </CardContent>
-            </Card>
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <div
+                      onClick={() => handleToggleState(teacher)}
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-colors ${
+                        teacher.state !== false
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200"
+                          : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200"
+                      }`}
+                    >
+                      {teacher.state !== false ? "Activo" : "Inactivo"}
+                    </div>
+                    <button
+                      onClick={() => setEditingTeacher(teacher)}
+                      className="p-1.5 text-slate-400 hover:text-primary transition-colors"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTeacher(teacher.id)}
+                      className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
-      </div>
+      </main>
+      {/* Edit Teacher Dialog */}
+      <Dialog
+        open={!!editingTeacher}
+        onOpenChange={(open) => !open && setEditingTeacher(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Docente</DialogTitle>
+            <DialogDescription>
+              Modifica los datos del perfil del docente.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateTeacher} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-fullName">Nombre Completo</Label>
+              <Input
+                id="edit-fullName"
+                name="fullName"
+                defaultValue={editingTeacher?.full_name || ""}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Correo Institucional</Label>
+              <Input value={editingTeacher?.email || ""} disabled />
+              <p className="text-[10px] text-slate-500">
+                El correo no puede ser modificado.
+              </p>
+            </div>
+            
+            <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800">
+               <div className="space-y-0.5">
+                  <Label className="text-sm font-bold">Rol de Coordinador</Label>
+                  <p className="text-[10px] text-slate-500">Permite gestionar inasidencias de otros docentes.</p>
+               </div>
+               <Switch 
+                  id="isCoordinator"
+                  checked={isCoordinator}
+                  onCheckedChange={setIsCoordinator}
+               />
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditingTeacher(null)}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isUpdating}>
+                {isUpdating ? "Guardando..." : "Guardar Cambios"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
-  )
+  );
 }
