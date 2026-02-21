@@ -2,6 +2,7 @@
   "name": "edubeta",
   "version": "0.1.0",
   "private": true,
+  "description": "Escuela Digital EduBeta",
   "type": "module",
   "scripts": {
     "dev": "vite",
