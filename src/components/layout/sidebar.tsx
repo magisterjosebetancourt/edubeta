@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
+import { useState, useEffect } from 'react'
 import { 
   LayoutDashboard, 
   Users, 
@@ -11,7 +12,8 @@ import {
   Settings, 
   LogOut, 
   PieChart,
-  MapPin
+  MapPin,
+  CheckCircle2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -21,6 +23,7 @@ const sidebarItems = [
     category: "Principal",
     items: [
       { title: 'Inicio', href: '/dashboard', icon: LayoutDashboard },
+      { title: 'Tareas', href: '/dashboard/todos', icon: CheckCircle2 },
       { title: 'Caracterización', href: '/dashboard/institution', icon: Building },
     ]
   },
@@ -50,6 +53,33 @@ export function SidebarContent({ className, onLinkClick }: { className?: string,
   const navigate = useNavigate()
   const pathname = location.pathname
   const supabase = createClient()
+  
+  interface UserProfile {
+    full_name: string;
+    email: string;
+    role: string;
+  }
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+
+  useEffect(() => {
+    async function getProfile() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, role')
+          .eq('id', user.id)
+          .single() as { data: { full_name: string; role: string } | null }
+        
+        setUserProfile({
+          full_name: profile?.full_name || 'Usuario',
+          email: user.email || '',
+          role: profile?.role || 'user'
+        })
+      }
+    }
+    getProfile()
+  }, [supabase])
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut()
@@ -59,6 +89,23 @@ export function SidebarContent({ className, onLinkClick }: { className?: string,
       navigate('/login')
     }
   }
+
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  }
+
+  const filteredItems = sidebarItems.map(group => ({
+    ...group,
+    items: group.items.filter(item => {
+      // Si es docente o coordinador, ocultar Caracterización y Configuración
+      if (userProfile?.role !== 'admin') {
+        if (['Caracterización', 'Configuración', 'Docentes', 'Grados y Grupos', 'Asignación Académica', 'Asignaturas', 'Barrios'].includes(item.title)) {
+          return false
+        }
+      }
+      return true
+    })
+  })).filter(group => group.items.length > 0)
 
   return (
     <div className={cn("flex flex-col h-full bg-[#121022] text-white", className)}>
@@ -74,7 +121,7 @@ export function SidebarContent({ className, onLinkClick }: { className?: string,
 
       {/* Navigation */}
       <nav className="flex-1 px-4 py-6 space-y-6 overflow-y-auto no-scrollbar">
-        {sidebarItems.map((group, idx) => (
+        {filteredItems.map((group, idx) => (
           <div key={idx}>
             {group.category && (
               <div className="px-4 mb-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
@@ -111,12 +158,14 @@ export function SidebarContent({ className, onLinkClick }: { className?: string,
       {/* User Profile */}
       <div className="p-4 border-t border-white/10 shrink-0">
         <div className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 cursor-pointer transition-colors group">
-          <div className="w-10 h-10 rounded-full bg-slate-700 border-2 border-primary flex items-center justify-center text-white font-bold">
-            AD
+          <div className="w-10 h-10 rounded-full bg-slate-700 border-2 border-primary flex items-center justify-center text-white font-bold text-xs">
+            {userProfile ? getInitials(userProfile.full_name) : '...'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">Administrador</p>
-            <p className="text-xs text-slate-400 truncate">admin@edubeta.com</p>
+            <p className="text-sm font-medium text-white truncate">{userProfile?.full_name || 'Cargando...'}</p>
+            <p className="text-[10px] text-slate-400 truncate uppercase tracking-widest font-bold">
+              {userProfile?.role === 'admin' ? 'Administrador' : userProfile?.role === 'coordinator' ? 'Coordinador' : 'Docente'}
+            </p>
           </div>
           <Button 
             variant="ghost" 

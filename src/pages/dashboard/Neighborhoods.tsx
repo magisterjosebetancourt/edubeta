@@ -156,62 +156,11 @@ export default function NeighborhoodsPage() {
 
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen pb-20 text-slate-800 dark:text-slate-100">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-[#151b2d]/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => navigate(-1)}
-              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-              Gestión de Barrios
-            </h1>
-          </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <button className="bg-primary hover:bg-primary/90 text-white p-2 rounded-full shadow-lg shadow-primary/30 transition-transform active:scale-95 flex items-center justify-center">
-                <Plus className="w-5 h-5" />
-              </button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Nuevo Barrio</DialogTitle>
-                <DialogDescription>
-                  Agrega una nueva ubicación para la caracterización.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleCreate} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Nombre del Barrio / Sector</Label>
-                  <Input
-                    name="name"
-                    placeholder="Ej. Barrio Centro, Sector 1..."
-                    required
-                  />
-                </div>
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsDialogOpen(false)}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button type="submit" disabled={isCreating}>
-                    {isCreating ? "Registrando..." : "Registrar"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+      <div className="px-4 py-4 pt-6">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           Administra los barrios y sectores para la caracterización socioeconómica.
         </p>
-      </header>
+      </div>
 
       <main className="p-4 space-y-4">
         {neighborhoods.length === 0 ? (

@@ -1,19 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { createClient } from "@/lib/supabase/client";
-import { CsvUploader } from "@/components/students/CsvUploader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Trash2, UserPlus, Search, Edit, Upload, MapPin, ArrowLeft } from "lucide-react";
+import { Trash2, Search, Edit, MapPin, UserPlus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
 
@@ -85,7 +83,7 @@ export default function StudentsPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [userRole, setUserRole] = useState<string>('user');
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterGradeId, setFilterGradeId] = useState<string>("");
@@ -113,12 +111,53 @@ export default function StudentsPage() {
 
   const fetchData = async () => {
     try {
+      // 1. Get user role and assigned grades if teacher
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single() as { data: { role: string } | null };
+      
+      const role = profile?.role || 'user';
+      setUserRole(role);
+      let gradeIds: number[] = [];
+
+      if (role === 'teacher') {
+        const { data: assignments } = await supabase
+          .from('assignments')
+          .select('grade_id')
+          .eq('teacher_id', user.id) as { data: { grade_id: number }[] | null };
+        
+        gradeIds = Array.from(new Set(assignments?.map((a: any) => a.grade_id) || []));
+      }
+
+      // 2. Build Query
+      let studentsQuery = supabase
+        .from("students")
+        .select(`*, grades (name)`)
+        .order("first_name", { ascending: true });
+      
+      let gradesQuery = supabase.from("grades").select("*").eq("state", true).order("name", { ascending: true });
+
+      if (role === 'teacher') {
+        if (gradeIds.length > 0) {
+          studentsQuery = studentsQuery.in('grade_id', gradeIds);
+          gradesQuery = gradesQuery.in('id', gradeIds);
+        } else {
+          // If no assignments, don't return anything
+          setStudents([]);
+          setGrades([]);
+          setLoading(false);
+          return;
+        }
+      }
+
       const [studentsRes, gradesRes, neighborhoodsRes, attendanceRes] = await Promise.all([
-        supabase
-          .from("students")
-          .select(`*, grades (name)`)
-          .order("first_name", { ascending: true }),
-        supabase.from("grades").select("*").eq("state", true).order("name", { ascending: true }),
+        studentsQuery,
+        gradesQuery,
         supabase.from("neighborhoods").select("*").eq("state", true).order("name", { ascending: true }),
         supabase.from("attendance_records").select("student_id, status")
       ]);
@@ -156,41 +195,43 @@ export default function StudentsPage() {
     fetchData();
   }, []);
 
-  // Filtrar grades según la jerarquía
-  const filteredGradesForSelect = grades.filter((g) => {
-    if (!selectedGradeName) return false;
+  // Filtrar grades según la jerarquía (Memoizado)
+  const filteredGradesForSelect = useMemo(() => {
+    if (!selectedGradeName) return [];
 
     if (selectedGradeName === "Transición") {
-      return g.name.includes("Transición");
+      return grades.filter(g => g.name.includes("Transición"));
     }
 
     const prefix = GRADE_MAP[selectedGradeName];
-    if (!prefix) return false;
+    if (!prefix) return [];
 
-    if (prefix === "1") {
-      return g.name.startsWith("1") && !g.name.startsWith("11");
-    }
+    return grades.filter(g => {
+      if (prefix === "1") {
+        return g.name.startsWith("1") && !g.name.startsWith("11");
+      }
+      return g.name.startsWith(prefix);
+    });
+  }, [grades, selectedGradeName]);
 
-    return g.name.startsWith(prefix);
-  });
-
-  // Lo mismo para editar
-  const filteredGradesForEdit = grades.filter((g) => {
-    if (!editGradeName) return false;
+  // Lo mismo para editar (Memoizado)
+  const filteredGradesForEdit = useMemo(() => {
+    if (!editGradeName) return [];
 
     if (editGradeName === "Transición") {
-      return g.name.includes("Transición");
+      return grades.filter(g => g.name.includes("Transición"));
     }
 
     const prefix = GRADE_MAP[editGradeName];
-    if (!prefix) return false;
+    if (!prefix) return [];
 
-    if (prefix === "1") {
-      return g.name.startsWith("1") && !g.name.startsWith("11");
-    }
-
-    return g.name.startsWith(prefix);
-  });
+    return grades.filter(g => {
+      if (prefix === "1") {
+        return g.name.startsWith("1") && !g.name.startsWith("11");
+      }
+      return g.name.startsWith(prefix);
+    });
+  }, [grades, editGradeName]);
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -305,188 +346,32 @@ export default function StudentsPage() {
     }
   };
 
-  // Filter students
-  const filteredStudents = students.filter((student) => {
-    const nameMatch = `${student.first_name} ${student.last_name} ${student.neighborhood || ""}`
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+  // Filter students (Memoizado para evitar INP issues)
+  const filteredStudents = useMemo(() => {
+    return students.filter((student) => {
+      const nameMatch = `${student.first_name} ${student.last_name} ${student.neighborhood || ""}`
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
 
-    const gradeMatch =
-      filterGradeId === "" || String(student.grade_id) === filterGradeId;
+      const gradeMatch =
+        filterGradeId === "" || String(student.grade_id) === filterGradeId;
 
-    return nameMatch && gradeMatch;
-  });
+      return nameMatch && gradeMatch;
+    });
+  }, [students, searchTerm, filterGradeId]);
 
   if (loading)
     return <div className="p-8 text-center">Cargando estudiantes...</div>;
 
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen text-slate-800 dark:text-slate-100 pb-20">
-      {/* Mobile Header */}
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-[#151b2d]/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => navigate(-1)}
-              className="lg:hidden p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-              Estudiantes
-            </h1>
-          </div>
-
-          <div className="flex gap-2">
-            <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
-              <DialogTrigger asChild>
-                <button className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 p-2 rounded-full shadow-sm transition-transform active:scale-95 flex items-center justify-center">
-                  <Upload className="w-5 h-5" />
-                </button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Importación Masiva</DialogTitle>
-                  <DialogDescription>
-                    Sube un archivo CSV (nombre, apellido, grado) para registrar
-                    múltiples estudiantes.
-                  </DialogDescription>
-                </DialogHeader>
-                <CsvUploader
-                  onSuccess={() => {
-                    setIsImportOpen(false);
-                    fetchData();
-                  }}
-                />
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <button className="bg-primary hover:bg-primary/90 text-white p-2 rounded-full shadow-lg shadow-primary/30 transition-transform active:scale-95 flex items-center justify-center">
-                  <UserPlus className="w-5 h-5" />
-                </button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Matricular Estudiante</DialogTitle>
-                  <DialogDescription>
-                    Ingresa los datos del nuevo estudiante.
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleCreate} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">Nombre</Label>
-                      <Input
-                        id="firstName"
-                        name="firstName"
-                        placeholder="Ej. Juan"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Apellido</Label>
-                      <Input
-                        id="lastName"
-                        name="lastName"
-                        placeholder="Ej. Pérez"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="neighborhood">Barrio / Ubicación</Label>
-                    <select
-                      id="neighborhood"
-                      name="neighborhood"
-                      className="w-full flex h-9 items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1"
-                    >
-                      <option value="">Seleccionar Barrio (Opcional)</option>
-                      {neighborhoods.map((n) => (
-                        <option key={n.id} value={n.name}>
-                          {n.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Grado/Curso</Label>
-                    <select
-                      value={selectedLevelId}
-                      onChange={(e) => {
-                        setSelectedLevelId(e.target.value);
-                        setSelectedGradeName("");
-                        setSelectedGradeId("");
-                      }}
-                      className="w-full flex h-9 items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1"
-                    >
-                      <option value="">Nivel Educativo</option>
-                      {LEVELS.map((level) => (
-                        <option key={level.id} value={level.id}>
-                          {level.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <select
-                      value={selectedGradeName}
-                      onChange={(e) => {
-                        setSelectedGradeName(e.target.value);
-                        setSelectedGradeId("");
-                      }}
-                      disabled={!selectedLevelId}
-                      className="w-full flex h-9 items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1"
-                    >
-                      <option value="">Grado (Ley 115)</option>
-                      {selectedLevelId &&
-                        LEVELS.find(
-                          (l) => l.id === selectedLevelId,
-                        )?.grades.map((gName) => (
-                          <option key={gName} value={gName}>
-                            {gName}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <select
-                      value={selectedGradeId}
-                      onChange={(e) => setSelectedGradeId(e.target.value)}
-                      disabled={!selectedGradeName}
-                      className="w-full flex h-9 items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1"
-                    >
-                      <option value="">
-                        {filteredGradesForSelect.length > 0
-                          ? "Grupo/Curso"
-                          : "No hay grupos"}
-                      </option>
-                      {filteredGradesForSelect.map((g) => (
-                        <option key={g.id} value={String(g.id)}>
-                          {g.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={isCreating}
-                  >
-                    {isCreating ? "Guardando..." : "Matricular"}
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
-
-        {/* Search Bar */}
-        <div className="mt-4 flex gap-3">
+      <div className="p-4 space-y-4">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Listado de alumnos matriculados.
+        </p>
+        
+        {/* Search Bar & Actions */}
+        <div className="flex flex-col md:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
             <input
@@ -498,20 +383,32 @@ export default function StudentsPage() {
             />
           </div>
 
-          <select
-            value={filterGradeId}
-            onChange={(e) => setFilterGradeId(e.target.value)}
-            className="min-w-[120px] bg-slate-100 dark:bg-[#1e2536] border-none rounded-xl py-2.5 px-3 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 transition-shadow outline-none"
-          >
-            <option value="">Todos los grados</option>
-            {grades.map((grade) => (
-              <option key={grade.id} value={grade.id}>
-                {grade.name}
-              </option>
-            ))}
-          </select>
+          <div className="flex gap-2">
+            <select
+              value={filterGradeId}
+              onChange={(e) => setFilterGradeId(e.target.value)}
+              className="flex-1 md:flex-none min-w-[120px] bg-slate-100 dark:bg-[#1e2536] border-none rounded-xl py-2.5 px-3 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 transition-shadow outline-none"
+            >
+              <option value="">Todos los grados</option>
+              {grades.map((grade) => (
+                <option key={grade.id} value={grade.id}>
+                  {grade.name}
+                </option>
+              ))}
+            </select>
+
+            {(userRole === 'admin' || userRole === 'coordinator') && (
+              <Button 
+                onClick={() => setIsDialogOpen(true)}
+                className="bg-primary hover:bg-primary/90 text-white rounded-xl h-auto py-2.5 gap-2 shadow-lg shadow-primary/20"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span className="hidden sm:inline">Matricular</span>
+              </Button>
+            )}
+          </div>
         </div>
-      </header>
+      </div>
 
       {/* Main Content List */}
       <main className="px-4 py-4 space-y-3">
@@ -577,33 +474,149 @@ export default function StudentsPage() {
                 </div>
               </div>
               {/* Quick Actions */}
-              <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50 flex items-center justify-end gap-2">
-                <button
-                  onClick={() => {
-                    setEditingStudent(student);
-                    setEditLevelId("");
-                    setEditGradeName("");
-                    setEditGradeId(String(student.grade_id || ""));
-                  }}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                >
-                  <Edit className="w-4 h-4" />
-                  Editar
-                </button>
-                <button
-                  onClick={() => handleDelete(student.id)}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Eliminar
-                </button>
-              </div>
+              {userRole !== 'teacher' && (
+                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50 flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => {
+                      setEditingStudent(student);
+                      setEditLevelId("");
+                      setEditGradeName("");
+                      setEditGradeId(String(student.grade_id || ""));
+                    }}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <Edit className="w-4 h-4" />
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => handleDelete(student.id)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Eliminar
+                  </button>
+                </div>
+              )}
             </div>
           ))
         )}
       </main>
 
-      {/* Edit Student Dialog */}
+      {/* Create Student Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Matricular Estudiante</DialogTitle>
+            <DialogDescription>
+              Registra un nuevo alumno en el sistema.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreate} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">Nombre</Label>
+                <Input id="firstName" name="firstName" required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Apellido</Label>
+                <Input id="lastName" name="lastName" required />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="neighborhood">Barrio / Ubicación</Label>
+              <select
+                id="neighborhood"
+                name="neighborhood"
+                className="w-full flex h-9 items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1"
+              >
+                <option value="">Seleccionar Barrio (Opcional)</option>
+                {neighborhoods.map((n) => (
+                  <option key={n.id} value={n.name}>
+                    {n.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-2">
+                <select
+                  value={selectedLevelId}
+                  onChange={(e) => {
+                    setSelectedLevelId(e.target.value);
+                    setSelectedGradeName("");
+                    setSelectedGradeId("");
+                  }}
+                  className="w-full flex h-9 items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1"
+                >
+                  <option value="">Nivel Educativo</option>
+                  {LEVELS.map((level) => (
+                    <option key={level.id} value={level.id}>
+                      {level.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <select
+                  value={selectedGradeName}
+                  onChange={(e) => {
+                    setSelectedGradeName(e.target.value);
+                    setSelectedGradeId("");
+                  }}
+                  disabled={!selectedLevelId}
+                  className="w-full flex h-9 items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1"
+                >
+                  <option value="">Grado (Ley 115)</option>
+                  {selectedLevelId &&
+                    LEVELS.find((l) => l.id === selectedLevelId)?.grades.map(
+                      (gName) => (
+                        <option key={gName} value={gName}>
+                          {gName}
+                        </option>
+                      ),
+                    )}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <select
+                  value={selectedGradeId}
+                  onChange={(e) => setSelectedGradeId(e.target.value)}
+                  disabled={!selectedGradeName}
+                  className="w-full flex h-9 items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1"
+                >
+                  <option value="">
+                    {filteredGradesForSelect.length > 0
+                      ? "Grupo/Curso"
+                      : "No hay grupos"}
+                  </option>
+                  {filteredGradesForSelect.map((g) => (
+                    <option key={g.id} value={String(g.id)}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isCreating}>
+                {isCreating ? "Matriculando..." : "Matricular"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
       <Dialog
         open={!!editingStudent}
         onOpenChange={(open) => !open && setEditingStudent(null)}

@@ -1,22 +1,23 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import HomePage from './pages/Home';
-import LoginPage from './pages/Login';
-import DashboardPage from './pages/Dashboard';
-import StudentsPage from './pages/dashboard/Students';
-import TeachersPage from './pages/dashboard/Teachers';
-import GradesPage from './pages/dashboard/Grades';
-import SubjectsPage from './pages/dashboard/Subjects';
-import AttendancePage from './pages/dashboard/Attendance';
+import HomePage from '@/pages/Home';
+import LoginPage from '@/pages/Login';
+import DashboardPage from '@/pages/Dashboard';
+import StudentsPage from '@/pages/dashboard/Students';
+import TeachersPage from '@/pages/dashboard/Teachers';
+import GradesPage from '@/pages/dashboard/Grades';
+import SubjectsPage from '@/pages/dashboard/Subjects';
+import AttendancePage from '@/pages/dashboard/Attendance';
 import AttendanceHistoryPage from '@/pages/dashboard/AttendanceHistory';
-import SettingsPage from './pages/dashboard/Settings';
-import AssignmentsPage from './pages/dashboard/Assignments';
-import TeacherRegister from './pages/TeacherRegister';
-import DashboardLayout from './components/DashboardLayout';
-import MobileMenuPage from './pages/dashboard/MobileMenuPage';
-import ProfilePage from './pages/dashboard/Profile';
-import StudentView from './pages/dashboard/StudentView';
-import InstitutionalInfo from './pages/dashboard/InstitutionalInfo';
-import NeighborhoodsPage from './pages/dashboard/Neighborhoods';
+import SettingsPage from '@/pages/dashboard/Settings';
+import AssignmentsPage from '@/pages/dashboard/Assignments';
+import TeacherRegister from '@/pages/TeacherRegister';
+import DashboardLayout from '@/components/DashboardLayout';
+import MobileMenuPage from '@/pages/dashboard/MobileMenuPage';
+import ProfilePage from '@/pages/dashboard/Profile';
+import StudentView from '@/pages/dashboard/StudentView';
+import InstitutionalInfo from '@/pages/dashboard/InstitutionalInfo';
+import NeighborhoodsPage from '@/pages/dashboard/Neighborhoods';
+import TodosPage from '@/pages/dashboard/Todos';
 import { Toaster } from "@/components/ui/sonner";
 
 function App() {
@@ -42,6 +43,7 @@ function App() {
           <Route path="neighborhoods" element={<NeighborhoodsPage />} />
           <Route path="menu" element={<MobileMenuPage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="todos" element={<TodosPage />} />
         </Route>
         
         <Route path="*" element={<Navigate to="/" replace />} />

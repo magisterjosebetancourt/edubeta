@@ -127,21 +127,6 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6 p-6 max-w-2xl mx-auto h-full overflow-y-auto pb-24">
-      <div className="flex items-center gap-3 mb-2">
-        <button 
-          onClick={() => navigate(-1)}
-          className="lg:hidden p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-xl">
-             <User className="w-8 h-8 text-primary" />
-        </div>
-        <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Mi Perfil</h1>
-            <p className="text-slate-500 dark:text-slate-400">Gestiona tu información personal.</p>
-        </div>
-      </div>
 
       <div className="grid gap-6">
         <Card>

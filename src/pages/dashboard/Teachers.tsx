@@ -234,104 +234,11 @@ export default function TeachersPage() {
 
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen pb-20">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-[#151b2d]/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => navigate(-1)}
-              className="lg:hidden p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-              Docentes
-            </h1>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={fetchData}
-              disabled={loading}
-            >
-              <RefreshCw
-                className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
-              />
-            </Button>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <button className="bg-primary hover:bg-primary/90 text-white p-2 rounded-full shadow-lg shadow-primary/30 transition-transform active:scale-95 flex items-center justify-center">
-                  <Plus className="w-5 h-5" />
-                </button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Generar Invitación</DialogTitle>
-                  <DialogDescription>
-                    Crea un código de acceso para un nuevo docente.
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleCreateInvite} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName">Apellidos y Nombres</Label>
-                    <Input
-                      id="fullName"
-                      name="fullName"
-                      placeholder="Ej. GÓMEZ, Roberto"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Correo Institucional</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="profe@edubeta.com"
-                      required
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsDialogOpen(false)}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button type="submit" disabled={isCreating}>
-                      {isCreating ? "Generando..." : "Generar"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-
-                {lastGeneratedToken && (
-                  <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-center">
-                    <p className="text-sm text-green-800 dark:text-green-300 mb-2 font-medium">
-                      ¡Invitación Creada!
-                    </p>
-                    <div className="text-3xl font-mono font-bold tracking-widest text-slate-900 dark:text-white my-3">
-                      {lastGeneratedToken}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full border-green-200 hover:bg-green-100"
-                      onClick={() => copyToClipboard(lastGeneratedToken)}
-                    >
-                      <Copy className="w-3 h-3 mr-2" /> Copiar
-                    </Button>
-                  </div>
-                )}
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+      <div className="px-4 py-4 pt-6">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           Gestiona invitaciones y docentes activos.
         </p>
-      </header>
+      </div>
 
       {/* Main Content */}
       <main className="p-4 space-y-4">

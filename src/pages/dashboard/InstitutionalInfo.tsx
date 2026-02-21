@@ -145,27 +145,6 @@ export default function InstitutionalInfo() {
 
   return (
     <div className="space-y-6 p-6 pb-24 lg:pb-6 max-w-5xl mx-auto h-full overflow-y-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => navigate(-1)}
-            className="lg:hidden p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div className="p-3 bg-primary/10 rounded-xl">
-            <Building className="w-8 h-8 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Caracterización</h1>
-            <p className="text-slate-500 dark:text-slate-400">Identidad institucional y calendario académico.</p>
-          </div>
-        </div>
-        <Button size="lg" onClick={handleSave} disabled={saving} className="shadow-lg shadow-primary/20">
-          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-          Guardar Cambios
-        </Button>
-      </div>
 
       <Tabs defaultValue="identity" className="w-full">
         <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">

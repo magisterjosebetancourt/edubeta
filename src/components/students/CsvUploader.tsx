@@ -23,6 +23,8 @@ type Grade = {
 
 type UploadMode = 'csv' | 'text'
 
+const supabase = createClient()
+
 export function CsvUploader({ onSuccess }: { onSuccess: () => void }) {
   const [mode, setMode] = useState<UploadMode>('csv')
   const [file, setFile] = useState<File | null>(null)
@@ -33,7 +35,6 @@ export function CsvUploader({ onSuccess }: { onSuccess: () => void }) {
   const [loading, setLoading] = useState(false)
   const [validating, setValidating] = useState(false)
   
-  const supabase = createClient()
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]

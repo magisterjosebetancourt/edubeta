@@ -159,6 +159,8 @@ export default function AttendancePage() {
 
   const fetchSessions = async (role: UserRole, userId: string) => {
     try {
+      // Usamos joins normales (sin !inner) para evitar que registros con datos parciales sean filtrados
+      // Especificamos la FK de profiles para evitar ambigüedades
       let query = supabase
         .from('attendance_records')
         .select(`
@@ -167,9 +169,12 @@ export default function AttendancePage() {
           subject_id,
           teacher_id,
           processed,
-          student:students!inner(grade_id, grades!inner(name)),
-          subject:subjects!inner(name),
-          teacher:profiles!inner(full_name)
+          student:students (
+            grade_id, 
+            grades (name)
+          ),
+          subject:subjects (name),
+          teacher:profiles!attendance_records_teacher_id_fkey (full_name)
         `)
         .eq('date', filterDate);
 
@@ -184,16 +189,21 @@ export default function AttendancePage() {
       const groups: { [key: string]: AttendanceSession } = {};
 
       (data || []).forEach((row: any) => {
-        const key = `${row.date}-${row.student.grade_id}-${row.subject_id}-${row.teacher_id}`;
+        // Obtenemos los IDs con valores por defecto para no perder registros incompletos
+        const gId = row.student?.grade_id || 0;
+        const sId = row.subject_id || 0;
+        const tId = row.teacher_id || 'no-teacher';
+
+        const key = `${row.date}-${gId}-${sId}-${tId}`;
         if (!groups[key]) {
           groups[key] = {
             date: row.date,
-            grade_id: row.student.grade_id,
-            subject_id: row.subject_id,
-            teacher_id: row.teacher_id,
-            grade_name: row.student.grades.name,
-            subject_name: row.subject.name,
-            teacher_name: row.teacher.full_name,
+            grade_id: gId,
+            subject_id: sId,
+            teacher_id: tId,
+            grade_name: row.student?.grades?.name || 'Grado no especificado',
+            subject_name: row.subject?.name || 'Asignatura no especificada',
+            teacher_name: row.teacher?.full_name || 'Docente no asignado',
             present_count: 0,
             absent_count: 0,
             late_count: 0,
@@ -217,11 +227,13 @@ export default function AttendancePage() {
 
       const sessionList = Object.values(groups).map(s => ({
         ...s,
-        all_processed: s.absent_count + s.late_count > 0 && s.processed_count === (s.absent_count + s.late_count)
+        all_processed: (s.absent_count + s.late_count) > 0 && s.processed_count === (s.absent_count + s.late_count)
       }));
 
-      setSessions(sessionList);
+      // Ordenar sesiones por nombre de asignatura para consistencia visual
+      setSessions(sessionList.sort((a, b) => a.subject_name.localeCompare(b.subject_name)));
     } catch (err: any) {
+      console.error('Fetch Sessions Error:', err);
       toast.error('Error al cargar sesiones', { description: err.message });
     }
   }
@@ -281,11 +293,10 @@ export default function AttendancePage() {
       });
 
       setStudents(merged);
+      // Mantenemos los IDs en el form para que handleStatusChange los use correctamente
       setSessionForm({
-        gradeId: "",
-        subjectId: "",
-        date: config.date,
-        teacherId: ""
+        ...config,
+        teacherId: config.teacherId || (currentUserId as string)
       });
       setView('taking');
     } catch (err: any) {
@@ -591,16 +602,11 @@ export default function AttendancePage() {
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-background-dark pb-20 lg:pb-0">
       {view === 'dashboard' ? (
         <>
-          {/* Dashboard Header */}
-          <header className="px-5 pt-8 pb-6 bg-white dark:bg-background-dark border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
-            <button 
-              onClick={() => navigate(-1)}
-              className="lg:hidden p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Control de Asistencia</h1>
-          </header>
+          <div className="px-5 pt-8 pb-6 bg-white dark:bg-background-dark border-b border-slate-100 dark:border-slate-800">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Registra la asistencia diaria de tus estudiantes.
+            </p>
+          </div>
 
           <div className="flex flex-col gap-4 p-5">
               <Dialog>
@@ -824,24 +830,25 @@ export default function AttendancePage() {
       ) : (
         <>
           {/* Taking Attendance View */}
-          <header className="px-5 py-4 bg-white dark:bg-background-dark border-b border-slate-100 dark:border-slate-800 sticky top-0 z-40 flex items-center justify-between">
+          <div className="px-5 py-4 bg-white dark:bg-background-dark border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button 
                 onClick={() => setView('dashboard')}
                 className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors"
+                title="Volver al panel"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div>
-                <h1 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none mb-1">
+                <h3 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none mb-1">
                   {subjects.find(s => String(s.id) === sessionForm.subjectId)?.name || 'Clase'}
-                </h1>
+                </h3>
                 <p className="text-[10px] text-primary font-black uppercase tracking-widest">
                   {grades.find(g => String(g.id) === sessionForm.gradeId)?.name} • {format(new Date(sessionForm.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: es })}
                 </p>
               </div>
             </div>
-          </header>
+          </div>
 
           <div className="p-4 space-y-4">
             {/* Quick Filter & Mark Remaining */}

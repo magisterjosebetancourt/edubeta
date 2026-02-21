@@ -1,93 +1,158 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { 
   Users, 
   PieChart, 
   TrendingUp, 
-  UserCheck, 
-  Bell, 
-  Plus
+  UserCheck,
+  ChevronDown,
+  BookOpen,
+  LayoutGrid,
+  CheckCircle2
 } from 'lucide-react'
 
 export default function DashboardPage() {
   const navigate = useNavigate()
   const supabase = createClient()
+  const [userProfile, setUserProfile] = useState<{ role: string; id: string; fullName: string; avatarUrl: string } | null>(null)
   const [stats, setStats] = useState({ students: 0, teachers: 0, attendance: 0 })
+  const [assignments, setAssignments] = useState<any[]>([])
+  const [todos, setTodos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  
+  // Accordion states
+  const [openGrades, setOpenGrades] = useState(true)
+  const [openSubjects, setOpenSubjects] = useState(false)
+  const [openTasks, setOpenTasks] = useState(true)
 
   useEffect(() => {
-    async function checkUser() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        navigate('/login')
-      }
-    }
-
-    async function fetchStats() {
+    async function getInitialData() {
       try {
-        // 1. Students Count
-        const { count: studentCount } = await supabase
-          .from('students')
-          .select('*', { count: 'exact', head: true })
+        // 1. Check User and Get Profile
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          navigate('/login')
+          return
+        }
 
-        // 2. Teachers Count
-        const { count: teacherCount } = await supabase
+        const { data: profile } = await supabase
           .from('profiles')
-          .select('*', { count: 'exact', head: true })
-          .eq('role', 'teacher')
+          .select('full_name, role, avatar_url')
+          .eq('id', user.id)
+          .single() as { data: { full_name: string, role: string, avatar_url: string } | null }
+        
+        const role = profile?.role || 'user'
+        setUserProfile({ 
+          role, 
+          id: user.id, 
+          fullName: profile?.full_name || '',
+          avatarUrl: profile?.avatar_url || ''
+        })
 
-        // 3. Attendance Rate (Today)
+        // 2. Fetch Stats based on Role
+        let studentCount = 0
+        let teacherCount = 0
+        let presentCount = 0
         const today = new Date().toISOString().split('T')[0]
-        const { count: presentCount } = await supabase
-          .from('attendance_records')
-          .select('*', { count: 'exact', head: true })
-          .eq('date', today)
-          .eq('status', 'present')
 
-        const rate = (studentCount && presentCount) 
-          ? Math.round((presentCount / studentCount) * 100) 
-          : 0
+        if (role === 'admin' || role === 'coordinator') {
+          // Global Stats for Admin/Coordinator
+          const [ { count: sCount }, { count: tCount }, { count: pCount } ] = await Promise.all([
+            supabase.from('students').select('*', { count: 'exact', head: true }),
+            supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'teacher'),
+            supabase.from('attendance_records').select('*', { count: 'exact', head: true }).eq('date', today).eq('status', 'present')
+          ])
+          studentCount = sCount || 0
+          teacherCount = tCount || 0
+          presentCount = pCount || 0
+        } else {
+          // Scoped Stats for Teacher
+          const { data: assignmentsData } = await supabase
+            .from('assignments')
+            .select(`
+              grade_id,
+              subject_id,
+              grades (name),
+              subjects (name)
+            `)
+            .eq('teacher_id', user.id) as any
+          
+          setAssignments(assignmentsData || [])
+          
+          const gradeIds = Array.from(new Set(assignmentsData?.map((a: any) => a.grade_id) || []))
+
+          if (gradeIds.length > 0) {
+            const { count: sCount } = await supabase
+              .from('students')
+              .select('*', { count: 'exact', head: true })
+              .in('grade_id', gradeIds)
+            
+            const { count: pCount } = await supabase
+              .from('attendance_records')
+              .select('id, student:students!inner(grade_id)', { count: 'exact', head: true })
+              .eq('date', today)
+              .eq('status', 'present')
+              .in('student.grade_id', gradeIds)
+
+            studentCount = sCount || 0
+            presentCount = pCount || 0
+          }
+        }
+
+        // 3. Fetch Todos for current user
+        const { data: todosData } = await supabase
+          .from('todos')
+          .select('*')
+          .eq('user_id', user.id)
+        
+        setTodos(todosData || [])
+
+        const rate = (studentCount > 0) ? Math.round((presentCount / studentCount) * 100) : 0
 
         setStats({ 
-          students: studentCount || 0, 
-          teachers: teacherCount || 0, 
+          students: studentCount, 
+          teachers: teacherCount, 
           attendance: rate 
         })
       } catch (error) {
-        console.error('Error loading stats:', error)
+        console.error('Error loading dashboard data:', error)
       } finally {
         setLoading(false)
       }
     }
 
-    checkUser()
-    fetchStats()
+    getInitialData()
   }, [navigate, supabase])
 
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  }
+
   if (loading) {
-    return <div className="flex items-center justify-center h-full">Cargando...</div>
+    return <div className="flex items-center justify-center h-full pt-20 text-slate-400 font-bold uppercase tracking-widest text-xs">Cargando dashboard...</div>
   }
 
   return (
     <div className="flex flex-col h-full bg-background-light dark:bg-background-dark min-h-screen overflow-y-auto">
-      {/* Header Mobile/Desktop */}
-      <header className="h-16 bg-white dark:bg-[#1a182e] border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 lg:px-8 shrink-0 sticky top-0 z-30">
+      {/* Header local - Solo visible en desktop */}
+      <header className="hidden lg:flex h-16 bg-white dark:bg-[#1a182e] border-b border-slate-200 dark:border-slate-800 items-center justify-between px-4 lg:px-8 shrink-0 sticky top-0 z-30">
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-4">
-            <h2 className="hidden lg:block text-lg font-bold text-slate-800 dark:text-white">Panel Principal</h2>
-          </div>
+          <h2 className="text-lg font-bold text-slate-800 dark:text-white uppercase tracking-tight">Panel Principal</h2>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="p-2 text-slate-500 hover:text-primary hover:bg-primary/5 rounded-full transition-colors relative">
-            <Bell className="w-6 h-6" />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-[#1a182e]"></span>
-          </button>
-          <Button className="hidden sm:flex bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/30 rounded-lg gap-2">
-            <Plus className="w-5 h-5" />
-            Nuevo
-          </Button>
+        <div className="flex items-center gap-4">
+           <div className="text-right">
+              <p className="text-xs font-bold text-slate-900 dark:text-white leading-none">{userProfile?.fullName}</p>
+              <p className="text-[10px] font-medium text-primary uppercase tracking-tighter">{userProfile?.role}</p>
+           </div>
+           <Link to="/dashboard/profile" className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden transition-all hover:ring-2 hover:ring-primary/20 group">
+              {userProfile?.avatarUrl ? (
+                <img src={userProfile.avatarUrl} alt="Perfil" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-primary font-black text-xs group-hover:scale-110 transition-transform">{userProfile ? getInitials(userProfile.fullName) : 'JB'}</span>
+              )}
+           </Link>
         </div>
       </header>
 
@@ -95,22 +160,23 @@ export default function DashboardPage() {
       <div className="flex-1 p-4 lg:p-8 space-y-6">
         
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className={cn(
+          "grid gap-6",
+          userProfile?.role === 'admin' ? "grid-cols-1 md:grid-cols-3" : "grid-cols-1 md:grid-cols-2"
+        )}>
           {/* Card 1: Total Students */}
           <div className="bg-primary text-white rounded-2xl p-6 shadow-xl shadow-primary/20 relative overflow-hidden group">
             <div className="absolute right-[-20px] top-[-20px] bg-white/10 w-32 h-32 rounded-full blur-2xl group-hover:scale-110 transition-transform"></div>
             <div className="relative z-10 flex justify-between items-start">
               <div>
-                <p className="text-indigo-100 text-sm font-medium mb-1 opacity-80">Total Estudiantes</p>
+                <p className="text-indigo-100 text-sm font-medium mb-1 opacity-80 uppercase tracking-wider">
+                  {userProfile?.role === 'admin' ? 'Total Estudiantes' : 'Mis Estudiantes'}
+                </p>
                 <h3 className="text-4xl font-bold tracking-tight">{stats.students}</h3>
               </div>
               <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
                 <Users className="text-white w-6 h-6" />
               </div>
-            </div>
-            <div className="relative z-10 mt-6 flex items-center gap-1 text-xs text-white/80 font-medium">
-              <TrendingUp className="w-4 h-4" />
-              <span>Registrados en sistema</span>
             </div>
           </div>
 
@@ -118,7 +184,7 @@ export default function DashboardPage() {
           <div className="bg-white dark:bg-[#1e1c30] rounded-2xl p-6 shadow-soft border border-slate-100 dark:border-slate-800">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Asistencia Hoy</p>
+                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1 uppercase tracking-wider">Asistencia Hoy</p>
                 <h3 className="text-4xl font-bold text-slate-800 dark:text-white">{stats.attendance}%</h3>
               </div>
               <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
@@ -133,31 +199,165 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Card 3: Active Teachers */}
-          <div className="bg-white dark:bg-[#1e1c30] rounded-2xl p-6 shadow-soft border border-slate-100 dark:border-slate-800">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Docentes Activos</p>
-                <h3 className="text-4xl font-bold text-slate-800 dark:text-white">{stats.teachers}</h3>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-                <UserCheck className="text-primary dark:text-blue-400 w-6 h-6" />
+          {/* Card 3: Active Teachers (Admin only) */}
+          {(userProfile?.role === 'admin' || userProfile?.role === 'coordinator') && (
+            <div className="bg-white dark:bg-[#1e1c30] rounded-2xl p-6 shadow-soft border border-slate-100 dark:border-slate-800">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1 uppercase tracking-wider">Docentes</p>
+                  <h3 className="text-4xl font-bold text-slate-800 dark:text-white">{stats.teachers}</h3>
+                </div>
+                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                  <UserCheck className="text-primary dark:text-blue-400 w-6 h-6" />
+                </div>
               </div>
             </div>
-            <div className="mt-6 flex -space-x-3 overflow-hidden">
-               {/* Avatars placeholder - statically limited for now */}
-               {[1,2,3].map((i) => (
-                  <div key={i} className="h-8 w-8 rounded-full bg-slate-200 border-2 border-white dark:border-[#1e1c30] flex items-center justify-center text-xs font-bold text-slate-500">
-                    D{i}
-                  </div>
-               ))}
-               <div className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-700 text-[10px] flex items-center justify-center border-2 border-white dark:border-[#1e1c30] text-slate-500 font-bold">...</div>
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Recent Reports Table could be here */}
-        
+        {/* Global Accordion Section: General for all but specially for teacher grouping */}
+        <div className="space-y-4">
+          <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest pl-1">Resumen de Actividad</h4>
+          
+          {/* Accordion List */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            {/* Tareas (All roles) */}
+            <div className="bg-white dark:bg-[#1e1c30] rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+              <button 
+                onClick={() => setOpenTasks(!openTasks)}
+                className="w-full p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center">
+                    <CheckCircle2 className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs font-bold text-slate-400 uppercase leading-none mb-1">Mis Tareas</p>
+                    <h5 className="font-black text-slate-800 dark:text-white text-lg">
+                      {todos.length} Tareas
+                    </h5>
+                  </div>
+                </div>
+                <ChevronDown className={cn("w-5 h-5 text-slate-400 transition-transform duration-300", openTasks && "rotate-180")} />
+              </button>
+              
+              {openTasks && (
+                <div className="px-4 pb-4 animate-in slide-in-from-top-2 duration-300">
+                  <div className="pt-2 border-t border-slate-50 dark:border-slate-800/50 flex items-center justify-between text-[11px] font-bold uppercase tracking-wider pb-4">
+                    <div className="flex flex-col items-center gap-1 flex-1 text-center">
+                      <span className="text-slate-400">Pends</span>
+                      <span className="text-lg text-slate-600 dark:text-slate-300">{todos.filter(t => t.status === 'pendiente').length}</span>
+                    </div>
+                    <div className="w-px h-8 bg-slate-100 dark:bg-slate-800/50" />
+                    <div className="flex flex-col items-center gap-1 flex-1 text-center">
+                      <span className="text-blue-500">Activas</span>
+                      <span className="text-lg text-blue-600 dark:text-blue-400">{todos.filter(t => t.status === 'activa').length}</span>
+                    </div>
+                    <div className="w-px h-8 bg-slate-100 dark:bg-slate-800/50" />
+                    <div className="flex flex-col items-center gap-1 flex-1 text-center">
+                      <span className="text-green-500">Hechas</span>
+                      <span className="text-lg text-green-600 dark:text-green-400">{todos.filter(t => t.status === 'cumplida').length}</span>
+                    </div>
+                  </div>
+                  <Link 
+                    to="/dashboard/todos" 
+                    className="flex items-center justify-center w-full py-2.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors"
+                  >
+                    Ver todas las tareas
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* Teacher Specific Accordions */}
+            {userProfile?.role === 'teacher' && (
+              <>
+                {/* Grupos */}
+                <div className="bg-white dark:bg-[#1e1c30] rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+                  <button 
+                    onClick={() => setOpenGrades(!openGrades)}
+                    className="w-full p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center">
+                        <LayoutGrid className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-xs font-bold text-slate-400 uppercase leading-none mb-1">Carga Salones</p>
+                        <h5 className="font-black text-slate-800 dark:text-white text-lg">
+                          {Array.from(new Set(assignments.map(a => a.grade_id))).length} Grupos
+                        </h5>
+                      </div>
+                    </div>
+                    <ChevronDown className={cn("w-5 h-5 text-slate-400 transition-transform duration-300", openGrades && "rotate-180")} />
+                  </button>
+                  
+                  {openGrades && (
+                    <div className="px-4 pb-4 animate-in slide-in-from-top-2 duration-300">
+                      <div className="pt-2 border-t border-slate-50 dark:border-slate-800/50 grid grid-cols-2 gap-2">
+                        {Array.from(new Set(assignments.map(a => a.grades?.name)))
+                          .filter(Boolean)
+                          .sort()
+                          .map((gradeName, idx) => (
+                            <div key={idx} className="px-3 py-2 bg-slate-50 dark:bg-slate-900/50 rounded-lg text-[10px] font-bold text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                              {gradeName}
+                            </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Asignaturas */}
+                <div className="bg-white dark:bg-[#1e1c30] rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+                  <button 
+                    onClick={() => setOpenSubjects(!openSubjects)}
+                    className="w-full p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center">
+                        <BookOpen className="w-5 h-5 text-orange-500" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-xs font-bold text-slate-400 uppercase leading-none mb-1">Asignaturas</p>
+                        <h5 className="font-black text-slate-800 dark:text-white text-lg">
+                          {Array.from(new Set(assignments.map(a => a.subject_id))).length} Asignaturas
+                        </h5>
+                      </div>
+                    </div>
+                    <ChevronDown className={cn("w-5 h-5 text-slate-400 transition-transform duration-300", openSubjects && "rotate-180")} />
+                  </button>
+                  
+                  {openSubjects && (
+                    <div className="px-4 pb-4 animate-in slide-in-from-top-2 duration-300">
+                      <div className="pt-2 border-t border-slate-50 dark:border-slate-800/50 space-y-1">
+                        {Array.from(new Set(assignments.map(a => a.subjects?.name)))
+                          .filter(Boolean)
+                          .sort()
+                          .map((subjectName, idx) => (
+                            <div key={idx} className="px-3 py-2 bg-orange-50/50 dark:bg-orange-900/10 rounded-lg text-[9px] font-bold text-orange-700 dark:text-orange-400 flex items-center justify-between">
+                              <span>{subjectName}</span>
+                              <span className="text-[8px] bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded-md border border-orange-100 dark:border-orange-800/50">
+                                {assignments.filter(a => a.subjects?.name === subjectName).length} Grupos
+                              </span>
+                            </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+          
+          {userProfile?.role === 'teacher' && assignments.length === 0 && (
+            <div className="py-8 text-center bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 text-slate-400 text-xs font-medium">
+              No tienes asignaciones registradas.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

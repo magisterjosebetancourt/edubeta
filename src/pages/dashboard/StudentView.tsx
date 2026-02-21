@@ -111,20 +111,7 @@ export default function StudentView() {
 
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen pb-20">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-[#151b2d]/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full">
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white uppercase">
-              {student.first_name?.toLowerCase()}, {student.last_name?.toLowerCase()}
-            </h1>
-            <p className="text-xs text-slate-500 font-medium">Perfil del Estudiante</p>
-          </div>
-        </div>
-      </header>
+      {/* Header removido - unificado en layout */}
 
       <main className="p-4 space-y-6">
         {/* Profile Card */}
