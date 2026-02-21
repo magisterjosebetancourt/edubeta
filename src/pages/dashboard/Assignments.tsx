@@ -325,19 +325,36 @@ export default function AssignmentsPage() {
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen pb-20">
       {/* Header */}
-      <div className="px-4 py-4 pt-6">
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Asigna qué materias dictan los docentes en cada curso.
-        </p>
+      <div className="p-4 lg:p-8 space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-1">
+          <div>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Define la carga académica vinculando docentes con grados y materias.
+            </p>
+          </div>
+          <Button 
+            onClick={() => {
+              setEditingAssignment(null);
+              setIsDialogOpen(true);
+            }}
+            className="bg-primary hover:bg-primary/90 text-white rounded-2xl h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-bold uppercase text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95"
+          >
+            <Plus className="w-5 h-5 stroke-[3]" />
+            Nueva Asignación
+          </Button>
+        </div>
       </div>
 
       {/* Main Content */}
       <main className="p-4 space-y-3">
         {teachers.length === 0 ? (
-          <div className="text-center py-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-white/50 dark:bg-slate-900/30">
-            <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500 font-medium">
-              No hay docentes registrados.
+          <div className="bg-white dark:bg-slate-800 border-2 border-dashed rounded-3xl py-20 px-10 text-center">
+            <div className="w-16 h-16 bg-slate-50 dark:bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4">
+              <BookOpen className="w-8 h-8 text-slate-300" />
+            </div>
+            <h4 className="font-bold text-slate-900 dark:text-white">No hay docentes registrados</h4>
+            <p className="text-xs text-slate-500 mt-1 max-w-[200px] mx-auto leading-relaxed">
+              Es necesario registrar docentes antes de realizar asignaciones.
             </p>
           </div>
         ) : (
@@ -450,19 +467,30 @@ export default function AssignmentsPage() {
           })
         )}
       </main>
-      {/* Edit Assignment Dialog */}
       <Dialog
-        open={!!editingAssignment}
-        onOpenChange={(open) => !open && setEditingAssignment(null)}
+        open={isDialogOpen || !!editingAssignment}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsDialogOpen(false);
+            setEditingAssignment(null);
+            setSelectedTeacher("");
+            setSelectedLevelId("");
+            setSelectedGradeName("");
+            setSelectedGradeId("");
+            setSelectedSubject("");
+          }
+        }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md rounded-3xl">
           <DialogHeader>
-            <DialogTitle>Editar Asignación</DialogTitle>
-            <DialogDescription>
-              Modifica la vinculación Docente - Grado - Materia.
+            <DialogTitle className="text-xl font-black uppercase tracking-tight">
+              {editingAssignment ? "Editar Asignación" : "Nueva Asignación"}
+            </DialogTitle>
+            <DialogDescription className="text-xs font-bold uppercase tracking-widest text-slate-400">
+              {editingAssignment ? "Modifica la vinculación actual" : "Vincula un docente a un grado y materia"}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleUpdate} className="space-y-4">
+          <form onSubmit={editingAssignment ? handleUpdate : handleCreate} className="space-y-4 pt-4">
             <div className="space-y-2">
               <Label>Docente</Label>
               <select
@@ -550,16 +578,24 @@ export default function AssignmentsPage() {
               </select>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="pt-4">
               <Button
                 type="button"
-                variant="outline"
-                onClick={() => setEditingAssignment(null)}
+                variant="ghost"
+                onClick={() => {
+                  setIsDialogOpen(false);
+                  setEditingAssignment(null);
+                }}
+                className="font-bold uppercase text-[10px] tracking-widest rounded-xl"
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isUpdating}>
-                {isUpdating ? "Guardando..." : "Guardar Cambios"}
+              <Button 
+                type="submit" 
+                disabled={isCreating || isUpdating}
+                className="bg-primary hover:bg-primary/90 text-white font-bold uppercase text-[10px] tracking-widest rounded-xl px-8 shadow-lg shadow-primary/20"
+              >
+                {isCreating || isUpdating ? "Guardando..." : (editingAssignment ? "Guardar Cambios" : "Crear Asignación")}
               </Button>
             </DialogFooter>
           </form>

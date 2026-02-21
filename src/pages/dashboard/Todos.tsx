@@ -176,10 +176,11 @@ export default function TodosPage() {
   return (
     <div className="bg-slate-50 dark:bg-[#0f1117] min-h-screen pb-20">
       <div className="p-4 lg:p-8 space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-1">
           <div>
-            <h1 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Mis Tareas</h1>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Gestión de pendientes y prioridades</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Gestiona tus pendientes y prioridades diarias.
+            </p>
           </div>
           <Button 
             onClick={() => {
@@ -195,11 +196,14 @@ export default function TodosPage() {
 
         <div className="grid grid-cols-1 gap-4">
           {todos.length === 0 ? (
-            <div className="text-center py-20 bg-white dark:bg-slate-800/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800">
-               <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle2 className="w-8 h-8 text-slate-300" />
-               </div>
-               <p className="text-slate-500 font-bold uppercase text-xs tracking-widest">No hay tareas pendientes</p>
+            <div className="bg-white dark:bg-slate-800 border-2 border-dashed rounded-3xl py-20 px-10 text-center">
+              <div className="w-16 h-16 bg-slate-50 dark:bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle2 className="w-8 h-8 text-slate-300" />
+              </div>
+              <h4 className="font-bold text-slate-900 dark:text-white">No hay tareas pendientes</h4>
+              <p className="text-xs text-slate-500 mt-1 max-w-[200px] mx-auto leading-relaxed">
+                Haz clic en Nueva Tarea para comenzar a organizar tu día.
+              </p>
             </div>
           ) : (
             todos.map((todo) => {

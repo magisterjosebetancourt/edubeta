@@ -156,10 +156,48 @@ export default function NeighborhoodsPage() {
 
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen pb-20 text-slate-800 dark:text-slate-100">
-      <div className="px-4 py-4 pt-6">
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Administra los barrios y sectores para la caracterización socioeconómica.
-        </p>
+      <div className="p-4 lg:p-8 space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-1">
+          <div>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Administra los sectores para la caracterización socioeconómica.
+            </p>
+          </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-primary hover:bg-primary/90 text-white rounded-2xl h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-bold uppercase text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95">
+                <Plus className="w-5 h-5 stroke-[3]" />
+                Nuevo Barrio
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="rounded-3xl">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-black uppercase tracking-tight">Nuevo Barrio</DialogTitle>
+                <DialogDescription className="text-xs font-bold uppercase tracking-widest text-slate-400">
+                  Agrega un nuevo sector a la lista.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleCreate} className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label>Nombre del Barrio</Label>
+                  <input 
+                    name="name"
+                    placeholder="Ej: Centro"
+                    className="w-full h-11 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 text-sm"
+                  />
+                </div>
+                <DialogFooter className="pt-4">
+                  <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="font-bold uppercase text-[10px] tracking-widest rounded-xl">
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={isCreating} className="bg-primary hover:bg-primary/90 text-white font-bold uppercase text-[10px] tracking-widest rounded-xl px-8 shadow-lg shadow-primary/20">
+                    {isCreating ? 'Guardando...' : 'Crear Barrio'}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <main className="p-4 space-y-4">

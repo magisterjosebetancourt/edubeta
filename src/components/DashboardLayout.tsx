@@ -20,7 +20,10 @@ export default function DashboardLayout() {
 
   useEffect(() => {
     async function checkUser() {
-      const { data: { user } } = await supabase.auth.getUser()
+      // Usamos getSession primero para evitar NavigatorLockAcquireTimeoutError
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
+      
       if (!user) {
         navigate('/login')
       } else {

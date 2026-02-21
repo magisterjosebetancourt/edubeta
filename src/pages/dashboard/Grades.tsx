@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 
 import { toast } from 'sonner'
-import { Trash2, Plus, School, Layers, Pencil, ArrowLeft } from 'lucide-react'
+import { Trash2, Plus, School, Layers, Pencil } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import {
     Dialog,
@@ -189,10 +189,80 @@ export default function GradesPage() {
 
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen pb-20">
-      <div className="px-4 py-4 pt-6">
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Gestión de Grados y Grupos según Ley 115.
-        </p>
+      <div className="p-4 lg:p-8 space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-1">
+          <div>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Gestión de grados y grupos según la Ley 115.
+            </p>
+          </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-primary hover:bg-primary/90 text-white rounded-2xl h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-bold uppercase text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95">
+                <Plus className="w-5 h-5 stroke-[3]" />
+                Nuevo Grupo
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="rounded-3xl">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-black uppercase tracking-tight">Nuevo Grupo</DialogTitle>
+                <DialogDescription className="text-xs font-bold uppercase tracking-widest text-slate-400">
+                  Crea un nuevo grupo escolar.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleCreate} className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label>Nivel Educativo</Label>
+                  <select 
+                    value={selectedLevel} 
+                    onChange={(e) => {
+                        setSelectedLevel(e.target.value)
+                        setSelectedGradeName('')
+                    }}
+                    className="w-full flex h-9 items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  >
+                    <option value="">Seleccionar Nivel</option>
+                    {LEVELS.map(level => (
+                        <option key={level.id} value={level.id}>{level.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Grado (Ley 115)</Label>
+                  <select 
+                    value={selectedGradeName}
+                    onChange={(e) => setSelectedGradeName(e.target.value)}
+                    disabled={!selectedLevel}
+                    className="w-full h-9 rounded-md border px-3 py-2 text-sm"
+                  >
+                    <option value="">Seleccionar Grado</option>
+                    {selectedLevel && LEVELS.find(l => l.id === selectedLevel)?.grades.map(gName => (
+                        <option key={gName} value={gName}>{gName}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Sufijo de Grupo (ej: 01, A, 02)</Label>
+                  <input 
+                    name="suffix"
+                    value={groupSuffix}
+                    onChange={(e) => setGroupSuffix(e.target.value)}
+                    placeholder="Ej: 01"
+                    className="w-full h-9 rounded-md border px-3 py-2 text-sm"
+                  />
+                </div>
+                <DialogFooter className="pt-4">
+                  <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="font-bold uppercase text-[10px] tracking-widest rounded-xl">
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={isCreating} className="bg-primary hover:bg-primary/90 text-white font-bold uppercase text-[10px] tracking-widest rounded-xl px-8 shadow-lg shadow-primary/20">
+                    {isCreating ? 'Creando...' : 'Crear Grupo'}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <main className="p-4 space-y-6">

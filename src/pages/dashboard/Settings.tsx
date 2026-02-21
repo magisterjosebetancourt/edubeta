@@ -64,14 +64,10 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6 pb-24 lg:pb-6">
-      <div className="flex items-center gap-4 mb-8">
-        <div className="p-3 bg-primary/10 rounded-2xl">
-          <SettingsIcon className="w-8 h-8 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Configuración</h1>
-          <p className="text-slate-500 dark:text-slate-400">Personaliza tu experiencia en EduBeta.</p>
-        </div>
+      <div className="px-1 py-4 border-b border-slate-100 dark:border-slate-800">
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Personaliza tu experiencia en la plataforma.
+        </p>
       </div>
 
       {dbError && (

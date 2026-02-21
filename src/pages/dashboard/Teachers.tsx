@@ -8,12 +8,9 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
   Trash2,
-  Copy,
-  RefreshCw,
   Mail,
   Plus,
   Pencil,
-  ArrowLeft,
 } from "lucide-react";
 import {
   Dialog,
@@ -21,7 +18,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
 
@@ -234,10 +230,21 @@ export default function TeachersPage() {
 
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen pb-20">
-      <div className="px-4 py-4 pt-6">
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Gestiona invitaciones y docentes activos.
-        </p>
+      <div className="p-4 lg:p-8 space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-1">
+          <div>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Gestiona invitaciones y docentes activos de la institución.
+            </p>
+          </div>
+          <Button 
+            onClick={() => setIsDialogOpen(true)}
+            className="bg-primary hover:bg-primary/90 text-white rounded-2xl h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-bold uppercase text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95"
+          >
+            <Plus className="w-5 h-5 stroke-[3]" />
+            Nueva Invitación
+          </Button>
+        </div>
       </div>
 
       {/* Main Content */}
