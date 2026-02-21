@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ import {
   Mail,
   Plus,
   Pencil,
+  ArrowLeft,
 } from "lucide-react";
 import {
   Dialog,
@@ -40,6 +42,7 @@ type Invite = {
 };
 
 export default function TeachersPage() {
+  const navigate = useNavigate();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -234,9 +237,17 @@ export default function TeachersPage() {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-[#151b2d]/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-            Docentes
-          </h1>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => navigate(-1)}
+              className="lg:hidden p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+              Docentes
+            </h1>
+          </div>
           <div className="flex gap-2">
             <Button
               variant="outline"

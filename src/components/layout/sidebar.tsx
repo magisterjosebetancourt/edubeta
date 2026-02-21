@@ -10,7 +10,8 @@ import {
   BookOpen, 
   Settings, 
   LogOut, 
-  PieChart
+  PieChart,
+  MapPin
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -30,6 +31,7 @@ const sidebarItems = [
       { title: 'Docentes', href: '/dashboard/teachers', icon: GraduationCap },
       { title: 'Grados y Grupos', href: '/dashboard/grades', icon: School },
       { title: 'Asignaturas', href: '/dashboard/subjects', icon: BookOpen },
+      { title: 'Barrios', href: '/dashboard/neighborhoods', icon: MapPin },
       { title: 'Asignación Académica', href: '/dashboard/assignments', icon: BookOpen },
     ]
   },

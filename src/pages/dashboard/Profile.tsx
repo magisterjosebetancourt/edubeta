@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { User, Mail, Shield, Save, Loader2 } from 'lucide-react'
+import { User, Mail, Shield, Save, Loader2, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function ProfilePage() {
@@ -17,6 +18,7 @@ export default function ProfilePage() {
   const [email, setEmail] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [uploading, setUploading] = useState(false)
+  const navigate = useNavigate()
 
   const supabase = createClient()
 
@@ -126,6 +128,12 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6 p-6 max-w-2xl mx-auto h-full overflow-y-auto pb-24">
       <div className="flex items-center gap-3 mb-2">
+        <button 
+          onClick={() => navigate(-1)}
+          className="lg:hidden p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
         <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-xl">
              <User className="w-8 h-8 text-primary" />
         </div>

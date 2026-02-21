@@ -20,7 +20,11 @@ export default function DashboardLayout() {
       'grades': 'Grados',
       'subjects': 'Asignaturas',
       'attendance': 'Asistencia',
-      'settings': 'Configuración'
+      'history': 'Historial',
+      'settings': 'Configuración',
+      'assignments': 'Asignación Académica',
+      'institution': 'Caracterización',
+      'neighborhoods': 'Barrios'
     }
     
     return titles[path] || path.charAt(0).toUpperCase() + path.slice(1)

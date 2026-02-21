@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { createClient } from '../../lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
@@ -11,7 +12,8 @@ import {
   Globe, 
   Save, 
   Database,
-  Loader2
+  Loader2,
+  ArrowLeft
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from "next-themes";
@@ -22,6 +24,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dbError, setDbError] = useState(false);
+  const navigate = useNavigate();
   
   const supabase = createClient();
 
@@ -65,6 +68,12 @@ export default function SettingsPage() {
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6 pb-24 lg:pb-6">
       <div className="flex items-center gap-4 mb-8">
+        <button 
+          onClick={() => navigate(-1)}
+          className="lg:hidden p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
         <div className="p-3 bg-primary/10 rounded-2xl">
           <SettingsIcon className="w-8 h-8 text-primary" />
         </div>

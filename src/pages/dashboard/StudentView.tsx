@@ -13,7 +13,8 @@ import {
   XCircle, 
   Clock, 
   History,
-  TrendingUp
+  TrendingUp,
+  MapPin
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -24,6 +25,7 @@ type Student = {
   last_name: string;
   grade_id: number;
   grades: { name: string };
+  neighborhood?: string;
   attendance_stats?: {
     present: number;
     absent: number;
@@ -117,7 +119,7 @@ export default function StudentView() {
           </Button>
           <div>
             <h1 className="text-xl font-bold text-slate-900 dark:text-white uppercase">
-              {student.first_name.toLowerCase()}, {student.last_name.toLowerCase()}
+              {student.first_name?.toLowerCase()}, {student.last_name?.toLowerCase()}
             </h1>
             <p className="text-xs text-slate-500 font-medium">Perfil del Estudiante</p>
           </div>
@@ -133,8 +135,14 @@ export default function StudentView() {
                 <User className="w-12 h-12" />
               </div>
               <CardTitle className="text-center uppercase">{student.first_name}, {student.last_name}</CardTitle>
-              <CardDescription className="text-center font-bold text-primary uppercase text-[10px] tracking-widest mt-1">
-                Grado: {student.grades.name}
+              {student.neighborhood && (
+                <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 uppercase">
+                  <MapPin className="w-3.5 h-3.5 text-primary" />
+                  {student.neighborhood}
+                </div>
+              )}
+              <CardDescription className="text-center font-bold text-primary uppercase text-[10px] tracking-widest mt-2">
+                Grado: {student.grades?.name || 'No asignado'}
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
@@ -219,7 +227,7 @@ export default function StudentView() {
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">{record.subjects.name}</span>
+                          <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">{record.subjects?.name || 'Materia no registrada'}</span>
                         </td>
                         <td className="px-6 py-4 text-center">
                           <span className={cn(

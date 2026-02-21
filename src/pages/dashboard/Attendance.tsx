@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { 
@@ -17,7 +18,8 @@ import {
   TrendingUp,
   Users,
   XCircle,
-  CheckCircle2
+  ChevronRight,
+  RefreshCw
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -79,6 +81,7 @@ const AVATAR_COLORS = [
 ]
 
 export default function AttendancePage() {
+  const navigate = useNavigate();
   const [view, setView] = useState<'dashboard' | 'taking'>('dashboard')
   const [students, setStudents] = useState<StudentWithStatus[]>([])
   const [grades, setGrades] = useState<{id: number, name: string}[]>([])
@@ -164,9 +167,9 @@ export default function AttendancePage() {
           subject_id,
           teacher_id,
           processed,
-          students!inner(grade_id, grades!inner(name)),
-          subjects!inner(name),
-          profiles!inner(full_name)
+          student:students!inner(grade_id, grades!inner(name)),
+          subject:subjects!inner(name),
+          teacher:profiles!inner(full_name)
         `)
         .eq('date', filterDate);
 
@@ -181,16 +184,16 @@ export default function AttendancePage() {
       const groups: { [key: string]: AttendanceSession } = {};
 
       (data || []).forEach((row: any) => {
-        const key = `${row.date}-${row.students.grade_id}-${row.subject_id}-${row.teacher_id}`;
+        const key = `${row.date}-${row.student.grade_id}-${row.subject_id}-${row.teacher_id}`;
         if (!groups[key]) {
           groups[key] = {
             date: row.date,
-            grade_id: row.students.grade_id,
+            grade_id: row.student.grade_id,
             subject_id: row.subject_id,
             teacher_id: row.teacher_id,
-            grade_name: row.students.grades.name,
-            subject_name: row.subjects.name,
-            teacher_name: row.profiles.full_name,
+            grade_name: row.student.grades.name,
+            subject_name: row.subject.name,
+            teacher_name: row.teacher.full_name,
             present_count: 0,
             absent_count: 0,
             late_count: 0,
@@ -353,6 +356,10 @@ export default function AttendancePage() {
   }
 
   const generateReport = async (session: AttendanceSession) => {
+    if (!session.date || !session.subject_id || !session.teacher_id || !session.grade_id) {
+      toast.error('Datos de sesión incompletos');
+      return;
+    }
     toast.loading('Generando informe...');
     try {
       const { data: rawSettings } = await supabase
@@ -378,9 +385,9 @@ export default function AttendancePage() {
           students!inner(first_name, last_name)
         `)
         .eq('date', session.date)
-        .eq('subject_id', session.subject_id)
+        .eq('subject_id', Number(session.subject_id))
         .eq('teacher_id', session.teacher_id)
-        .eq('students.grade_id', session.grade_id);
+        .eq('students.grade_id', Number(session.grade_id));
       
       if (error) throw error;
 
@@ -539,8 +546,7 @@ export default function AttendancePage() {
             window.onload = () => {
               window.print();
               setTimeout(() => { window.close(); }, 100);
-            };
-          </script>
+            </script>
         </body>
         </html>
       `;
@@ -586,13 +592,17 @@ export default function AttendancePage() {
       {view === 'dashboard' ? (
         <>
           {/* Dashboard Header */}
-          <header className="px-5 pt-8 pb-6 bg-white dark:bg-background-dark border-b border-slate-100 dark:border-slate-800">
-            <div className="flex flex-col gap-4">
-              <div>
-                <h1 className="text-2xl font-black text-slate-900 dark:text-white leading-tight">Control de Asistencia</h1>
-                <p className="text-xs text-slate-500 font-medium tracking-tight">Optimiza el registro y seguimiento diario</p>
-              </div>
-              
+          <header className="px-5 pt-8 pb-6 bg-white dark:bg-background-dark border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
+            <button 
+              onClick={() => navigate(-1)}
+              className="lg:hidden p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Control de Asistencia</h1>
+          </header>
+
+          <div className="flex flex-col gap-4 p-5">
               <Dialog>
                 <DialogTrigger asChild>
                   <button className="flex items-center justify-center gap-2 w-full sm:w-max px-8 py-3.5 bg-primary text-white rounded-2xl hover:opacity-90 transition-all shadow-xl shadow-primary/20 hover:shadow-primary/40 active:scale-95 group">
@@ -661,8 +671,7 @@ export default function AttendancePage() {
                   </div>
                 </DialogContent>
               </Dialog>
-            </div>
-          </header>
+          </div>
 
           {/* Stats Bar */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-5">
@@ -756,7 +765,7 @@ export default function AttendancePage() {
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{format(new Date(s.date + 'T00:00:00'), 'dd MMM', { locale: es })}</span>
                           {s.all_processed && s.absent_count + s.late_count > 0 && (
                             <span className="px-1.5 py-0.5 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded text-[8px] font-black uppercase tracking-tighter flex items-center gap-1">
-                              <CheckCircle2 className="w-2.5 h-2.5" /> Procesado
+                              <CheckCircle className="w-2.5 h-2.5" /> Procesado
                             </span>
                           )}
                         </div>
@@ -799,7 +808,7 @@ export default function AttendancePage() {
                                 )}
                                 title={s.all_processed ? "Reportado a padres" : "Marcar como reportado a padres"}
                               >
-                                <CheckCircle2 className="w-4 h-4" />
+                                <CheckCircle className="w-4 h-4" />
                               </button>
                             )}
                             <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-primary transition-all group-hover:translate-x-1" />
@@ -817,11 +826,11 @@ export default function AttendancePage() {
           {/* Taking Attendance View */}
           <header className="px-5 py-4 bg-white dark:bg-background-dark border-b border-slate-100 dark:border-slate-800 sticky top-0 z-40 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button
+              <button 
                 onClick={() => setView('dashboard')}
-                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors"
               >
-                <ArrowLeft className="w-5 h-5 text-slate-500" />
+                <ArrowLeft className="w-5 h-5" />
               </button>
               <div>
                 <h1 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none mb-1">

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { createClient } from '../../lib/supabase/client'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card'
-import { Label } from '../../components/ui/label'
-import { Input } from '../../components/ui/input'
-import { Button } from '../../components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
+import { useNavigate } from 'react-router-dom'
+import { createClient } from '@/lib/supabase/client'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Building, 
   Calendar, 
@@ -13,7 +14,8 @@ import {
   Type, 
   Image as ImageIcon,
   Clock,
-  CheckCircle2
+  CheckCircle2,
+  ArrowLeft
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { differenceInWeeks, parseISO } from 'date-fns'
@@ -28,6 +30,7 @@ type Period = {
 export default function InstitutionalInfo() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const navigate = useNavigate()
   const supabase = createClient()
 
   // Info Institucional
@@ -144,6 +147,12 @@ export default function InstitutionalInfo() {
     <div className="space-y-6 p-6 pb-24 lg:pb-6 max-w-5xl mx-auto h-full overflow-y-auto">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
         <div className="flex items-center gap-3">
+          <button 
+            onClick={() => navigate(-1)}
+            className="lg:hidden p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
           <div className="p-3 bg-primary/10 rounded-xl">
             <Building className="w-8 h-8 text-primary" />
           </div>

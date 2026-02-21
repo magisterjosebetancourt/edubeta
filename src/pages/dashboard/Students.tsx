@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Trash2, UserPlus, Search, Edit, Upload } from "lucide-react";
+import { Trash2, UserPlus, Search, Edit, Upload, MapPin, ArrowLeft } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -53,11 +53,18 @@ type Grade = {
   level?: string;
 };
 
+type Neighborhood = {
+  id: number;
+  name: string;
+  state?: boolean;
+};
+
 type Student = {
   id: string;
   first_name: string;
   last_name: string;
   grade_id?: string | number;
+  neighborhood?: string;
   state?: boolean;
   grades?: {
     name: string;
@@ -73,6 +80,7 @@ type Student = {
 export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
+  const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -105,17 +113,19 @@ export default function StudentsPage() {
 
   const fetchData = async () => {
     try {
-      const [studentsRes, gradesRes, attendanceRes] = await Promise.all([
+      const [studentsRes, gradesRes, neighborhoodsRes, attendanceRes] = await Promise.all([
         supabase
           .from("students")
           .select(`*, grades (name)`)
           .order("first_name", { ascending: true }),
         supabase.from("grades").select("*").eq("state", true).order("name", { ascending: true }),
+        supabase.from("neighborhoods").select("*").eq("state", true).order("name", { ascending: true }),
         supabase.from("attendance_records").select("student_id, status")
       ]);
 
       if (studentsRes.error) throw studentsRes.error;
       if (gradesRes.error) throw gradesRes.error;
+      if (neighborhoodsRes.error) throw neighborhoodsRes.error;
       if (attendanceRes.error) throw attendanceRes.error;
 
       const attendanceData = (attendanceRes.data as any[]) || [];
@@ -134,6 +144,7 @@ export default function StudentsPage() {
 
       setStudents(studentsWithStats);
       setGrades(gradesRes.data || []);
+      setNeighborhoods(neighborhoodsRes.data || []);
     } catch (error: any) {
       toast.error("Error al cargar datos", { description: error.message });
     } finally {
@@ -187,6 +198,7 @@ export default function StudentsPage() {
     const formData = new FormData(e.currentTarget);
     const firstName = formData.get("firstName") as string;
     const lastName = formData.get("lastName") as string;
+    const neighborhood = formData.get("neighborhood") as string;
     const gradeId = selectedGradeId;
 
     if (!firstName || !lastName || !gradeId) {
@@ -201,6 +213,7 @@ export default function StudentsPage() {
           first_name: firstName,
           last_name: lastName,
           grade_id: Number(gradeId),
+          neighborhood: neighborhood || null,
         },
       ] as any);
 
@@ -227,6 +240,7 @@ export default function StudentsPage() {
     const formData = new FormData(e.currentTarget);
     const firstName = formData.get("firstName") as string;
     const lastName = formData.get("lastName") as string;
+    const neighborhood = formData.get("neighborhood") as string;
     const gradeId = editGradeId;
 
     if (!firstName || !lastName || !gradeId) {
@@ -241,6 +255,7 @@ export default function StudentsPage() {
           first_name: firstName,
           last_name: lastName,
           grade_id: Number(gradeId),
+          neighborhood: neighborhood || null,
         })
         .eq("id", editingStudent.id);
 
@@ -292,7 +307,7 @@ export default function StudentsPage() {
 
   // Filter students
   const filteredStudents = students.filter((student) => {
-    const nameMatch = `${student.first_name} ${student.last_name}`
+    const nameMatch = `${student.first_name} ${student.last_name} ${student.neighborhood || ""}`
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
 
@@ -310,7 +325,13 @@ export default function StudentsPage() {
       {/* Mobile Header */}
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-[#151b2d]/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => navigate(-1)}
+              className="lg:hidden p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
             <h1 className="text-xl font-bold text-slate-900 dark:text-white">
               Estudiantes
             </h1>
@@ -373,6 +394,21 @@ export default function StudentsPage() {
                         required
                       />
                     </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="neighborhood">Barrio / Ubicación</Label>
+                    <select
+                      id="neighborhood"
+                      name="neighborhood"
+                      className="w-full flex h-9 items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1"
+                    >
+                      <option value="">Seleccionar Barrio (Opcional)</option>
+                      {neighborhoods.map((n) => (
+                        <option key={n.id} value={n.name}>
+                          {n.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-2">
                     <Label>Grado/Curso</Label>
@@ -499,6 +535,12 @@ export default function StudentsPage() {
                     <h3 className="font-semibold text-slate-900 dark:text-white leading-tight hover:text-primary transition-colors uppercase">
                       {student.first_name}, {student.last_name}
                     </h3>
+                    {student.neighborhood && (
+                      <p className="text-[10px] text-primary font-bold uppercase tracking-tight flex items-center gap-1">
+                        <MapPin className="w-2.5 h-2.5" />
+                        {student.neighborhood}
+                      </p>
+                    )}
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                       Acudiente: No registrado
                     </p>
@@ -593,6 +635,22 @@ export default function StudentsPage() {
                   required
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-neighborhood">Barrio / Ubicación</Label>
+              <select
+                id="edit-neighborhood"
+                name="neighborhood"
+                defaultValue={editingStudent?.neighborhood}
+                className="w-full flex h-9 items-center justify-between whitespace-nowrap rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1"
+              >
+                <option value="">Seleccionar Barrio (Opcional)</option>
+                {neighborhoods.map((n) => (
+                  <option key={n.id} value={n.name}>
+                    {n.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="space-y-2">
               <Label>Grado/Curso</Label>

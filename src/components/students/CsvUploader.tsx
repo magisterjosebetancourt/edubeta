@@ -13,6 +13,7 @@ type CsvRow = {
   nombres: string
   apellidos: string
   grado: string
+  barrio?: string
 }
 
 type Grade = {
@@ -86,14 +87,15 @@ export function CsvUploader({ onSuccess }: { onSuccess: () => void }) {
 
     lines.forEach((line, index) => {
       const parts = line.split(',').map(p => p.trim())
-      if (parts.length === 3) {
+      if (parts.length >= 3) {
         data.push({
           apellidos: parts[0],
           nombres: parts[1],
-          grado: parts[2]
+          grado: parts[2],
+          barrio: parts[3] || ''
         })
       } else if (parts.length > 0) {
-        newErrors.push(`Fila ${index + 1}: Formato incorrecto. Debe ser "apellido, nombre, grado"`)
+        newErrors.push(`Fila ${index + 1}: Formato incorrecto. Debe tener al menos "apellido, nombre, grado"`)
       }
     })
 
@@ -145,8 +147,9 @@ export function CsvUploader({ onSuccess }: { onSuccess: () => void }) {
       const studentsToInsert = preview.map(row => {
         const grade = grades.find(g => (g.name || '').toLowerCase() === row.grado.trim().toLowerCase())
         return {
-          first_name: row.apellidos,
-          last_name: row.nombres,
+          first_name: row.nombres,
+          last_name: row.apellidos,
+          neighborhood: row.barrio || null,
           grade_id: grade?.id
         }
       })
@@ -203,7 +206,7 @@ export function CsvUploader({ onSuccess }: { onSuccess: () => void }) {
                 {file ? file.name : 'Arrastra o selecciona un archivo CSV'}
             </p>
             <p className="text-xs text-slate-500">
-                Formato: apellidos, nombres, grado
+                Formato: apellidos, nombres, grado, barrio (opcional)
             </p>
           </div>
           <Input 
@@ -221,16 +224,16 @@ export function CsvUploader({ onSuccess }: { onSuccess: () => void }) {
         </div>
       ) : (
         <div className="space-y-2">
-          <Label htmlFor="text-list">Lista de estudiantes (apellido, nombre, grado)</Label>
+          <Label htmlFor="text-list">Lista de estudiantes (apellido, nombre, grado, barrio opcional)</Label>
           <Textarea
             id="text-list"
-            placeholder="Pérez, Juan, Primero&#10;López, María, Segundo"
+            placeholder="Pérez, Juan, Primero, Centro&#10;López, María, Segundo, Norte"
             className="min-h-[150px] font-mono text-sm"
             value={textList}
             onChange={handleTextChange}
           />
           <p className="text-[10px] text-slate-500 dark:text-slate-400">
-            * Un estudiante por fila. Formato: apellido, nombre, grado.
+            * Un estudiante por fila. Formato: apellido, nombre, grado, barrio (opcional).
           </p>
         </div>
       )}

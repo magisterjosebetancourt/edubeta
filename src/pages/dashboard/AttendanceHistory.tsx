@@ -1,17 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { format, subDays } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { 
-  Search, 
   School,
   FileText,
-  Filter,
-  ArrowLeft,
   ChevronRight,
   Loader2,
-  CalendarDays,
   XCircle,
   RefreshCcw,
   MessageSquare,
@@ -20,9 +17,11 @@ import {
   User,
   CheckCircle2,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Search,
+  Filter,
+  ArrowLeft
 } from 'lucide-react'
-import { Link } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 
 type AttendanceRecord = {
@@ -58,7 +57,9 @@ interface Grade {
   name: string;
 }
 
-export default function AttendanceHistory() {
+
+export default function AttendanceHistoryPage() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [records, setRecords] = useState<AttendanceRecord[]>([])
@@ -72,7 +73,7 @@ export default function AttendanceHistory() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterGradeId, setFilterGradeId] = useState<string>("")
   const [filterSubjectId, setFilterSubjectId] = useState<string>("")
-  const [filterStatus, setFilterStatus] = useState<string>("absent") // Default to see absences
+  const [filterStatus, setFilterStatus] = useState<string>("all") // Change default to 'all' to see everything
   const [filterProcessed, setFilterProcessed] = useState<string>("all")
 
   const supabase = createClient()
@@ -217,6 +218,10 @@ export default function AttendanceHistory() {
   };
 
   const generateReport = async (record: AttendanceRecord) => {
+    if (!record.date || !record.subject_id || !record.teacher_id) {
+      toast.error('Datos de sesión incompletos para generar el reporte');
+      return;
+    }
     toast.loading('Generando informe...');
     try {
       const { data: rawSettings } = await supabase
@@ -250,7 +255,7 @@ export default function AttendanceHistory() {
           students!inner(first_name, last_name)
         `)
         .eq('date', record.date)
-        .eq('subject_id', record.subject_id)
+        .eq('subject_id', Number(record.subject_id))
         .eq('teacher_id', record.teacher_id)
         .in('status', ['absent', 'late']);
 
@@ -454,125 +459,119 @@ export default function AttendanceHistory() {
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-background-dark pb-20 lg:pb-0">
       {/* Header */}
       <header className="px-5 py-4 bg-white dark:bg-background-dark border-b border-slate-100 dark:border-slate-800 sticky top-0 z-40">
-        <div className="flex items-center gap-3 mb-1">
-          <Link to="/dashboard/attendance" className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-            <ArrowLeft className="w-5 h-5 text-slate-500" />
-          </Link>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white leading-tight">Historial de Asistencia</h1>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => navigate(-1)}
+            className="lg:hidden p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Historial de Asistencia</h1>
         </div>
-        <p className="text-xs text-slate-500 font-medium ml-10">Consulta y gestiona registros escolares</p>
       </header>
       
       {/* Filters Area */}
       <div className="p-4 space-y-4">
-        {/* Date Range & Refresh */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold uppercase text-slate-400 px-1 ml-1">Desde</label>
-            <div className="relative">
-              <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-              <input 
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
-              />
-            </div>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold uppercase text-slate-400 px-1 ml-1">Hasta</label>
-            <div className="relative">
-              <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-              <input 
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
-              />
-            </div>
-          </div>
-          <div className="flex flex-col gap-1.5 justify-end">
-             <button 
-              onClick={() => fetchData(true)}
-              disabled={isRefreshing}
-              className="flex items-center justify-center gap-2 h-[41px] bg-slate-900 dark:bg-primary text-white rounded-xl hover:opacity-90 transition-all active:scale-95 disabled:opacity-50"
-            >
-              <RefreshCcw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
-              <span className="text-sm font-semibold">Cargar Historial</span>
-            </button>
-          </div>
+        {/* Row 1: Search - Main Placeholder */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input 
+            type="text"
+            placeholder="Buscar por nombre del estudiante..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm transition-all"
+          />
         </div>
 
-        {/* Search & Filters Row 1 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Row 2: Select Filters */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input 
-              type="text"
-              placeholder="Estudiante..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-            />
-          </div>
-          <div className="relative">
-            <School className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            <School className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
             <select 
               value={filterGradeId}
               onChange={(e) => setFilterGradeId(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none transition-all"
+              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[11px] font-bold uppercase focus:outline-none appearance-none transition-all"
             >
-              <option value="">Todos los Grados</option>
+              <option value="">Grados</option>
               {grades.map(g => (
                 <option key={g.id} value={String(g.id)}>{g.name}</option>
               ))}
             </select>
           </div>
           <div className="relative">
-            <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
             <select 
               value={filterSubjectId}
               onChange={(e) => setFilterSubjectId(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none transition-all"
+              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[11px] font-bold uppercase focus:outline-none appearance-none transition-all"
             >
-              <option value="">Todas las Materias</option>
+              <option value="">Materias</option>
               {subjects.map(s => (
                 <option key={s.id} value={String(s.id)}>{s.name}</option>
               ))}
             </select>
           </div>
           <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
             <select 
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none transition-all"
+              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[11px] font-bold uppercase focus:outline-none appearance-none transition-all"
             >
-              <option value="all">Todos los Estados</option>
-              <option value="absent">Solo Inasistencias</option>
-              <option value="late">Solo Llegadas Tarde</option>
-              <option value="present">Solo Presente</option>
+              <option value="all">Estados</option>
+              <option value="absent">Inasistencias</option>
+              <option value="late">Tardanzas</option>
+              <option value="present">Presentes</option>
             </select>
           </div>
-        </div>
-
-        {/* Filters Row 2 - Processed (Visible for Admin/Coord) */}
-        {(userRole === 'admin' || userRole === 'coordinator') && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-             <div className="relative">
-              <Check className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          {(userRole === 'admin' || userRole === 'coordinator') && (
+            <div className="relative">
+              <Check className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
               <select 
                 value={filterProcessed}
                 onChange={(e) => setFilterProcessed(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none transition-all"
+                className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[11px] font-bold uppercase focus:outline-none appearance-none transition-all"
               >
-                <option value="all">Filtro de Gestión (Todo)</option>
-                <option value="false">Pendientes por notificar</option>
-                <option value="true">Ya procesados</option>
+                <option value="all">Gestión</option>
+                <option value="false">Pendientes</option>
+                <option value="true">Procesados</option>
               </select>
             </div>
+          )}
+        </div>
+
+        {/* Row 3: Date Range & Refresh Button */}
+        <div className="flex flex-col md:flex-row gap-2 items-center">
+          <div className="flex-1 w-full grid grid-cols-2 gap-2">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 pointer-events-none uppercase">De</span>
+              <input 
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[11px] focus:outline-none"
+              />
+            </div>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 pointer-events-none uppercase">A</span>
+              <input 
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[11px] focus:outline-none"
+              />
+            </div>
           </div>
-        )}
+          <button 
+            onClick={() => fetchData(true)}
+            disabled={isRefreshing}
+            className="w-full md:w-auto px-4 py-2 bg-primary text-white rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            <RefreshCcw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
+            <span className="text-[11px] font-bold uppercase">Actualizar</span>
+          </button>
+        </div>
       </div>
 
       {/* Results Title */}
@@ -643,60 +642,61 @@ export default function AttendanceHistory() {
                       <User className="w-2.5 h-2.5" />
                       Dictado por: {record.teacher?.full_name || 'Desconocido'}
                     </p>
-                  </div>
 
-                  {/* Right: Actions/Badge */}
-                  <div className="flex flex-col items-end gap-2 text-right">
-                    <div className="flex items-center gap-2">
+                    {/* Estado arriba de las acciones */}
+                    <div className="mt-4 flex justify-start">
+                       {getStatusBadge(record.status)}
+                    </div>
+
+                    {/* Botones de acción en línea horizontal (compactos con iconos) */}
+                    <div className="flex flex-wrap items-center gap-2 mt-2 w-full">
                        {record.status !== 'present' && (
                         <button 
-                          onClick={() => handleNotifyWhatsApp(record)}
-                          className="p-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors shadow-sm shadow-green-200 dark:shadow-none"
+                          onClick={(e) => { e.stopPropagation(); handleNotifyWhatsApp(record); }}
+                          className="flex items-center justify-center w-9 h-9 bg-green-500 hover:bg-green-600 text-white rounded-xl transition-all shadow-sm"
                           title="Notificar por WhatsApp"
                         >
                           <MessageSquare className="w-4 h-4" />
                         </button>
                        )}
+                       
                        <button 
-                         onClick={() => generateReport(record)}
-                         className="p-1.5 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 rounded-lg transition-colors hover:text-primary"
-                         title="Imprimir informe de inasistencia"
+                         onClick={(e) => { e.stopPropagation(); generateReport(record); }}
+                         className="flex items-center justify-center w-9 h-9 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl transition-all hover:bg-primary hover:text-white border border-slate-200 dark:border-slate-700"
+                         title="Generar Informe"
                        >
                          <FileText className="w-4 h-4" />
                        </button>
-                       {getStatusBadge(record.status)}
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      {record.status === 'absent' && (
-                        <button
-                          onClick={() => handleToggleJustification(record.id, record.justified)}
-                          className={cn(
-                            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all border",
-                            record.justified 
-                              ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
-                              : "bg-white dark:bg-slate-900 text-slate-500 border-slate-200 hover:border-slate-300 dark:border-slate-700"
-                          )}
-                        >
-                          <FileText className="w-3 h-3" />
-                          {record.justified ? "Justificada" : "Justificar"}
-                        </button>
-                      )}
 
-                      {(userRole === 'admin' || userRole === 'coordinator') && (
+                       {record.status === 'absent' && (
+                         <button
+                           onClick={(e) => { e.stopPropagation(); handleToggleJustification(record.id, record.justified); }}
+                           className={cn(
+                             "flex items-center gap-1 px-3 h-9 rounded-xl text-[10px] font-bold uppercase transition-all border",
+                             record.justified 
+                               ? "bg-blue-50 border-blue-100 text-blue-600 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400"
+                               : "bg-white border-slate-200 text-slate-400 dark:bg-slate-900 dark:border-slate-800"
+                           )}
+                         >
+                           <CheckCircle2 className="w-3.5 h-3.5" />
+                           {record.justified ? "Justificada" : "Justificar"}
+                         </button>
+                       )}
+
+                       {(userRole === 'admin' || userRole === 'coordinator') && (
                         <button
-                          onClick={() => handleToggleProcessed(record.id, record.processed)}
+                          onClick={(e) => { e.stopPropagation(); handleToggleProcessed(record.id, record.processed); }}
                           className={cn(
-                            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all border shadow-sm",
+                            "flex items-center gap-1 px-3 h-9 rounded-xl text-[10px] font-bold uppercase transition-all border shadow-sm",
                             record.processed
                               ? "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-400"
                               : "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/10 dark:text-orange-300 animate-pulse"
                           )}
                         >
-                          <Check className="w-3 h-3" />
+                          <Check className="w-3.5 h-3.5" />
                           {record.processed ? "Procesado" : "Pendiente"}
                         </button>
-                      )}
+                       )}
                     </div>
                   </div>
                 </div>

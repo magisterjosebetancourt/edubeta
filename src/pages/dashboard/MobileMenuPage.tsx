@@ -9,7 +9,8 @@ import {
   Settings, 
   LogOut, 
   PieChart,
-  Building
+  Building,
+  MapPin
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -37,7 +38,8 @@ export default function MobileMenuPage() {
                 { title: 'Docentes', href: '/dashboard/teachers', icon: GraduationCap, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/20' },
                 { title: 'Grados', href: '/dashboard/grades', icon: School, color: 'text-green-500', bg: 'bg-green-50 dark:bg-green-900/20' },
                 { title: 'Asignaturas', href: '/dashboard/subjects', icon: BookOpen, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/20' },
-                { title: 'Asignación', href: '/dashboard/assignments', icon: BookOpen, color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-900/20' },
+                { title: 'Barrios', href: '/dashboard/neighborhoods', icon: MapPin, color: 'text-teal-500', bg: 'bg-teal-50 dark:bg-teal-900/20' },
+                { title: 'Asignación Académica', href: '/dashboard/assignments', icon: BookOpen, color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-900/20' },
                 { title: 'Caracterización', href: '/dashboard/institution', icon: Building, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-900/20' },
             ]
         },
@@ -45,6 +47,7 @@ export default function MobileMenuPage() {
             category: "Herramientas",
             items: [
                 { title: 'Asistencia', href: '/dashboard/attendance', icon: PieChart, color: 'text-pink-500', bg: 'bg-pink-50 dark:bg-pink-900/20' },
+                { title: 'Historial', href: '/dashboard/history', icon: PieChart, color: 'text-cyan-500', bg: 'bg-cyan-50 dark:bg-cyan-900/20' },
                 { title: 'Configuración', href: '/dashboard/settings', icon: Settings, color: 'text-slate-500', bg: 'bg-slate-50 dark:bg-slate-900/20' },
             ]
         }
