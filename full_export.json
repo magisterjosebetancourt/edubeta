@@ -1,0 +1,283 @@
+{
+  "students": [],
+  "profiles": [
+    {
+      "id": "1112a50d-9f7c-487f-b3e7-028f1bec5e6e",
+      "updated_at": "2026-02-19T06:39:49.243+00:00",
+      "full_name": "José Betancourt ",
+      "avatar_url": "https://dvhbjhttgwnpdrwgdity.supabase.co/storage/v1/object/public/avatars/1112a50d-9f7c-487f-b3e7-028f1bec5e6e-0.5313216624760368.jpg",
+      "role": "teacher",
+      "email": "jbetancourt77@gmail.com",
+      "state": true
+    },
+    {
+      "id": "ab696120-c9a2-444e-a0ea-57e5ec101096",
+      "updated_at": "2026-02-21T20:00:00.01+00:00",
+      "full_name": "Admin User",
+      "avatar_url": "https://dvhbjhttgwnpdrwgdity.supabase.co/storage/v1/object/public/avatars/ab696120-c9a2-444e-a0ea-57e5ec101096-0.4346835903159516.png",
+      "role": "admin",
+      "email": "admin@edubeta.com",
+      "state": true
+    },
+    {
+      "id": "264a8789-8f8c-4d06-9ae5-e57ea5f3ba2f",
+      "updated_at": "2026-02-21T20:07:34.066+00:00",
+      "full_name": "Maleidya Díaz ",
+      "avatar_url": "https://dvhbjhttgwnpdrwgdity.supabase.co/storage/v1/object/public/avatars/264a8789-8f8c-4d06-9ae5-e57ea5f3ba2f-0.007692097294016098.jpg",
+      "role": "teacher",
+      "email": "maleidysdiazcastro@gmail.com",
+      "state": true
+    }
+  ],
+  "grades": [
+    {
+      "id": 9,
+      "name": "1101",
+      "created_at": "2026-02-20T11:44:50.990489+00:00",
+      "state": true
+    },
+    {
+      "id": 10,
+      "name": "1103",
+      "created_at": "2026-02-20T11:45:03.246393+00:00",
+      "state": true
+    },
+    {
+      "id": 11,
+      "name": "1104",
+      "created_at": "2026-02-20T11:45:07.894663+00:00",
+      "state": true
+    },
+    {
+      "id": 12,
+      "name": "1001",
+      "created_at": "2026-02-20T19:34:23.066778+00:00",
+      "state": true
+    },
+    {
+      "id": 13,
+      "name": "1002",
+      "created_at": "2026-02-20T19:34:27.074727+00:00",
+      "state": true
+    },
+    {
+      "id": 14,
+      "name": "1003",
+      "created_at": "2026-02-20T19:34:30.859935+00:00",
+      "state": true
+    },
+    {
+      "id": 15,
+      "name": "1004",
+      "created_at": "2026-02-20T19:34:35.033585+00:00",
+      "state": true
+    },
+    {
+      "id": 8,
+      "name": "1102",
+      "created_at": "2026-02-19T01:35:41.770294+00:00",
+      "state": true
+    }
+  ],
+  "subjects": [
+    {
+      "id": 4,
+      "name": "Estadística",
+      "created_at": "2026-02-18T23:34:03.204934+00:00",
+      "state": true
+    },
+    {
+      "id": 5,
+      "name": "Geometría",
+      "created_at": "2026-02-18T23:34:06.185629+00:00",
+      "state": true
+    },
+    {
+      "id": 9,
+      "name": "Trigonometría",
+      "created_at": "2026-02-19T03:17:55.787089+00:00",
+      "state": true
+    },
+    {
+      "id": 6,
+      "name": "Álgebra",
+      "created_at": "2026-02-18T23:34:22.498898+00:00",
+      "state": true
+    },
+    {
+      "id": 8,
+      "name": "Aritmética",
+      "created_at": "2026-02-19T03:14:25.508296+00:00",
+      "state": true
+    },
+    {
+      "id": 10,
+      "name": "Razonamiento logíco",
+      "created_at": "2026-02-19T14:12:33.262077+00:00",
+      "state": true
+    },
+    {
+      "id": 1,
+      "name": "Análisis numérico",
+      "created_at": "2026-02-18T20:23:28.558073+00:00",
+      "state": true
+    },
+    {
+      "id": 11,
+      "name": "Speaking",
+      "created_at": "2026-02-22T00:40:32.872547+00:00",
+      "state": true
+    },
+    {
+      "id": 12,
+      "name": "Razonamiento lógico ",
+      "created_at": "2026-02-23T11:25:25.536293+00:00",
+      "state": true
+    }
+  ],
+  "assignments": [
+    {
+      "id": 3,
+      "teacher_id": "1112a50d-9f7c-487f-b3e7-028f1bec5e6e",
+      "grade_id": 8,
+      "subject_id": 1,
+      "created_at": "2026-02-19T14:44:34.620257+00:00",
+      "state": true
+    },
+    {
+      "id": 4,
+      "teacher_id": "1112a50d-9f7c-487f-b3e7-028f1bec5e6e",
+      "grade_id": 9,
+      "subject_id": 1,
+      "created_at": "2026-02-20T15:25:01.477273+00:00",
+      "state": true
+    },
+    {
+      "id": 5,
+      "teacher_id": "1112a50d-9f7c-487f-b3e7-028f1bec5e6e",
+      "grade_id": 10,
+      "subject_id": 1,
+      "created_at": "2026-02-20T15:25:17.866089+00:00",
+      "state": true
+    },
+    {
+      "id": 6,
+      "teacher_id": "1112a50d-9f7c-487f-b3e7-028f1bec5e6e",
+      "grade_id": 11,
+      "subject_id": 1,
+      "created_at": "2026-02-20T15:25:33.216307+00:00",
+      "state": true
+    },
+    {
+      "id": 7,
+      "teacher_id": "264a8789-8f8c-4d06-9ae5-e57ea5f3ba2f",
+      "grade_id": 12,
+      "subject_id": 11,
+      "created_at": "2026-02-22T00:41:01.696302+00:00",
+      "state": true
+    },
+    {
+      "id": 8,
+      "teacher_id": "264a8789-8f8c-4d06-9ae5-e57ea5f3ba2f",
+      "grade_id": 13,
+      "subject_id": 11,
+      "created_at": "2026-02-22T00:41:19.803144+00:00",
+      "state": true
+    },
+    {
+      "id": 9,
+      "teacher_id": "264a8789-8f8c-4d06-9ae5-e57ea5f3ba2f",
+      "grade_id": 14,
+      "subject_id": 11,
+      "created_at": "2026-02-22T00:41:35.047203+00:00",
+      "state": true
+    },
+    {
+      "id": 10,
+      "teacher_id": "264a8789-8f8c-4d06-9ae5-e57ea5f3ba2f",
+      "grade_id": 15,
+      "subject_id": 11,
+      "created_at": "2026-02-22T00:41:47.787777+00:00",
+      "state": true
+    },
+    {
+      "id": 11,
+      "teacher_id": "264a8789-8f8c-4d06-9ae5-e57ea5f3ba2f",
+      "grade_id": 9,
+      "subject_id": 11,
+      "created_at": "2026-02-22T00:42:04.564955+00:00",
+      "state": true
+    },
+    {
+      "id": 12,
+      "teacher_id": "264a8789-8f8c-4d06-9ae5-e57ea5f3ba2f",
+      "grade_id": 8,
+      "subject_id": 11,
+      "created_at": "2026-02-22T00:42:20.297664+00:00",
+      "state": true
+    },
+    {
+      "id": 13,
+      "teacher_id": "264a8789-8f8c-4d06-9ae5-e57ea5f3ba2f",
+      "grade_id": 10,
+      "subject_id": 11,
+      "created_at": "2026-02-22T00:42:34.135087+00:00",
+      "state": true
+    },
+    {
+      "id": 14,
+      "teacher_id": "264a8789-8f8c-4d06-9ae5-e57ea5f3ba2f",
+      "grade_id": 11,
+      "subject_id": 11,
+      "created_at": "2026-02-22T00:42:46.680517+00:00",
+      "state": true
+    }
+  ],
+  "neighborhoods": [
+    {
+      "id": 1,
+      "name": "La Florida",
+      "state": true,
+      "created_at": "2026-02-21T15:03:55.981277+00:00"
+    },
+    {
+      "id": 2,
+      "name": "Centro",
+      "state": true,
+      "created_at": "2026-02-21T15:04:07.558527+00:00"
+    }
+  ],
+  "todos": [],
+  "attendance_records": [],
+  "academic_periods": [
+    {
+      "id": 1,
+      "period_number": 1,
+      "start_date": "2026-01-26",
+      "end_date": "2026-04-10",
+      "created_at": "2026-02-21T01:36:24.299588+00:00"
+    },
+    {
+      "id": 2,
+      "period_number": 2,
+      "start_date": "2026-04-13",
+      "end_date": "2026-06-26",
+      "created_at": "2026-02-21T01:36:24.299588+00:00"
+    },
+    {
+      "id": 3,
+      "period_number": 3,
+      "start_date": "2026-07-06",
+      "end_date": "2026-09-18",
+      "created_at": "2026-02-21T01:36:24.299588+00:00"
+    },
+    {
+      "id": 4,
+      "period_number": 4,
+      "start_date": "2026-09-14",
+      "end_date": "2026-11-27",
+      "created_at": "2026-02-21T01:36:24.299588+00:00"
+    }
+  ],
+  "teacher_invites": []
+}

@@ -1,6 +1,16 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { createClient } from '@/lib/supabase/client'
+import { db } from '@/lib/firebase/config'
+import { 
+  collection, 
+  getDocs, 
+  getDoc, 
+  setDoc, 
+  doc, 
+  query, 
+  orderBy,
+  serverTimestamp,
+  writeBatch
+} from 'firebase/firestore'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -14,27 +24,23 @@ import {
   Type, 
   Image as ImageIcon,
   Clock,
-  CheckCircle2,
-  ArrowLeft
+  CheckCircle2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { differenceInWeeks, parseISO } from 'date-fns'
 
 type Period = {
-  id?: number
+  id?: string
   period_number: number
   start_date: string
   end_date: string
 }
 
 export default function InstitutionalInfo() {
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const navigate = useNavigate()
-  const supabase = createClient()
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   // Info Institucional
-  const [settingsId, setSettingsId] = useState<number | null>(null)
   const [schoolName, setSchoolName] = useState('')
   const [slogan, setSlogan] = useState('')
   const [academicYear, setAcademicYear] = useState(new Date().getFullYear().toString())
@@ -50,22 +56,29 @@ export default function InstitutionalInfo() {
   const fetchData = async () => {
     try {
       setLoading(true)
-      const [settingsRes, periodsRes] = await Promise.all([
-        supabase.from('settings').select('*').limit(1).single() as any,
-        supabase.from('academic_periods').select('*').order('period_number', { ascending: true }) as any
-      ])
-
-      if (settingsRes.data) {
-        const s = settingsRes.data
-        setSettingsId(s.id)
+      
+      // 1. Fetch Institutional Settings
+      const settingsRef = doc(db, 'settings', 'institutional')
+      const settingsSnap = await getDoc(settingsRef)
+      
+      if (settingsSnap.exists()) {
+        const s = settingsSnap.data()
         setSchoolName(s.school_name || '')
         setSlogan(s.slogan || '')
         setAcademicYear(s.academic_year || '')
         setLogoUrl(s.logo_url || '')
       }
 
-      if (periodsRes.data && periodsRes.data.length > 0) {
-        setPeriods(periodsRes.data)
+      // 2. Fetch Academic Periods
+      const q = query(collection(db, 'academic_periods'), orderBy('period_number', 'asc'))
+      const periodsSnap = await getDocs(q)
+      
+      if (!periodsSnap.empty) {
+        const periodsData = periodsSnap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Period[]
+        setPeriods(periodsData)
       } else {
         // Default periods if none exist
         const defaultPeriods = Array.from({ length: 4 }, (_, i) => ({
@@ -77,6 +90,7 @@ export default function InstitutionalInfo() {
       }
     } catch (error: any) {
       console.error('Error loading institutional data:', error)
+      toast.error('Error al cargar datos institucionales')
     } finally {
       setLoading(false)
     }
@@ -106,31 +120,30 @@ export default function InstitutionalInfo() {
       setSaving(true)
       
       // 1. Save Settings
-      const settingsPayload = {
+      const settingsRef = doc(db, 'settings', 'institutional')
+      await setDoc(settingsRef, {
         school_name: schoolName,
         slogan: slogan,
         academic_year: academicYear,
-        logo_url: logoUrl
-      }
+        logo_url: logoUrl,
+        updated_at: serverTimestamp()
+      }, { merge: true })
 
-      if (settingsId) {
-        await (supabase.from('settings') as any).update(settingsPayload).eq('id', settingsId)
-      } else {
-        await (supabase.from('settings') as any).insert([settingsPayload])
-      }
-
-      // 2. Save Periods (simplified: delete and re-insert for now or upsert)
-      // For more robustness, we use upsert if they have IDs
-      const { error: pError } = await (supabase.from('academic_periods') as any).upsert(
-        periods.map(p => ({
-          ...(p.id ? { id: p.id } : {}),
+      // 2. Save Periods using Batch
+      const batch = writeBatch(db)
+      
+      for (const p of periods) {
+        const pId = p.id || p.period_number.toString()
+        const pRef = doc(db, 'academic_periods', pId)
+        batch.set(pRef, {
           period_number: p.period_number,
           start_date: p.start_date,
-          end_date: p.end_date
-        }))
-      )
-
-      if (pError) throw pError
+          end_date: p.end_date,
+          updated_at: serverTimestamp()
+        }, { merge: true })
+      }
+      
+      await batch.commit()
 
       toast.success('Información institucional guardada')
       fetchData()
@@ -145,7 +158,6 @@ export default function InstitutionalInfo() {
 
   return (
     <div className="space-y-6 p-6 pb-24 lg:pb-6 max-w-5xl mx-auto h-full overflow-y-auto">
-
       <Tabs defaultValue="identity" className="w-full">
         <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
           <TabsTrigger value="identity" className="flex items-center gap-2">
@@ -242,9 +254,9 @@ export default function InstitutionalInfo() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {periods.map((period, index) => (
-                  <div key={index} className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-4">
+                  <div key={index} className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-100 dark:border-slate-800 space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-primary uppercase tracking-wider">Periodo {period.period_number}</span>
+                      <span className="text-sm font-bold text-primary tracking-wider">Periodo {period.period_number}</span>
                       <span className="text-xs font-medium text-slate-500 bg-white dark:bg-slate-800 px-2 py-1 rounded-md border">
                         {calculateWeeks(period.start_date, period.end_date)} semanas
                       </span>
@@ -278,8 +290,8 @@ export default function InstitutionalInfo() {
                   <CardTitle className="text-base">Resumen Anual</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="text-center p-4 bg-white dark:bg-slate-900 rounded-2xl border border-primary/10 shadow-sm">
-                    <p className="text-sm text-slate-500 uppercase tracking-tighter mb-1">Total Semanas</p>
+                  <div className="text-center p-4 bg-white dark:bg-slate-900 rounded-lg border border-primary/10 shadow-sm">
+                    <p className="text-sm text-slate-500 tracking-tighter mb-1">Total semanas</p>
                     <p className="text-5xl font-black text-primary">{totalWeeks}</p>
                     <div className="mt-3 flex items-center justify-center gap-1.5">
                       {totalWeeks >= 40 ? (
@@ -309,6 +321,18 @@ export default function InstitutionalInfo() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Floating Save Button */}
+      <div className="fixed bottom-20 lg:bottom-8 right-8 z-50">
+        <Button 
+          onClick={handleSave} 
+          disabled={saving}
+          className="bg-primary hover:bg-primary/90 text-white rounded-lg h-14 px-8 gap-3 shadow-2xl shadow-primary/40 font-bold text-xs tracking-widest transition-all active:scale-95"
+        >
+          {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+          Guardar Cambios
+        </Button>
+      </div>
     </div>
   )
 }

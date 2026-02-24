@@ -1,6 +1,18 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { createClient } from '@/lib/supabase/client'
+import { auth, db } from '@/lib/firebase/config'
+import { 
+  collection, 
+  getDocs, 
+  getDoc,
+  setDoc,
+  updateDoc, 
+  doc, 
+  query, 
+  where,
+  orderBy,
+  serverTimestamp,
+  writeBatch
+} from "firebase/firestore";
 import { cn } from '@/lib/utils'
 import { 
   Clock, 
@@ -18,8 +30,6 @@ import {
   TrendingUp,
   Users,
   XCircle,
-  ChevronRight,
-  RefreshCw
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -36,10 +46,10 @@ import { Label } from '@/components/ui/label'
 
 // Types
 type Student = {
-  id: number;
+  id: string;
   first_name: string;
   last_name: string;
-  grade_id: number;
+  grade_id: string;
   state?: boolean;
 };
 
@@ -48,7 +58,7 @@ type Student = {
 type StudentWithStatus = Student & {
   status?: 'present' | 'late' | 'absent' | 'excused';
   justified?: boolean;
-  subject_id?: number;
+  subject_id?: string;
   avatarColor?: string;
 }
 
@@ -58,8 +68,8 @@ type UserRole = 'admin' | 'teacher' | 'coordinator' | null;
 
 interface AttendanceSession {
   date: string;
-  grade_id: number;
-  subject_id: number;
+  grade_id: string;
+  subject_id: string;
   teacher_id: string;
   grade_name: string;
   subject_name: string;
@@ -81,21 +91,18 @@ const AVATAR_COLORS = [
 ]
 
 export default function AttendancePage() {
-  const navigate = useNavigate();
   const [view, setView] = useState<'dashboard' | 'taking'>('dashboard')
   const [students, setStudents] = useState<StudentWithStatus[]>([])
-  const [grades, setGrades] = useState<{id: number, name: string}[]>([])
-  const [subjects, setSubjects] = useState<{id: number, name: string}[]>([])
+  const [grades, setGrades] = useState<{id: string, name: string}[]>([])
+  const [subjects, setSubjects] = useState<{id: string, name: string}[]>([])
   const [teachers, setTeachers] = useState<{id: string, full_name: string}[]>([])
   const [sessions, setSessions] = useState<AttendanceSession[]>([])
-  
   const [loading, setLoading] = useState(true)
+
   const [searchTerm, setSearchTerm] = useState('')
   const [filterDate, setFilterDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [appRole, setAppRole] = useState<UserRole>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  
-  // View: Taking State
   const [sessionForm, setSessionForm] = useState({
     gradeId: "",
     subjectId: "",
@@ -103,53 +110,53 @@ export default function AttendancePage() {
     teacherId: ""
   })
 
-  const supabase = createClient()
+  useEffect(() => {
+    fetchInitialData()
+  }, [])
 
   const fetchInitialData = async () => {
     setLoading(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = auth.currentUser;
       if (!user) return;
-      setCurrentUserId(user.id);
+      setCurrentUserId(user.uid);
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role, full_name')
-        .eq('id', user.id)
-        .single();
-
-      const role = (profile as any)?.role as UserRole;
+      const profileSnap = await getDoc(doc(db, "profiles", user.uid));
+      const role = profileSnap.data()?.role as UserRole;
       setAppRole(role);
 
       if (role !== 'teacher') {
-        const { data: teachersData } = await supabase.from('profiles').select('id, full_name').in('role', ['teacher', 'coordinator', 'admin']);
-        setTeachers(teachersData || []);
+        const tSnap = await getDocs(query(collection(db, "profiles"), where("role", "in", ["teacher", "coordinator", "admin"])));
+        setTeachers(tSnap.docs.map(d => ({ id: d.id, full_name: d.data().full_name })));
       }
 
-      // Load all grades and subjects
-      let gradesQuery = supabase.from("grades").select("id, name").eq("state", true).order("name");
-      let subjectsQuery = supabase.from("subjects").select("id, name").order("name");
-
+      // Assignments for teacher
+      let gradeIds: string[] = [];
+      let subjectIds: string[] = [];
       if (role === 'teacher') {
-        const { data: assignments } = await supabase
-          .from('assignments')
-          .select('grade_id, subject_id')
-          .eq('teacher_id', user.id)
-          .eq('state', true);
-
-        const assignmentList = assignments as any[];
-        const gradeIds = assignmentList?.map(a => a.grade_id) || [];
-        const subjectIds = assignmentList?.map(a => a.subject_id) || [];
-
-        gradesQuery = gradesQuery.in('id', gradeIds);
-        subjectsQuery = subjectsQuery.in('id', subjectIds);
+        const assSnap = await getDocs(query(collection(db, "assignments"), where("teacher_id", "==", user.uid), where("state", "==", true)));
+        gradeIds = assSnap.docs.map(d => d.data().grade_id);
+        subjectIds = assSnap.docs.map(d => d.data().subject_id);
       }
 
-      const [gRes, sRes] = await Promise.all([gradesQuery, subjectsQuery]);
-      setGrades(gRes.data || []);
-      setSubjects(sRes.data || []);
+      // Grades and Subjects
+      const [gSnap, sSnap] = await Promise.all([
+        getDocs(query(collection(db, "grades"), where("state", "==", true))),
+        getDocs(collection(db, "subjects"))
+      ]);
 
-      await fetchSessions(role, user.id);
+      const filteredGrades = gSnap.docs
+        .filter(d => role !== 'teacher' || gradeIds.includes(d.id))
+        .map(d => ({ id: d.id, name: d.data().name }));
+      
+      const filteredSubjects = sSnap.docs
+        .filter(d => role !== 'teacher' || subjectIds.includes(d.id))
+        .map(d => ({ id: d.id, name: d.data().name }));
+
+      setGrades(filteredGrades);
+      setSubjects(filteredSubjects);
+
+      await fetchSessions(role, user.uid);
     } catch (err) {
       console.error(err);
     } finally {
@@ -159,39 +166,43 @@ export default function AttendancePage() {
 
   const fetchSessions = async (role: UserRole, userId: string) => {
     try {
-      // Usamos joins normales (sin !inner) para evitar que registros con datos parciales sean filtrados
-      // Especificamos la FK de profiles para evitar ambigüedades
-      let query = supabase
-        .from('attendance_records')
-        .select(`
-          date,
-          status,
-          subject_id,
-          teacher_id,
-          processed,
-          student:students (
-            grade_id, 
-            grades (name)
-          ),
-          subject:subjects (name),
-          teacher:profiles!attendance_records_teacher_id_fkey (full_name)
-        `)
-        .eq('date', filterDate);
+      // 1. Fetch records for day
+      const q = query(collection(db, "attendance_records"), where("date", "==", filterDate));
+      if (role === 'teacher') {
+        // We can't do multiple where here without index, but it's fine for small institutional data
+        // Actually, we should probably just fetch all and filter in memory if the institution is small
+        // or ensure index is created.
+      }
+      
+      const recordsSnap = await getDocs(q);
+      let records = recordsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
       if (role === 'teacher') {
-        query = query.eq('teacher_id', userId);
+        records = records.filter((r: any) => r.teacher_id === userId);
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
+      // 2. Fetch dependencies
+      const [studentsSnap, subjectsSnap, profilesSnap] = await Promise.all([
+        getDocs(collection(db, "students")),
+        getDocs(collection(db, "subjects")),
+        getDocs(collection(db, "profiles")),
+      ]);
 
-      // Group records into logical sessions
+      const studentMap = new Map(studentsSnap.docs.map(d => [d.id, d.data()]));
+      const subjectMap = new Map(subjectsSnap.docs.map(d => [d.id, d.data()]));
+      const profileMap = new Map(profilesSnap.docs.map(d => [d.id, d.data()]));
+      
+      // Also need grades for grade names
+      const gradesSnap = await getDocs(collection(db, "grades"));
+      const gradeMap = new Map(gradesSnap.docs.map(d => [d.id, d.data()]));
+
+      // 3. Group sessions
       const groups: { [key: string]: AttendanceSession } = {};
 
-      (data || []).forEach((row: any) => {
-        // Obtenemos los IDs con valores por defecto para no perder registros incompletos
-        const gId = row.student?.grade_id || 0;
-        const sId = row.subject_id || 0;
+      records.forEach((row: any) => {
+        const student = studentMap.get(row.student_id);
+        const gId = student?.grade_id || 'no-grade';
+        const sId = row.subject_id || 'no-subject';
         const tId = row.teacher_id || 'no-teacher';
 
         const key = `${row.date}-${gId}-${sId}-${tId}`;
@@ -201,9 +212,9 @@ export default function AttendancePage() {
             grade_id: gId,
             subject_id: sId,
             teacher_id: tId,
-            grade_name: row.student?.grades?.name || 'Grado no especificado',
-            subject_name: row.subject?.name || 'Asignatura no especificada',
-            teacher_name: row.teacher?.full_name || 'Docente no asignado',
+            grade_name: gradeMap.get(gId)?.name || 'Sin Grado',
+            subject_name: subjectMap.get(sId)?.name || 'Sin Asignatura',
+            teacher_name: profileMap.get(tId)?.full_name || 'Sin Docente',
             present_count: 0,
             absent_count: 0,
             late_count: 0,
@@ -230,25 +241,33 @@ export default function AttendancePage() {
         all_processed: (s.absent_count + s.late_count) > 0 && s.processed_count === (s.absent_count + s.late_count)
       }));
 
-      // Ordenar sesiones por nombre de asignatura para consistencia visual
       setSessions(sessionList.sort((a, b) => a.subject_name.localeCompare(b.subject_name)));
     } catch (err: any) {
       console.error('Fetch Sessions Error:', err);
-      toast.error('Error al cargar sesiones', { description: err.message });
+      toast.error('Error al cargar sesiones');
     }
   }
 
   const markSessionAsProcessed = async (session: AttendanceSession) => {
     try {
-      const { error } = await (supabase as any)
-        .from('attendance_records')
-        .update({ processed: true })
-        .eq('date', session.date)
-        .eq('subject_id', session.subject_id)
-        .eq('teacher_id', session.teacher_id)
-        .in('status', ['absent', 'late']);
+      const q = query(
+        collection(db, "attendance_records"), 
+        where("date", "==", session.date),
+        where("subject_id", "==", session.subject_id),
+        where("teacher_id", "==", session.teacher_id)
+      );
+      
+      const recordsSnap = await getDocs(q);
+      const batch = writeBatch(db);
+      
+      recordsSnap.docs.forEach(docSnap => {
+        const data = docSnap.data();
+        if (data.status === 'absent' || data.status === 'late') {
+          batch.update(docSnap.ref, { processed: true });
+        }
+      });
 
-      if (error) throw error;
+      await batch.commit();
       toast.success('Sesión marcada como procesada');
       fetchSessions(appRole, currentUserId as string);
     } catch (err: any) {
@@ -265,49 +284,51 @@ export default function AttendancePage() {
     setLoading(true);
     try {
       // 1. Fetch Students of the grade
-      const { data: studentsData, error: sErr } = await supabase
-        .from('students')
-        .select('*')
-        .eq('grade_id', parseInt(config.gradeId))
-        .eq('state', true)
-        .order('first_name', { ascending: true });
-
-      if (sErr) throw sErr;
+      const studentsSnap = await getDocs(query(
+        collection(db, "students"), 
+        where("grade_id", "==", config.gradeId),
+        where("state", "==", true),
+        orderBy("first_name")
+      ));
 
       // 2. Fetch existing records for this session
-      const { data: attData } = await supabase
-        .from('attendance_records')
-        .select('student_id, status, justified')
-        .eq('date', config.date)
-        .eq('subject_id', parseInt(config.subjectId))
-        .eq('teacher_id', config.teacherId || (currentUserId as string));
+      const attSnap = await getDocs(query(
+        collection(db, "attendance_records"),
+        where("date", "==", config.date),
+        where("subject_id", "==", config.subjectId),
+        where("teacher_id", "==", config.teacherId || (currentUserId as string))
+      ));
 
-      const merged = (studentsData || []).map((s: any, index: number) => {
-        const record = (attData as any[])?.find(a => a.student_id === s.id);
+      const attMap = new Map(attSnap.docs.map(d => [d.data().student_id, d.data()]));
+
+      const merged = studentsSnap.docs.map((docSnap, index) => {
+        const s = docSnap.data();
+        const record: any = attMap.get(docSnap.id);
         return {
-          ...s,
+          id: docSnap.id,
+          first_name: s.first_name,
+          last_name: s.last_name,
+          grade_id: s.grade_id,
+          state: s.state,
           status: record?.status,
           justified: record?.justified || false,
           avatarColor: AVATAR_COLORS[index % AVATAR_COLORS.length]
-        }
+        } as StudentWithStatus;
       });
 
       setStudents(merged);
-      // Mantenemos los IDs en el form para que handleStatusChange los use correctamente
       setSessionForm({
         ...config,
         teacherId: config.teacherId || (currentUserId as string)
       });
       setView('taking');
     } catch (err: any) {
-      toast.error('Error al iniciar clase', { description: err.message });
+      console.error("Start Attendance Error:", err);
+      toast.error('Error al iniciar clase');
     } finally {
       setLoading(false);
     }
   }
-  useEffect(() => {
-    fetchInitialData()
-  }, [])
 
   useEffect(() => {
     if (view === 'dashboard' && appRole && currentUserId) {
@@ -315,18 +336,24 @@ export default function AttendancePage() {
     }
   }, [filterDate, view, appRole, currentUserId])
 
-  const handleStatusChange = async (studentId: number, status: 'present' | 'late' | 'absent' | 'excused') => {
+  const handleStatusChange = async (studentId: string, status: 'present' | 'late' | 'absent' | 'excused') => {
     try {
-      const { error } = await (supabase.from('attendance_records') as any)
-        .upsert({
-          student_id: studentId,
-          date: sessionForm.date,
-          subject_id: parseInt(sessionForm.subjectId),
-          teacher_id: sessionForm.teacherId || currentUserId,
-          status
-        }, { onConflict: 'student_id, date, subject_id' })
+      // Use deterministic ID for upsert: studentId-date-subjectId
+      // Or just search for existing one. For Firebase, deterministic ID is faster if we don't need random IDs.
+      // But attendance_records might already have many records.
+      // Let's use a composite key for ease of use.
+      const docId = `${studentId}_${sessionForm.date}_${sessionForm.subjectId}`;
+      const recordRef = doc(db, "attendance_records", docId);
+      
+      await setDoc(recordRef, {
+        student_id: studentId,
+        date: sessionForm.date,
+        subject_id: sessionForm.subjectId,
+        teacher_id: sessionForm.teacherId || currentUserId,
+        status,
+        updated_at: serverTimestamp()
+      }, { merge: true });
 
-      if (error) throw error
       setStudents(prev => prev.map(s => s.id === studentId ? { ...s, status } : s))
     } catch (error: any) {
       toast.error('Error al guardar', { description: error.message })
@@ -348,16 +375,21 @@ export default function AttendancePage() {
     if (unmarked.length === 0) return;
 
     try {
-      const updates = unmarked.map(s => ({
-        student_id: s.id,
-        date: sessionForm.date,
-        subject_id: parseInt(sessionForm.subjectId),
-        teacher_id: sessionForm.teacherId || currentUserId,
-        status: 'present'
-      }));
+      const batch = writeBatch(db);
+      unmarked.forEach(s => {
+        const docId = `${s.id}_${sessionForm.date}_${sessionForm.subjectId}`;
+        const recordRef = doc(db, "attendance_records", docId);
+        batch.set(recordRef, {
+          student_id: s.id,
+          date: sessionForm.date,
+          subject_id: sessionForm.subjectId,
+          teacher_id: sessionForm.teacherId || currentUserId,
+          status: 'present',
+          updated_at: serverTimestamp()
+        }, { merge: true });
+      });
 
-      const { error } = await (supabase.from('attendance_records') as any).upsert(updates, { onConflict: 'student_id, date, subject_id' });
-      if (error) throw error;
+      await batch.commit();
 
       setStudents(prev => prev.map(s => !s.status ? { ...s, status: 'present' } : s));
       toast.success('Resto marcados como presentes');
@@ -373,13 +405,8 @@ export default function AttendancePage() {
     }
     toast.loading('Generando informe...');
     try {
-      const { data: rawSettings } = await supabase
-        .from('settings')
-        .select('*')
-        .limit(1)
-        .single();
-      
-      const schoolSettings = rawSettings as any;
+      const instSnap = await getDoc(doc(db, "settings", "institutional"));
+      const schoolSettings = instSnap.data();
       
       const branding = {
         name: schoolSettings?.school_name || 'EDUBETA',
@@ -388,19 +415,29 @@ export default function AttendancePage() {
       };
 
       // 1. Fetch detailed attendance for this session
-      const { data, error } = await supabase
-        .from('attendance_records')
-        .select(`
-          status,
-          justified,
-          students!inner(first_name, last_name)
-        `)
-        .eq('date', session.date)
-        .eq('subject_id', Number(session.subject_id))
-        .eq('teacher_id', session.teacher_id)
-        .eq('students.grade_id', Number(session.grade_id));
-      
-      if (error) throw error;
+      const q = query(
+        collection(db, "attendance_records"),
+        where("date", "==", session.date),
+        where("subject_id", "==", session.subject_id),
+        where("teacher_id", "==", session.teacher_id)
+      );
+
+      const recordsSnap = await getDocs(q);
+      const studentSnap = await getDocs(collection(db, "students"));
+      const studentMap = new Map(studentSnap.docs.map(d => [d.id, d.data()]));
+
+      const data = recordsSnap.docs.map(docSnap => {
+        const d = docSnap.data();
+        const s = studentMap.get(d.student_id);
+        // Only include students from THIS grade (NoSQL extra filtering)
+        if (s?.grade_id !== session.grade_id) return null;
+
+        return {
+          status: d.status,
+          justified: d.justified,
+          students: { first_name: s?.first_name || '', last_name: s?.last_name || '' }
+        };
+      }).filter(i => i !== null);
 
       // Ordenar por apellido alfabéticamente
       const sortedData = (data || []).sort((a: any, b: any) => 
@@ -409,7 +446,7 @@ export default function AttendancePage() {
 
       // 2. Filter only absences (and late?)
       const absences = sortedData.filter((r: any) => r.status === 'absent' || r.status === 'late');
-
+      
       // 3. Create HTML for printing
       const dateFormatted = format(new Date(session.date + 'T00:00:00'), 'PPP', { locale: es });
       const generationDate = format(new Date(), 'Pp', { locale: es });
@@ -444,9 +481,9 @@ export default function AttendancePage() {
             .school-logo { max-height: 60px; max-width: 150px; object-fit: contain; }
             .edubeta-branding { text-align: right; }
             .edubeta-logo { font-size: 18px; font-weight: 900; color: #4f46e5; letter-spacing: -0.05em; }
-            .edubeta-tag { font-size: 8px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; }
+            .edubeta-tag { font-size: 8px; font-weight: 700; color: #94a3b8; letter-spacing: 0.1em; }
             
-            h1 { margin: 0; font-size: 18px; font-weight: 900; letter-spacing: -0.025em; color: #1e293b; text-transform: uppercase; }
+            h1 { margin: 0; font-size: 18px; font-weight: 900; letter-spacing: -0.025em; color: #1e293b; }
             .school-year { font-size: 11px; font-weight: 700; color: #64748b; margin-top: 2px; }
             .report-title-bar { 
               background: #f8fafc; 
@@ -456,7 +493,6 @@ export default function AttendancePage() {
               font-size: 12px; 
               font-weight: 800; 
               color: #4f46e5; 
-              text-transform: uppercase; 
               letter-spacing: 0.1em; 
               margin-bottom: 25px;
               border: 1px solid #f1f5f9;
@@ -464,7 +500,7 @@ export default function AttendancePage() {
             
             .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px; }
             .meta-item { background: #ffffff; padding: 12px; border-radius: 12px; border: 1px solid #f1f5f9; }
-            .meta-label { font-size: 9px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+            .meta-label { font-size: 9px; font-weight: 900; color: #94a3b8; letter-spacing: 0.05em; margin-bottom: 4px; }
             .meta-value { font-size: 13px; font-weight: 700; color: #1e293b; }
             
             .stats-container { display: flex; gap: 10px; margin-bottom: 25px; }
@@ -474,7 +510,7 @@ export default function AttendancePage() {
             .stat-late { background: #fff7ed; color: #ea580c; border: 1px solid #ffedd5; }
             
             table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 10px; }
-            th { text-align: left; background: #f8fafc; color: #64748b; padding: 12px 15px; font-size: 10px; text-transform: uppercase; font-weight: 900; border-bottom: 2px solid #f1f5f9; }
+            th { text-align: left; background: #f8fafc; color: #64748b; padding: 12px 15px; font-size: 10px; font-weight: 900; border-bottom: 2px solid #f1f5f9; }
             td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #334155; }
             .student-name { font-weight: 700; color: #1e293b; }
             
@@ -529,7 +565,7 @@ export default function AttendancePage() {
             </div>
           </div>
 
-          <h2 style="font-size: 14px; font-weight: 900; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.05em;">Listado de Inasistencias</h2>
+          <h2 style="font-size: 14px; font-weight: 900; margin-bottom: 15px; letter-spacing: 0.05em;">Listado de inasistencias</h2>
           <table>
             <thead>
               <tr>
@@ -557,7 +593,8 @@ export default function AttendancePage() {
             window.onload = () => {
               window.print();
               setTimeout(() => { window.close(); }, 100);
-            </script>
+            };
+          </script>
         </body>
         </html>
       `;
@@ -579,15 +616,12 @@ export default function AttendancePage() {
     }
   };
 
-  const handleJustify = async (studentId: number, justified: boolean) => {
+  const handleJustify = async (studentId: string, justified: boolean) => {
     try {
-      const { error } = await (supabase.from('attendance_records') as any)
-        .update({ justified })
-        .eq('student_id', studentId)
-        .eq('date', sessionForm.date)
-        .eq('subject_id', parseInt(sessionForm.subjectId));
-
-      if (error) throw error;
+      const docId = `${studentId}_${sessionForm.date}_${sessionForm.subjectId}`;
+      const recordRef = doc(db, "attendance_records", docId);
+      
+      await updateDoc(recordRef, { justified });
 
       setStudents(prev => prev.map(s => s.id === studentId ? { ...s, justified } : s));
       toast.success(justified ? 'Justificación recibida' : 'Justificación removida');
@@ -599,21 +633,15 @@ export default function AttendancePage() {
   if (loading && view === 'dashboard') return <div className="p-8 flex justify-center"><Loader2 className="animate-spin" /></div>
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-background-dark pb-20 lg:pb-0">
+    <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-background-dark pb-24 lg:pb-0">
       {view === 'dashboard' ? (
         <>
-          <div className="px-5 pt-8 pb-6 bg-white dark:bg-background-dark border-b border-slate-100 dark:border-slate-800">
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Registra la asistencia diaria de tus estudiantes.
-            </p>
-          </div>
-
           <div className="flex flex-col gap-4 p-5">
               <Dialog>
                 <DialogTrigger asChild>
-                  <button className="flex items-center justify-center gap-2 w-full sm:w-max px-8 py-3.5 bg-primary text-white rounded-2xl hover:opacity-90 transition-all shadow-xl shadow-primary/20 hover:shadow-primary/40 active:scale-95 group">
+                  <button className="flex items-center justify-center gap-2 w-full sm:w-max px-8 py-3.5 bg-primary text-white rounded-lg hover:opacity-90 transition-all shadow-xl shadow-primary/20 hover:shadow-primary/40 active:scale-95 group">
                     <Plus className="w-5 h-5 stroke-[3] group-hover:rotate-90 transition-transform duration-300" />
-                    <span className="font-extrabold text-xs uppercase tracking-widest">Nueva Lista de Clase</span>
+                    <span className="font-extrabold text-xs tracking-widest">Nueva lista de clase</span>
                   </button>
                 </DialogTrigger>
                 <DialogContent>
@@ -630,7 +658,7 @@ export default function AttendancePage() {
                         type="date"
                         value={sessionForm.date}
                         onChange={e => setSessionForm({...sessionForm, date: e.target.value})}
-                        className="w-full p-2.5 bg-slate-50 border rounded-xl"
+                        className="w-full p-2.5 bg-slate-50 border rounded-lg"
                       />
                     </div>
                     <div className="space-y-2">
@@ -638,7 +666,7 @@ export default function AttendancePage() {
                       <select
                         value={sessionForm.gradeId}
                         onChange={e => setSessionForm({...sessionForm, gradeId: e.target.value})}
-                        className="w-full p-2.5 bg-slate-50 border rounded-xl"
+                        className="w-full p-2.5 bg-slate-50 border rounded-lg"
                       >
                         <option value="">Seleccionar Grado</option>
                         {grades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
@@ -649,7 +677,7 @@ export default function AttendancePage() {
                       <select
                         value={sessionForm.subjectId}
                         onChange={e => setSessionForm({...sessionForm, subjectId: e.target.value})}
-                        className="w-full p-2.5 bg-slate-50 border rounded-xl"
+                        className="w-full p-2.5 bg-slate-50 border rounded-lg"
                       >
                         <option value="">Seleccionar Asignatura</option>
                         {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -661,7 +689,7 @@ export default function AttendancePage() {
                         <select
                           value={sessionForm.teacherId}
                           onChange={e => setSessionForm({...sessionForm, teacherId: e.target.value})}
-                          className="w-full p-2.5 bg-slate-50 border rounded-xl"
+                          className="w-full p-2.5 bg-slate-50 border rounded-lg"
                         >
                           <option value="">(Tú mismo)</option>
                           {teachers.map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
@@ -670,7 +698,7 @@ export default function AttendancePage() {
                     )}
                     <button
                       onClick={() => startTakingAttendance(sessionForm)}
-                      className="w-full py-3 bg-primary text-white rounded-xl font-bold uppercase tracking-widest text-xs"
+                       className="w-full py-3 bg-primary text-white rounded-lg font-bold tracking-widest text-xs"
                     >
                       INICIAR
                     </button>
@@ -681,38 +709,38 @@ export default function AttendancePage() {
 
           {/* Stats Bar */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-5">
-            <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col items-center text-center">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center mb-3">
+            <div className="bg-white dark:bg-slate-800 p-5 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col items-center text-center">
+              <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center mb-3">
                 <Users className="w-5 h-5 text-indigo-500" />
               </div>
-              <p className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Clases Hoy</p>
+              <p className="text-[10px] font-black text-slate-400 tracking-wider">Clases hoy</p>
               <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-1">
                 {sessions.length}
               </h3>
             </div>
-            <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col items-center text-center">
-              <div className="w-10 h-10 rounded-2xl bg-red-50 dark:bg-red-900/30 flex items-center justify-center mb-3">
+            <div className="bg-white dark:bg-slate-800 p-5 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col items-center text-center">
+              <div className="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-900/30 flex items-center justify-center mb-3">
                 <XCircle className="w-5 h-5 text-red-500" />
               </div>
-              <p className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Total Ausentes</p>
+              <p className="text-[10px] font-black text-slate-400 tracking-wider">Total ausentes</p>
               <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-1">
                 {sessions.reduce((acc, s) => acc + s.absent_count, 0)}
               </h3>
             </div>
-            <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col items-center text-center">
-              <div className="w-10 h-10 rounded-2xl bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center mb-3">
+            <div className="bg-white dark:bg-slate-800 p-5 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col items-center text-center">
+              <div className="w-10 h-10 rounded-lg bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center mb-3">
                 <Clock className="w-5 h-5 text-orange-500" />
               </div>
-              <p className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Total Tardanzas</p>
+              <p className="text-[10px] font-black text-slate-400 tracking-wider">Total tardanzas</p>
               <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-1">
                 {sessions.reduce((acc, s) => acc + s.late_count, 0)}
               </h3>
             </div>
-            <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col items-center text-center">
-              <div className="w-10 h-10 rounded-2xl bg-green-50 dark:bg-green-900/30 flex items-center justify-center mb-3">
+            <div className="bg-white dark:bg-slate-800 p-5 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col items-center text-center">
+              <div className="w-10 h-10 rounded-lg bg-green-50 dark:bg-green-900/30 flex items-center justify-center mb-3">
                 <TrendingUp className="w-5 h-5 text-green-500" />
               </div>
-              <p className="text-[10px] uppercase font-black text-slate-400 tracking-wider">Asistencia Promedio</p>
+              <p className="text-[10px] font-black text-slate-400 tracking-wider">Asistencia promedio</p>
               <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-1">
                 {sessions.length > 0
                   ? Math.round((sessions.reduce((acc, s) => acc + (s.present_count / s.total_students), 0) / sessions.length) * 100)
@@ -724,7 +752,7 @@ export default function AttendancePage() {
           {/* List Section */}
           <div className="px-5 pb-5">
             <div className="flex flex-col gap-3 mb-6 px-1">
-              <h2 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+              <h2 className="text-sm font-black text-slate-400 tracking-[0.2em] flex items-center gap-2">
                 <History className="w-4 h-4 text-primary" />
                 Historial de Sesiones
               </h2>
@@ -734,14 +762,14 @@ export default function AttendancePage() {
                   type="date"
                   value={filterDate}
                   onChange={e => setFilterDate(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2 text-xs font-bold focus:border-primary outline-none transition-all shadow-sm"
+                  className="w-full bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-lg pl-10 pr-4 py-2 text-xs font-bold focus:border-primary outline-none transition-all shadow-sm"
                 />
               </div>
             </div>
 
             {sessions.length === 0 ? (
-              <div className="bg-white dark:bg-slate-800 border-2 border-dashed rounded-3xl py-20 px-10 text-center">
-                <div className="w-16 h-16 bg-slate-50 dark:bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="bg-white dark:bg-slate-800 border-2 border-dashed rounded-lg py-20 px-10 text-center">
+                <div className="w-16 h-16 bg-slate-50 dark:bg-slate-900 rounded-lg flex items-center justify-center mx-auto mb-4">
                   <CalendarDays className="w-8 h-8 text-slate-300" />
                 </div>
                 <h4 className="font-bold text-slate-900 dark:text-white">Sin sesiones para este día</h4>
@@ -758,19 +786,19 @@ export default function AttendancePage() {
                       date: s.date,
                       teacherId: s.teacher_id
                     })}
-                    className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-all active:scale-[0.98] cursor-pointer group"
+                    className="bg-white dark:bg-slate-800 p-5 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-all active:scale-[0.98] cursor-pointer group"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
                         <BookOpen className="w-6 h-6 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-[10px] font-black text-primary uppercase tracking-wider">{s.grade_name}</span>
+                          <span className="text-[10px] font-black text-primary tracking-wider">{s.grade_name}</span>
                           <span className="w-1 h-1 bg-slate-300 rounded-full" />
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{format(new Date(s.date + 'T00:00:00'), 'dd MMM', { locale: es })}</span>
+                          <span className="text-[10px] font-bold text-slate-400 tracking-widest">{format(new Date(s.date + 'T00:00:00'), 'dd MMM', { locale: es })}</span>
                           {s.all_processed && s.absent_count + s.late_count > 0 && (
-                            <span className="px-1.5 py-0.5 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded text-[8px] font-black uppercase tracking-tighter flex items-center gap-1">
+                            <span className="px-1.5 py-0.5 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded text-[8px] font-black tracking-tighter">
                               <CheckCircle className="w-2.5 h-2.5" /> Procesado
                             </span>
                           )}
@@ -840,10 +868,10 @@ export default function AttendancePage() {
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div>
-                <h3 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none mb-1">
+                <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight leading-none mb-1">
                   {subjects.find(s => String(s.id) === sessionForm.subjectId)?.name || 'Clase'}
                 </h3>
-                <p className="text-[10px] text-primary font-black uppercase tracking-widest">
+                <p className="text-[10px] text-primary font-black tracking-widest">
                   {grades.find(g => String(g.id) === sessionForm.gradeId)?.name} • {format(new Date(sessionForm.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: es })}
                 </p>
               </div>
@@ -860,47 +888,47 @@ export default function AttendancePage() {
                   placeholder="Buscar en esta lista..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-medium focus:outline-none transition-all shadow-sm focus:shadow-md"
+                  className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium focus:outline-none transition-all shadow-sm focus:shadow-md"
                 />
               </div>
               <button
                 onClick={handleMarkRemaining}
-                className="flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-slate-800 border-2 border-primary text-primary rounded-2xl hover:bg-primary hover:text-white transition-all text-xs font-black uppercase shadow-sm"
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-white dark:bg-slate-800 border-2 border-primary text-primary rounded-lg hover:bg-primary hover:text-white transition-all text-xs font-black shadow-sm"
               >
                 <CheckCircle className="w-4 h-4" />
-                MARCAR RESTANTES COMO PRESENTES
+                Marcar restantes como presentes
               </button>
             </div>
 
             {/* Attendance Stats for this session */}
             <div className="flex gap-4 px-1">
               <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-500" /> {students.filter(s => s.status === 'present').length} PRESENTES
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500" /> {students.filter(s => s.status === 'present').length} Presentes
               </div>
               <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500" /> {students.filter(s => s.status === 'absent').length} AUSENTES
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500" /> {students.filter(s => s.status === 'absent').length} Ausentes
               </div>
               <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" /> {students.filter(s => s.status === 'late').length} TARDES
+                <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" /> {students.filter(s => s.status === 'late').length} Tardes
               </div>
             </div>
 
             {/* Students List */}
-            <div className="space-y-2 pb-20">
+            <div className="space-y-2 pb-24">
               {students
                 .filter(s => `${s.first_name}, ${s.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()))
                 .map((student) => (
                 <div
                   key={student.id}
                   className={cn(
-                    "flex flex-col p-4 bg-white dark:bg-slate-800 rounded-3xl border transition-all duration-300 shadow-sm",
+                    "flex flex-col p-4 bg-white dark:bg-slate-800 rounded-lg border transition-all duration-300 shadow-sm",
                     student.status ? "border-slate-100 dark:border-slate-700" : "border-orange-100 dark:border-orange-900/20 bg-orange-50/10"
                   )}
                 >
                   <div className="flex items-center gap-4 mb-4">
                     {/* Avatar */}
                     <div className={cn(
-                      "w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-sm shadow-inner transition-all duration-500",
+                      "w-12 h-12 rounded-lg flex items-center justify-center font-bold text-sm shadow-inner transition-all duration-500",
                       student.status === 'present' ? "bg-green-100 text-green-600 scale-110" :
                       student.status === 'absent' ? "bg-red-100 text-red-600" :
                       student.status === 'late' ? "bg-yellow-100 text-yellow-600" :
@@ -912,9 +940,9 @@ export default function AttendancePage() {
                     {/* Name */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">ID# {student.id}</span>
+                        <span className="text-[9px] font-black text-slate-400 tracking-widest leading-none">ID# {student.id}</span>
                         {student.justified && student.status === 'absent' && (
-                          <span className="px-1.5 py-0.5 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded text-[8px] font-black uppercase tracking-tighter">Justificada</span>
+                          <span className="px-1.5 py-0.5 bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded text-[8px] font-black tracking-tighter">Justificada</span>
                         )}
                       </div>
                       <h3 className="font-bold text-slate-900 dark:text-white leading-tight truncate pr-2">
@@ -928,7 +956,7 @@ export default function AttendancePage() {
                     <button
                       onClick={() => handleStatusChange(student.id, 'present')}
                       className={cn(
-                        "flex items-center justify-center gap-2 py-3 rounded-2xl transition-all active:scale-95 font-bold text-[10px] uppercase tracking-wider",
+                        "flex items-center justify-center gap-2 py-3 rounded-lg transition-all active:scale-95 font-bold text-[10px] tracking-wider",
                         student.status === 'present' ? "bg-green-500 text-white shadow-lg shadow-green-200" : "bg-slate-50 dark:bg-slate-900 text-slate-400 border border-slate-100 dark:border-slate-800"
                       )}
                     >
@@ -937,7 +965,7 @@ export default function AttendancePage() {
                     <button
                       onClick={() => handleStatusChange(student.id, 'absent')}
                       className={cn(
-                        "flex items-center justify-center gap-2 py-3 rounded-2xl transition-all active:scale-95 font-bold text-[10px] uppercase tracking-wider",
+                        "flex items-center justify-center gap-2 py-3 rounded-lg transition-all active:scale-95 font-bold text-[10px] tracking-wider",
                         student.status === 'absent' ? "bg-red-500 text-white shadow-lg shadow-red-200" : "bg-slate-50 dark:bg-slate-900 text-slate-400 border border-slate-100 dark:border-slate-800"
                       )}
                     >
@@ -946,7 +974,7 @@ export default function AttendancePage() {
                     <button
                       onClick={() => handleStatusChange(student.id, 'late')}
                       className={cn(
-                        "flex items-center justify-center gap-2 py-3 rounded-2xl transition-all active:scale-95 font-bold text-[10px] uppercase tracking-wider",
+                        "flex items-center justify-center gap-2 py-3 rounded-lg transition-all active:scale-95 font-bold text-[10px] tracking-wider",
                         student.status === 'late' ? "bg-yellow-500 text-white shadow-lg shadow-yellow-200" : "bg-slate-50 dark:bg-slate-900 text-slate-400 border border-slate-100 dark:border-slate-800"
                       )}
                     >
@@ -957,11 +985,11 @@ export default function AttendancePage() {
                   {/* Justification toggle - only if absent */}
                   {student.status === 'absent' && (
                     <div className="mt-3 pt-3 border-t border-slate-50 dark:border-slate-700/50 flex items-center justify-between">
-                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">¿Tiene justificación válida?</p>
+                       <p className="text-[10px] text-slate-400 font-bold tracking-wider">¿Tiene justificación válida?</p>
                        <button
                         onClick={() => handleJustify(student.id, !student.justified)}
                         className={cn(
-                          "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all border",
+                          "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-black transition-all border",
                           student.justified
                             ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400"
                             : "bg-white dark:bg-slate-900 text-slate-400 border-slate-200"
@@ -981,9 +1009,9 @@ export default function AttendancePage() {
           <div className="sticky bottom-0 left-0 right-0 p-4 bg-white/80 dark:bg-background-dark/80 backdrop-blur-lg border-t border-slate-100 dark:border-slate-800 flex justify-center z-50">
             <button
               onClick={handleSaveAndFinish}
-              className="w-full max-w-md py-4 bg-primary text-white rounded-2xl font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/20 active:scale-95 transition-all text-sm"
+              className="w-full max-w-md py-4 bg-primary text-white rounded-lg font-black tracking-[0.2em] shadow-2xl shadow-primary/20 active:scale-95 transition-all text-sm"
             >
-              FINALIZAR ASISTENCIA
+              Finalizar asistencia
             </button>
           </div>
         </>

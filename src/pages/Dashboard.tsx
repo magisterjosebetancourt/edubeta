@@ -1,11 +1,18 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { createClient } from '@/lib/supabase/client'
+import { auth, db } from '@/lib/firebase/config'
+import { 
+  collection, 
+  getDocs, 
+  getDoc, 
+  query, 
+  where, 
+  doc
+} from 'firebase/firestore'
 import { cn } from '@/lib/utils'
 import { 
   Users, 
   PieChart, 
-  TrendingUp, 
   UserCheck,
   ChevronDown,
   BookOpen,
@@ -15,7 +22,6 @@ import {
 
 export default function DashboardPage() {
   const navigate = useNavigate()
-  const supabase = createClient()
   const [userProfile, setUserProfile] = useState<{ role: string; id: string; fullName: string; avatarUrl: string } | null>(null)
   const [stats, setStats] = useState({ students: 0, teachers: 0, attendance: 0 })
   const [assignments, setAssignments] = useState<any[]>([])
@@ -30,92 +36,85 @@ export default function DashboardPage() {
   useEffect(() => {
     async function getInitialData() {
       try {
-        // 1. Check User and Get Profile
-        const { data: { user } } = await supabase.auth.getUser()
+        const user = auth.currentUser;
         if (!user) {
           navigate('/login')
           return
         }
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name, role, avatar_url')
-          .eq('id', user.id)
-          .single() as { data: { full_name: string, role: string, avatar_url: string } | null }
+        // 1. Get Profile
+        const profileSnap = await getDoc(doc(db, "profiles", user.uid));
+        const profileData = profileSnap.data();
+        const role = profileData?.role || 'user';
         
-        const role = profile?.role || 'user'
         setUserProfile({ 
           role, 
-          id: user.id, 
-          fullName: profile?.full_name || '',
-          avatarUrl: profile?.avatar_url || ''
-        })
+          id: user.uid, 
+          fullName: profileData?.full_name || '',
+          avatarUrl: profileData?.avatar_url || ''
+        });
 
         // 2. Fetch Stats based on Role
-        let studentCount = 0
-        let teacherCount = 0
-        let presentCount = 0
-        const today = new Date().toISOString().split('T')[0]
+        let studentCount = 0;
+        let teacherCount = 0;
+        let presentCount = 0;
+        const today = new Date().toISOString().split('T')[0];
 
         if (role === 'admin' || role === 'coordinator') {
-          // Global Stats for Admin/Coordinator
-          const [ { count: sCount }, { count: tCount }, { count: pCount } ] = await Promise.all([
-            supabase.from('students').select('*', { count: 'exact', head: true }),
-            supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'teacher'),
-            supabase.from('attendance_records').select('*', { count: 'exact', head: true }).eq('date', today).eq('status', 'present')
-          ])
-          studentCount = sCount || 0
-          teacherCount = tCount || 0
-          presentCount = pCount || 0
+          // Global Stats
+          const [sSnap, tSnap, pSnap] = await Promise.all([
+            getDocs(collection(db, "students")),
+            getDocs(query(collection(db, "profiles"), where("role", "==", "teacher"))),
+            getDocs(query(collection(db, "attendance_records"), where("date", "==", today), where("status", "==", "present")))
+          ]);
+          studentCount = sSnap.size;
+          teacherCount = tSnap.size;
+          presentCount = pSnap.size;
         } else {
-          // Scoped Stats for Teacher
-          const { data: assignmentsData } = await supabase
-            .from('assignments')
-            .select(`
-              grade_id,
-              subject_id,
-              grades (name),
-              subjects (name)
-            `)
-            .eq('teacher_id', user.id) as any
+          // Teacher Stats
+          const assSnap = await getDocs(query(collection(db, "assignments"), where("teacher_id", "==", user.uid), where("state", "==", true)));
+          const assignmentsData = assSnap.docs.map(d => ({ id: d.id, ...d.data() }));
           
-          setAssignments(assignmentsData || [])
-          
-          const gradeIds = Array.from(new Set(assignmentsData?.map((a: any) => a.grade_id) || []))
+          // Fetch names for grades and subjects in assignments
+          const [gSnap, sbjSnap] = await Promise.all([
+            getDocs(collection(db, "grades")),
+            getDocs(collection(db, "subjects"))
+          ]);
+          const gradeMap = new Map(gSnap.docs.map(d => [d.id, d.data().name]));
+          const subjectMap = new Map(sbjSnap.docs.map(d => [d.id, d.data().name]));
+
+          const augmentedAssignments = assignmentsData.map((a: any) => ({
+            ...a,
+            grades: { name: gradeMap.get(a.grade_id) || 'N/A' },
+            subjects: { name: subjectMap.get(a.subject_id) || 'N/A' }
+          }));
+          setAssignments(augmentedAssignments);
+
+          const gradeIds = Array.from(new Set(assignmentsData.map((a: any) => a.grade_id)));
 
           if (gradeIds.length > 0) {
-            const { count: sCount } = await supabase
-              .from('students')
-              .select('*', { count: 'exact', head: true })
-              .in('grade_id', gradeIds)
-            
-            const { count: pCount } = await supabase
-              .from('attendance_records')
-              .select('id, student:students!inner(grade_id)', { count: 'exact', head: true })
-              .eq('date', today)
-              .eq('status', 'present')
-              .in('student.grade_id', gradeIds)
+            // Firestore doesn't support easy "IN" for large arrays or complex joins
+            // We fetch and filter in memory if needed, but for small sets getDocs is fine
+            const stdSnap = await getDocs(collection(db, "students"));
+            const filteredStudents = stdSnap.docs.filter(d => gradeIds.includes(d.data().grade_id));
+            studentCount = filteredStudents.length;
 
-            studentCount = sCount || 0
-            presentCount = pCount || 0
+            const attSnap = await getDocs(query(collection(db, "attendance_records"), where("date", "==", today), where("status", "==", "present")));
+            const filteredAtt = attSnap.docs.filter(d => {
+              const student = stdSnap.docs.find(s => s.id === d.data().student_id);
+              return student && gradeIds.includes(student.data().grade_id);
+            });
+            presentCount = filteredAtt.length;
           }
         }
 
-        // 3. Fetch Todos for current user
-        const { data: todosData } = await supabase
-          .from('todos')
-          .select('*')
-          .eq('user_id', user.id)
-        
-        setTodos(todosData || [])
+        // 3. Fetch Todos
+        const todoSnap = await getDocs(query(collection(db, "todos"), where("user_id", "==", user.uid)));
+        setTodos(todoSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
-        const rate = (studentCount > 0) ? Math.round((presentCount / studentCount) * 100) : 0
+        const rate = (studentCount > 0) ? Math.round((presentCount / studentCount) * 100) : 0;
+        setStats({ students: studentCount, teachers: teacherCount, attendance: rate });
 
-        setStats({ 
-          students: studentCount, 
-          teachers: teacherCount, 
-          attendance: rate 
-        })
       } catch (error) {
         console.error('Error loading dashboard data:', error)
       } finally {
@@ -124,7 +123,7 @@ export default function DashboardPage() {
     }
 
     getInitialData()
-  }, [navigate, supabase])
+  }, [navigate])
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)

@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { createClient } from '@/lib/supabase/client'
+import { auth } from '@/lib/firebase/config'
+import { getUserProfile, saveUserProfile } from '@/lib/firebase/firestore'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { User, Mail, Shield, Save, Loader2, ArrowLeft } from 'lucide-react'
+import { User, Mail, Shield, Save, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function ProfilePage() {
@@ -18,9 +18,6 @@ export default function ProfilePage() {
   const [email, setEmail] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [uploading, setUploading] = useState(false)
-  const navigate = useNavigate()
-
-  const supabase = createClient()
 
   useEffect(() => {
     fetchProfile()
@@ -29,24 +26,14 @@ export default function ProfilePage() {
   const fetchProfile = async () => {
     try {
       setLoading(true)
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      const currentUser = auth.currentUser
       
-      if (authError) throw authError
-      if (user) {
-        setUser(user)
-        setEmail(user.email || '')
+      if (currentUser) {
+        setUser(currentUser)
+        setEmail(currentUser.email || '')
         
-        // Fetch profile details if table exists
-        const { data: profileData, error: profileError } = await (supabase
-            .from('profiles') as any)
-            .select('*')
-            .eq('id', user.id)
-            .single()
+        const profileData = await getUserProfile(currentUser.uid)
         
-        if (profileError && profileError.code !== 'PGRST116') {
-             console.error('Error fetching profile details:', profileError)
-        }
-
         if (profileData) {
             setProfile(profileData)
             setFullName(profileData.full_name || '')
@@ -69,27 +56,23 @@ export default function ProfilePage() {
       }
 
       const file = event.target.files[0]
-      const fileExt = file.name.split('.').pop()
-      const filePath = `${user.id}-${Math.random()}.${fileExt}`
+      if (file.size > 1024 * 1024) { // 1MB limit for Base64 efficiency
+        throw new Error('La imagen es demasiado grande (Máximo 1MB para optimización).')
+      }
 
-      // 1. Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file)
-
-      if (uploadError) throw uploadError
-
-      // 2. Get Public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath)
-
-      setAvatarUrl(publicUrl)
-      
-      // 3. Auto-save profile with new avatar
-      await updateUserProfile({ avatar_url: publicUrl })
-
-      toast.success('Avatar actualizado')
+      const reader = new FileReader()
+      reader.onloadend = async () => {
+        const base64String = reader.result as string
+        setAvatarUrl(base64String)
+        
+        // Auto-save profile with new avatar (Base64)
+        await updateUserProfile({ avatar_url: base64String })
+        setProfile((prev: any) => ({ ...prev, avatar_url: base64String }))
+        toast.success('Avatar actualizado (Base64)')
+        setUploading(false)
+      }
+      reader.readAsDataURL(file)
+      return; // handleUploadAvatar logic continues in reader.onloadend
     } catch (error: any) {
       toast.error('Error subiendo imagen', { description: error.message })
     } finally {
@@ -98,16 +81,11 @@ export default function ProfilePage() {
   }
 
   const updateUserProfile = async (updates: any) => {
-      const { error } = await (supabase
-        .from('profiles') as any)
-        .upsert({
-            id: user.id,
-            full_name: fullName,
-            email: email,
-            updated_at: new Date().toISOString(),
-            ...updates
-        })
-      if (error) throw error
+      await saveUserProfile(user.uid, {
+          full_name: fullName,
+          email: email,
+          ...updates
+      })
   }
 
   const handleSave = async () => {
@@ -127,7 +105,6 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6 p-6 max-w-2xl mx-auto h-full overflow-y-auto pb-24">
-
       <div className="grid gap-6">
         <Card>
             <CardHeader>
@@ -135,18 +112,18 @@ export default function ProfilePage() {
                 <CardDescription>Esta imagen será visible para tus estudiantes y colegas.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col md:flex-row items-center gap-6">
-                <div className="relative group">
-                    <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+                <div className="relative group mx-auto md:mx-0">
+                    <div className="w-32 h-32 rounded-lg overflow-hidden border-4 border-white dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center justify-center shadow-2xl transition-transform group-hover:scale-[1.02] duration-300">
                         {avatarUrl ? (
                             <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                         ) : (
-                            <User className="w-10 h-10 text-slate-300" />
+                            <User className="w-12 h-12 text-slate-300" />
                         )}
                         
                         {/* Overlay Loading State */}
                         {uploading && (
-                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                <Loader2 className="w-6 h-6 text-white animate-spin" />
+                            <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center">
+                                <Loader2 className="w-8 h-8 text-primary animate-spin" />
                             </div>
                         )}
                     </div>
@@ -154,7 +131,7 @@ export default function ProfilePage() {
 
                 <div className="flex-1 w-full space-y-2">
                     <Label htmlFor="avatar-upload" className="cursor-pointer">
-                        <div className="flex items-center justify-center w-full md:w-auto px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors text-sm font-medium text-slate-700 dark:text-slate-200 shadow-sm">
+                        <div className="flex items-center justify-center w-full md:w-auto px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors text-sm font-medium text-slate-700 dark:text-slate-200 shadow-sm">
                              Cambiar Foto
                         </div>
                         <input
@@ -167,7 +144,7 @@ export default function ProfilePage() {
                         />
                     </Label>
                     <p className="text-xs text-slate-500">
-                        Sube una imagen JPG o PNG. Máximo 2MB.
+                        Sube una imagen JPG o PNG. Máximo 1MB.
                     </p>
                     
                 </div>
@@ -200,7 +177,11 @@ export default function ProfilePage() {
                         <Shield className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input 
                             id="role" 
-                            value={profile?.role === 'admin' ? 'Administrador' : 'Profesor'} 
+                            value={
+                                profile?.role === 'admin' ? 'Administrador' : 
+                                profile?.role === 'coordinator' ? 'Coordinador' : 
+                                'Docente'
+                            } 
                             disabled 
                             className="pl-9 bg-slate-50 dark:bg-slate-900/50 capitalize" 
                         />
@@ -230,7 +211,7 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="pt-2">
-                    <Button onClick={handleSave} disabled={saving} className="w-full md:w-auto">
+                    <Button onClick={handleSave} disabled={saving} className="w-full md:w-auto rounded-lg">
                         {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                         Guardar Cambios
                     </Button>

@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
-import { createClient } from '@/lib/supabase/client'
+import { auth, db } from '@/lib/firebase/config'
+import { getDoc, doc } from 'firebase/firestore'
 import { useState, useEffect } from 'react'
 import { 
   LayoutDashboard, 
@@ -52,41 +53,39 @@ export function SidebarContent({ className, onLinkClick }: { className?: string,
   const location = useLocation()
   const navigate = useNavigate()
   const pathname = location.pathname
-  const supabase = createClient()
   
   interface UserProfile {
     full_name: string;
     email: string;
     role: string;
+    avatar_url?: string;
   }
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
 
   useEffect(() => {
     async function getProfile() {
-      const { data: { user } } = await supabase.auth.getUser()
+      const user = auth.currentUser;
       if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name, role')
-          .eq('id', user.id)
-          .single() as { data: { full_name: string; role: string } | null }
+        const profileSnap = await getDoc(doc(db, "profiles", user.uid));
+        const profile = profileSnap.data();
         
         setUserProfile({
           full_name: profile?.full_name || 'Usuario',
           email: user.email || '',
-          role: profile?.role || 'user'
+          role: profile?.role || 'user',
+          avatar_url: profile?.avatar_url
         })
       }
     }
     getProfile()
-  }, [supabase])
+  }, [])
 
   const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      toast.error('Error al cerrar sesión')
-    } else {
+    try {
+      await auth.signOut();
       navigate('/login')
+    } catch (error) {
+      toast.error('Error al cerrar sesión')
     }
   }
 
@@ -158,8 +157,12 @@ export function SidebarContent({ className, onLinkClick }: { className?: string,
       {/* User Profile */}
       <div className="p-4 border-t border-white/10 shrink-0">
         <div className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 cursor-pointer transition-colors group">
-          <div className="w-10 h-10 rounded-full bg-slate-700 border-2 border-primary flex items-center justify-center text-white font-bold text-xs">
-            {userProfile ? getInitials(userProfile.full_name) : '...'}
+          <div className="w-10 h-10 rounded-full bg-slate-700 border-2 border-primary overflow-hidden flex items-center justify-center text-white font-bold text-xs ring-2 ring-primary/20">
+            {userProfile?.avatar_url ? (
+              <img src={userProfile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              userProfile ? getInitials(userProfile.full_name) : '...'
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate">{userProfile?.full_name || 'Cargando...'}</p>

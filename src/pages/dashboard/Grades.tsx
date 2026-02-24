@@ -1,6 +1,17 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { createClient } from '@/lib/supabase/client'
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { db } from '@/lib/firebase/config'
+import { 
+  collection, 
+  getDocs, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc, 
+  query, 
+  orderBy,
+  serverTimestamp 
+} from 'firebase/firestore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -19,11 +30,11 @@ import {
 } from "@/components/ui/dialog"
 
 type Grade = {
-  id: number;
+  id: string;
   name: string;
   state?: boolean;
-  created_at?: string;
-  students?: { count: number }[];
+  created_at?: any;
+  studentCount?: number;
 };
 
 // Estructura Ley 115 de 1994 (Colombia)
@@ -50,17 +61,18 @@ export default function GradesPage() {
   const [editingGrade, setEditingGrade] = useState<Grade | null>(null);
   
   const navigate = useNavigate()
-  const supabase = createClient()
 
   const fetchGrades = async () => {
     try {
-      const { data, error } = await supabase
-        .from('grades')
-        .select('*, students(count)')
-        .order('name', { ascending: true })
-
-      if (error) throw error
-      setGrades(data || [])
+      setLoading(true)
+      const q = query(collection(db, 'grades'), orderBy('name', 'asc'))
+      const querySnapshot = await getDocs(q)
+      const gradesData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Grade[]
+      
+      setGrades(gradesData)
     } catch (error: any) {
       toast.error('Error al cargar grados', { description: error.message })
     } finally {
@@ -99,14 +111,15 @@ export default function GradesPage() {
     }
 
     try {
-      const { error } = await supabase
-        .from('grades')
-        .insert([{ name: finalName }] as any)
+      await addDoc(collection(db, 'grades'), {
+        name: finalName,
+        state: true,
+        created_at: serverTimestamp()
+      });
       
-      if (error) throw error
-
       toast.success(`Grupo ${finalName} creado correctamente`)
       setGroupSuffix('')
+      setIsDialogOpen(false)
       fetchGrades()
     } catch (error: any) {
       toast.error('Error al crear grupo', { description: error.message })
@@ -130,12 +143,8 @@ export default function GradesPage() {
     }
 
     try {
-        const { error } = await (supabase
-            .from('grades') as any)
-            .update({ name: newName })
-            .eq('id', editingGrade.id)
-
-        if (error) throw error
+        const gradeRef = doc(db, 'grades', editingGrade.id)
+        await updateDoc(gradeRef, { name: newName })
 
         toast.success('Grupo actualizado')
         setEditingGrade(null)
@@ -150,11 +159,8 @@ export default function GradesPage() {
   const handleToggleState = async (grade: Grade) => {
     try {
       const newState = !grade.state;
-      const { error } = await (supabase.from("grades") as any)
-        .update({ state: newState })
-        .eq("id", grade.id);
-
-      if (error) throw error;
+      const gradeRef = doc(db, 'grades', grade.id)
+      await updateDoc(gradeRef, { state: newState })
 
       toast.success(newState ? "Grupo activado" : "Grupo desactivado");
       setGrades((prev) =>
@@ -165,7 +171,7 @@ export default function GradesPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (
       !confirm(
         "¿Estás seguro de eliminar este grupo escolar? Se desconectarán los estudiantes asociados.",
@@ -174,9 +180,7 @@ export default function GradesPage() {
       return;
 
     try {
-      const { error } = await supabase.from("grades").delete().eq("id", id);
-
-      if (error) throw error;
+      await deleteDoc(doc(db, 'grades', id))
 
       toast.success("Grupo eliminado");
       setGrades((prev) => prev.filter((g) => g.id !== id));
@@ -188,7 +192,7 @@ export default function GradesPage() {
   if (loading) return <div className="p-8 text-center">Cargando grupos escolares...</div>
 
   return (
-    <div className="bg-background-light dark:bg-background-dark min-h-screen pb-20">
+    <div className="bg-background-light dark:bg-background-dark min-h-screen pb-24">
       <div className="p-4 lg:p-8 space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-1">
           <div>
@@ -198,15 +202,15 @@ export default function GradesPage() {
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90 text-white rounded-2xl h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-bold uppercase text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95">
+              <Button className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-bold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95">
                 <Plus className="w-5 h-5 stroke-[3]" />
                 Nuevo Grupo
               </Button>
             </DialogTrigger>
-            <DialogContent className="rounded-3xl">
+            <DialogContent className="rounded-lg">
               <DialogHeader>
-                <DialogTitle className="text-xl font-black uppercase tracking-tight">Nuevo Grupo</DialogTitle>
-                <DialogDescription className="text-xs font-bold uppercase tracking-widest text-slate-400">
+                <DialogTitle className="text-xl font-black tracking-tight">Nuevo grupo</DialogTitle>
+                <DialogDescription className="text-xs font-bold tracking-widest text-slate-400">
                   Crea un nuevo grupo escolar.
                 </DialogDescription>
               </DialogHeader>
@@ -252,10 +256,10 @@ export default function GradesPage() {
                   />
                 </div>
                 <DialogFooter className="pt-4">
-                  <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="font-bold uppercase text-[10px] tracking-widest rounded-xl">
+                  <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="font-bold text-[10px] tracking-widest rounded-lg">
                     Cancelar
                   </Button>
-                  <Button type="submit" disabled={isCreating} className="bg-primary hover:bg-primary/90 text-white font-bold uppercase text-[10px] tracking-widest rounded-xl px-8 shadow-lg shadow-primary/20">
+                  <Button type="submit" disabled={isCreating} className="bg-primary hover:bg-primary/90 text-white font-bold text-[10px] tracking-widest rounded-lg px-8 shadow-lg shadow-primary/20">
                     {isCreating ? 'Creando...' : 'Crear Grupo'}
                   </Button>
                 </DialogFooter>
@@ -273,7 +277,7 @@ export default function GradesPage() {
             </CardHeader>
             <CardContent className="px-0 space-y-6">
         {grades.length === 0 ? (
-          <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-xl bg-white/50 dark:bg-slate-900/30">
+          <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-lg bg-white/50 dark:bg-slate-900/30">
             <School className="w-12 h-12 text-slate-300 mx-auto mb-2" />
             <p className="text-slate-500 font-medium">
               No hay grupos configurados.
@@ -303,16 +307,16 @@ export default function GradesPage() {
             return (
               <div
                 key={level.id}
-                className="bg-white dark:bg-[#151b2d] rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm"
+                className="bg-white dark:bg-[#151b2d] rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm"
               >
                 <div className="bg-slate-50 dark:bg-slate-800/50 px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Layers className="w-4 h-4 text-primary" />
-                    <h3 className="font-bold text-slate-700 dark:text-slate-200 text-sm uppercase tracking-wide">
+                    <h3 className="font-bold text-slate-700 dark:text-slate-200 text-sm tracking-wide">
                       {level.name}
                     </h3>
                   </div>
-                  <span className="text-[10px] font-bold text-slate-500 bg-white dark:bg-slate-800 px-2 py-1 rounded-full border shadow-sm uppercase">
+                  <span className="text-[10px] font-bold text-slate-500 bg-white dark:bg-slate-800 px-2 py-1 rounded-full border shadow-sm">
                     {levelGroups.length} Grupos
                   </span>
                 </div>
@@ -323,7 +327,7 @@ export default function GradesPage() {
                       className="relative group/item flex items-center justify-between p-3 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm hover:border-primary/50 transition-colors"
                     >
                       <div className="flex flex-col">
-                        <span className="text-[9px] text-slate-400 uppercase font-bold">
+                        <span className="text-[9px] text-slate-400 font-bold">
                           Grado
                         </span>
                         <div className="flex items-center gap-2">
@@ -335,7 +339,7 @@ export default function GradesPage() {
                           </span>
                           <div
                             onClick={() => handleToggleState(group)}
-                            className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider cursor-pointer transition-colors ${
+                            className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold tracking-wider cursor-pointer transition-colors ${
                               group.state !== false
                                 ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200"
                                 : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200"
@@ -344,11 +348,11 @@ export default function GradesPage() {
                             {group.state !== false ? "Activo" : "Inactivo"}
                           </div>
                         </div>
-                        <span 
+                          <span 
                           className="text-[10px] text-slate-500 font-medium cursor-pointer hover:underline"
                           onClick={() => navigate(`/dashboard/students?gradeId=${group.id}`)}
                         >
-                          {group.students?.[0]?.count || 0} Estudiantes matriculados
+                          Ver estudiantes matriculados
                         </span>
                       </div>
                       <div className="flex gap-1">

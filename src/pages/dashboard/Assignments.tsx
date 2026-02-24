@@ -1,6 +1,17 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { createClient } from "@/lib/supabase/client";
+import { db } from "@/lib/firebase/config";
+import { 
+  collection, 
+  getDocs, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc, 
+  query, 
+  where,
+  orderBy,
+  serverTimestamp 
+} from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
@@ -9,8 +20,7 @@ import {
   BookOpen,
   GraduationCap,
   ChevronDown,
-  Edit,
-  ArrowLeft
+  Edit
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import {
@@ -19,22 +29,21 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
 
 type Teacher = { id: string; full_name: string };
-type Grade = { id: number; name: string };
-type Subject = { id: number; name: string };
+type Grade = { id: string; name: string };
+type Subject = { id: string; name: string };
 type Assignment = {
-  id: number;
+  id: string;
   teacher_id: string;
-  grade_id: number;
-  subject_id: number;
+  grade_id: string;
+  subject_id: string;
   state?: boolean;
-  teacher: { full_name: string };
-  grade: { name: string };
-  subject: { name: string };
+  teacher?: { full_name: string };
+  grade?: { name: string };
+  subject?: { name: string };
 };
 
 // Estructura Ley 115 de 1994 (Colombia) - Same as Grades.tsx
@@ -68,8 +77,6 @@ const GRADE_MAP: Record<string, string> = {
 };
 
 export default function AssignmentsPage() {
-  const navigate = useNavigate();
-  const supabase = createClient();
   const [loading, setLoading] = useState(true);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
 
@@ -121,57 +128,45 @@ export default function AssignmentsPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [assRes, teachRes, gradRes, subRes] = await Promise.all([
-        supabase
-          .from("assignments")
-          .select(
-            `
-                        id, teacher_id, grade_id, subject_id, state,
-                        teacher:profiles!teacher_id(full_name),
-                        grade:grades!grade_id(name),
-                        subject:subjects!subject_id(name)
-                    `,
-          )
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("profiles")
-          .select("id, full_name")
-          .eq("role", "teacher")
-          .filter("state", "eq", true),
-        supabase
-          .from("grades")
-          .select("id, name")
-          .eq("state", true)
-          .order("name"),
-        supabase
-          .from("subjects")
-          .select("id, name")
-          .eq("state", true)
-          .order("name"),
+      // 1. Fetch all reference data in parallel
+      const [assSnap, teachSnap, gradSnap, subSnap] = await Promise.all([
+        getDocs(query(collection(db, "assignments"), orderBy("teacher_id"))),
+        getDocs(query(collection(db, "profiles"), where("role", "==", "teacher"), where("state", "==", true))),
+        getDocs(query(collection(db, "grades"), where("state", "==", true))),
+        getDocs(query(collection(db, "subjects"), where("state", "==", true)))
       ]);
 
-      if (assRes.error) throw assRes.error;
-      if (teachRes.error) throw teachRes.error;
-      if (gradRes.error) throw gradRes.error;
-      if (subRes.error) throw subRes.error;
+      // 2. Map reference data for easy lookup
+      const teacherMap = new Map(teachSnap.docs.map(doc => [doc.id, doc.data()]));
+      const gradeMap = new Map(gradSnap.docs.map(doc => [doc.id, doc.data()]));
+      const subjectMap = new Map(subSnap.docs.map(doc => [doc.id, doc.data()]));
 
-      // Helper to clean up joined data which might be arrays or objects
-      const cleanAssignments = (assRes.data || []).map((a: any) => ({
-        id: a.id,
-        teacher_id: a.teacher_id,
-        grade_id: a.grade_id,
-        subject_id: a.subject_id,
-        state: a.state,
-        teacher: Array.isArray(a.teacher) ? a.teacher[0] : a.teacher,
-        grade: Array.isArray(a.grade) ? a.grade[0] : a.grade,
-        subject: Array.isArray(a.subject) ? a.subject[0] : a.subject,
-      }));
+      // 3. Build enriched assignments
+      const enrichedAssignments = assSnap.docs.map(doc => {
+        const data = doc.data();
+        const tInfo = teacherMap.get(data.teacher_id) as any;
+        const gInfo = gradeMap.get(data.grade_id) as any;
+        const sInfo = subjectMap.get(data.subject_id) as any;
 
-      setAssignments(cleanAssignments);
-      setTeachers(teachRes.data || []);
-      setGrades(gradRes.data || []);
-      setSubjects(subRes.data || []);
+        return {
+          id: doc.id,
+          teacher_id: data.teacher_id,
+          grade_id: data.grade_id,
+          subject_id: data.subject_id,
+          state: data.state,
+          teacher: { full_name: tInfo?.full_name || "Desconocido" },
+          grade: { name: gInfo?.name || "Desconocido" },
+          subject: { name: sInfo?.name || "Desconocido" }
+        } as Assignment;
+      });
+
+      setAssignments(enrichedAssignments);
+      setTeachers(teachSnap.docs.map(doc => ({ id: doc.id, full_name: (doc.data() as any).full_name })));
+      setGrades(gradSnap.docs.map(doc => ({ id: doc.id, name: (doc.data() as any).name })));
+      setSubjects(subSnap.docs.map(doc => ({ id: doc.id, name: (doc.data() as any).name })));
+      
     } catch (error: any) {
+      console.error("Fetch Assignments Error:", error);
       toast.error("Error al cargar datos", { description: error.message });
     } finally {
       setLoading(false);
@@ -190,8 +185,8 @@ export default function AssignmentsPage() {
     try {
       const exists = assignments.find(
         (a) =>
-          a.grade_id === Number(selectedGradeId) &&
-          a.subject_id === Number(selectedSubject) &&
+          a.grade_id === selectedGradeId &&
+          a.subject_id === selectedSubject &&
           a.teacher_id === selectedTeacher,
       );
 
@@ -201,33 +196,31 @@ export default function AssignmentsPage() {
         return;
       }
 
-      const { error } = await supabase.from("assignments").insert({
+      await addDoc(collection(db, "assignments"), {
         teacher_id: selectedTeacher,
-        grade_id: Number(selectedGradeId),
-        subject_id: Number(selectedSubject),
-      } as any);
+        grade_id: selectedGradeId,
+        subject_id: selectedSubject,
+        state: true,
+        created_at: serverTimestamp()
+      });
 
-      if (error) {
-        if (error.code === "23505") {
-          toast.error("Ya existe una asignación idéntica");
-        } else {
-          throw error;
-        }
-      } else {
-        toast.success("Asignación creada");
-        setIsDialogOpen(false);
-        setSelectedTeacher("");
-        setSelectedLevelId("");
-        setSelectedGradeName("");
-        setSelectedGradeId("");
-        setSelectedSubject("");
-        fetchData();
-      }
+      toast.success("Asignación creada");
+      setIsDialogOpen(false);
+      resetForm();
+      fetchData();
     } catch (error: any) {
       toast.error("Error al asignar", { description: error.message });
     } finally {
       setIsCreating(false);
     }
+  };
+
+  const resetForm = () => {
+    setSelectedTeacher("");
+    setSelectedLevelId("");
+    setSelectedGradeName("");
+    setSelectedGradeId("");
+    setSelectedSubject("");
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -240,18 +233,17 @@ export default function AssignmentsPage() {
     setIsUpdating(true);
 
     try {
-      const { error } = await (supabase.from("assignments") as any)
-        .update({
-          teacher_id: selectedTeacher,
-          grade_id: Number(selectedGradeId),
-          subject_id: Number(selectedSubject),
-        })
-        .eq("id", editingAssignment.id);
-
-      if (error) throw error;
+      const assRef = doc(db, "assignments", editingAssignment.id);
+      await updateDoc(assRef, {
+        teacher_id: selectedTeacher,
+        grade_id: selectedGradeId,
+        subject_id: selectedSubject,
+        updated_at: serverTimestamp()
+      });
 
       toast.success("Asignación actualizada");
       setEditingAssignment(null);
+      resetForm();
       fetchData();
     } catch (error: any) {
       toast.error("Error al actualizar", { description: error.message });
@@ -263,11 +255,8 @@ export default function AssignmentsPage() {
   const handleToggleState = async (assignment: Assignment) => {
     try {
       const newState = !assignment.state;
-      const { error } = await (supabase.from("assignments") as any)
-        .update({ state: newState })
-        .eq("id", assignment.id);
-
-      if (error) throw error;
+      const assRef = doc(db, "assignments", assignment.id);
+      await updateDoc(assRef, { state: newState });
 
       toast.success(
         newState ? "Asignación activada" : "Asignación desactivada",
@@ -282,15 +271,11 @@ export default function AssignmentsPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm("¿Eliminar esta asignación?")) return;
 
     try {
-      const { error } = await supabase
-        .from("assignments")
-        .delete()
-        .eq("id", id);
-      if (error) throw error;
+      await deleteDoc(doc(db, "assignments", id));
       toast.success("Asignación eliminada");
       setAssignments((prev) => prev.filter((a) => a.id !== id));
     } catch (error: any) {
@@ -323,7 +308,7 @@ export default function AssignmentsPage() {
     );
 
   return (
-    <div className="bg-background-light dark:bg-background-dark min-h-screen pb-20">
+    <div className="bg-background-light dark:bg-background-dark min-h-screen pb-24">
       {/* Header */}
       <div className="p-4 lg:p-8 space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-1">
@@ -337,7 +322,7 @@ export default function AssignmentsPage() {
               setEditingAssignment(null);
               setIsDialogOpen(true);
             }}
-            className="bg-primary hover:bg-primary/90 text-white rounded-2xl h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-bold uppercase text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95"
+            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-bold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95"
           >
             <Plus className="w-5 h-5 stroke-[3]" />
             Nueva Asignación
@@ -348,7 +333,7 @@ export default function AssignmentsPage() {
       {/* Main Content */}
       <main className="p-4 space-y-3">
         {teachers.length === 0 ? (
-          <div className="bg-white dark:bg-slate-800 border-2 border-dashed rounded-3xl py-20 px-10 text-center">
+          <div className="bg-white dark:bg-slate-800 border-2 border-dashed rounded-lg py-20 px-10 text-center">
             <div className="w-16 h-16 bg-slate-50 dark:bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4">
               <BookOpen className="w-8 h-8 text-slate-300" />
             </div>
@@ -365,7 +350,7 @@ export default function AssignmentsPage() {
             return (
               <div
                 key={teacher.id}
-                className="bg-white dark:bg-[#151b2d] rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"
+                className="bg-white dark:bg-[#151b2d] rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"
               >
                 {/* Acordeón Header */}
                 <button
@@ -377,7 +362,7 @@ export default function AssignmentsPage() {
                       {teacher.full_name?.charAt(0) || "?"}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-slate-900 dark:text-white uppercase">
+                      <h3 className="font-semibold text-slate-900 dark:text-white">
                         {teacher.full_name || "Sin Nombre"}
                       </h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -425,7 +410,7 @@ export default function AssignmentsPage() {
                                 e.stopPropagation();
                                 handleToggleState(assign);
                               }}
-                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-colors ${
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider cursor-pointer transition-colors ${
                                 assign.state !== false
                                   ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200"
                                   : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200"
@@ -440,8 +425,8 @@ export default function AssignmentsPage() {
                                 setSelectedTeacher(assign.teacher_id);
                                 setSelectedLevelId(""); // Reset level/grade name as we don't store them easily
                                 setSelectedGradeName("");
-                                setSelectedGradeId(String(assign.grade_id));
-                                setSelectedSubject(String(assign.subject_id));
+                                setSelectedGradeId(assign.grade_id);
+                                setSelectedSubject(assign.subject_id);
                               }}
                               className="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded transition-all"
                             >
@@ -481,12 +466,12 @@ export default function AssignmentsPage() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-md rounded-3xl">
+        <DialogContent className="sm:max-w-md rounded-lg">
           <DialogHeader>
-            <DialogTitle className="text-xl font-black uppercase tracking-tight">
+            <DialogTitle className="text-xl font-black tracking-tight">
               {editingAssignment ? "Editar Asignación" : "Nueva Asignación"}
             </DialogTitle>
-            <DialogDescription className="text-xs font-bold uppercase tracking-widest text-slate-400">
+            <DialogDescription className="text-xs font-bold tracking-widest text-slate-400">
               {editingAssignment ? "Modifica la vinculación actual" : "Vincula un docente a un grado y materia"}
             </DialogDescription>
           </DialogHeader>
@@ -554,7 +539,7 @@ export default function AssignmentsPage() {
                 className="w-full h-9 rounded-md border px-3 py-2 text-sm"
               >
                 <option value="">Seleccionar Grupo</option>
-                {grades.map((g) => (
+                {filteredGrades.map((g) => (
                   <option key={g.id} value={String(g.id)}>
                     {g.name}
                   </option>
@@ -571,7 +556,7 @@ export default function AssignmentsPage() {
               >
                 <option value="">Seleccionar Materia</option>
                 {subjects.map((s) => (
-                  <option key={s.id} value={String(s.id)}>
+                  <option key={s.id} value={s.id}>
                     {s.name}
                   </option>
                 ))}
@@ -586,14 +571,14 @@ export default function AssignmentsPage() {
                   setIsDialogOpen(false);
                   setEditingAssignment(null);
                 }}
-                className="font-bold uppercase text-[10px] tracking-widest rounded-xl"
+                className="font-bold text-[10px] tracking-widest rounded-lg"
               >
                 Cancelar
               </Button>
               <Button 
                 type="submit" 
                 disabled={isCreating || isUpdating}
-                className="bg-primary hover:bg-primary/90 text-white font-bold uppercase text-[10px] tracking-widest rounded-xl px-8 shadow-lg shadow-primary/20"
+                className="bg-primary hover:bg-primary/90 text-white font-bold text-[10px] tracking-widest rounded-lg px-8 shadow-lg shadow-primary/20"
               >
                 {isCreating || isUpdating ? "Guardando..." : (editingAssignment ? "Guardar Cambios" : "Crear Asignación")}
               </Button>

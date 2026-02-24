@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { createClient } from '@/lib/supabase/client'
+import { auth } from '@/lib/firebase/config'
+import { getUserProfile } from '@/lib/firebase/firestore'
+import { signOut } from 'firebase/auth'
 import { 
   LayoutDashboard, 
   Users, 
@@ -21,7 +23,6 @@ import { toast } from 'sonner'
 
 export default function MobileMenuPage() {
     const navigate = useNavigate()
-    const supabase = createClient()
     
     interface UserProfile {
         full_name: string;
@@ -31,33 +32,31 @@ export default function MobileMenuPage() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        async function getProfile() {
-            // Usamos getSession primero para evitar bloqueos de NavigatorLock
-            const { data: { session } } = await supabase.auth.getSession()
-            const user = session?.user
-            if (user) {
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('full_name, role')
-                    .eq('id', user.id)
-                    .single() as { data: { full_name: string; role: string } | null }
-                
-                setUserProfile({
-                    full_name: profile?.full_name || 'Usuario',
-                    role: profile?.role || 'user'
-                })
-            }
+        const user = auth.currentUser
+        if (user) {
+            getUserProfile(user.uid).then(profile => {
+                if (profile) {
+                    setUserProfile({
+                        full_name: profile.full_name,
+                        role: profile.role
+                    })
+                }
+                setLoading(false)
+            }).catch(error => {
+                console.error("Error fetching profile:", error)
+                setLoading(false)
+            })
+        } else {
             setLoading(false)
         }
-        getProfile()
-    }, [supabase])
+    }, [])
 
     const handleSignOut = async () => {
-        const { error } = await supabase.auth.signOut()
-        if (error) {
-            toast.error('Error al cerrar sesión')
-        } else {
+        try {
+            await signOut(auth)
             navigate('/login')
+        } catch (error) {
+            toast.error('Error al cerrar sesión')
         }
     }
 
@@ -102,13 +101,18 @@ export default function MobileMenuPage() {
 
     return (
         <div className="p-6 space-y-8 pb-32 min-h-screen bg-slate-50 dark:bg-[#0f1117]">
+            <div className="px-1">
+                <p className="text-[10px] font-black tracking-widest text-primary">
+                    BETASOFT
+                </p>
+            </div>
             <div className="flex items-center gap-4 mb-6">
-                 <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/30 shrink-0">
+                 <div className="w-14 h-14 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/30 shrink-0">
                     <UserIcon className="text-white w-8 h-8" />
                  </div>
                  <div className="min-w-0">
                      <h1 className="text-xl font-bold text-slate-900 dark:text-white truncate">Hola, {userProfile?.full_name.split(' ')[0]}</h1>
-                     <p className="text-[10px] font-black uppercase tracking-widest text-primary">
+                     <p className="text-[10px] font-black tracking-widest text-primary">
                         {userProfile?.role === 'admin' ? 'Administrador' : userProfile?.role === 'coordinator' ? 'Coordinador' : 'Docente'}
                      </p>
                  </div>
@@ -116,7 +120,7 @@ export default function MobileMenuPage() {
 
             {filteredMenu.map((group, idx) => (
                 <div key={idx} className="space-y-4">
-                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 ml-1">{group.category}</h2>
+                    <h2 className="text-xs font-bold tracking-wider text-slate-400 ml-1">{group.category}</h2>
                     <div className="grid grid-cols-2 gap-4">
                         {group.items.map((item, i) => {
                             const Icon = item.icon
@@ -124,10 +128,10 @@ export default function MobileMenuPage() {
                                 <Link key={i} to={item.href}>
                                     <Card className="border-none shadow-sm hover:shadow-md transition-all active:scale-95 duration-200 bg-white dark:bg-slate-800/50 backdrop-blur-sm">
                                         <CardContent className="p-4 flex flex-col items-center text-center gap-3">
-                                            <div className={`p-3 rounded-2xl ${item.bg} ${item.color}`}>
+                                            <div className={`p-3 rounded-lg ${item.bg} ${item.color}`}>
                                                 <Icon className="w-6 h-6" />
                                             </div>
-                                            <span className="font-bold text-slate-700 dark:text-slate-200 text-xs uppercase tracking-tight leading-tight">{item.title}</span>
+                                            <span className="font-bold text-slate-700 dark:text-slate-200 text-xs tracking-tight leading-tight">{item.title}</span>
                                         </CardContent>
                                     </Card>
                                 </Link>
@@ -140,7 +144,7 @@ export default function MobileMenuPage() {
             <div className="pt-4">
                 <Button 
                     variant="outline" 
-                    className="w-full h-14 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 gap-2 rounded-2xl font-bold uppercase tracking-widest text-xs"
+                    className="w-full h-14 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 gap-2 rounded-lg font-bold tracking-widest text-xs"
                     onClick={handleSignOut}
                 >
                     <LogOut className="w-5 h-5" />

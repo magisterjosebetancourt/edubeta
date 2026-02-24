@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { createClient } from "@/lib/supabase/client";
+import { auth } from "@/lib/firebase/config";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +19,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-  const supabase = createClient();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -28,20 +28,26 @@ export default function LoginPage() {
     const password = formData.get("password") as string;
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        toast.error("Error al iniciar sesión", { description: error.message });
-      } else {
-        toast.success("¡Bienvenido de nuevo!");
-        navigate("/dashboard");
-      }
+      await signInWithEmailAndPassword(auth, email, password);
+      toast.success("¡Bienvenido de nuevo!");
+      navigate("/dashboard");
     } catch (error: any) {
-      toast.error("Ocurrió un error inesperado", {
-        description: error.message,
+      let errorMessage = "Ocurrió un error inesperado";
+      let description = "Por favor, intenta de nuevo en unos momentos.";
+
+      if (error.code === 'auth/invalid-credential') {
+        errorMessage = "Credenciales incorrectas";
+        description = "El correo o la contraseña no son válidos. Verifica tus datos e intenta de nuevo.";
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = "Acceso bloqueado";
+        description = "Demasiados intentos fallidos. Por seguridad, tu cuenta ha sido bloqueada temporalmente.";
+      } else if (error.code === 'auth/user-disabled') {
+        errorMessage = "Cuenta desactivada";
+        description = "Esta cuenta ha sido inhabilitada por el administrador. Contacta al soporte técnico.";
+      }
+
+      toast.error(errorMessage, {
+        description: description,
       });
     } finally {
       setIsLoading(false);
@@ -62,8 +68,8 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
             EduBeta
           </h1>
-          <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">
-            POR BETASOFT
+          <p className="text-[10px] font-bold text-blue-600 tracking-widest">
+            Por Betasoft
           </p>
 
           <div className="mt-4 space-y-1">

@@ -1,6 +1,16 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { createClient } from '@/lib/supabase/client'
+import { useState, useEffect } from "react";
+import { db } from '@/lib/firebase/config'
+import { 
+  collection, 
+  getDocs, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc, 
+  query, 
+  orderBy,
+  serverTimestamp 
+} from 'firebase/firestore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
@@ -17,7 +27,7 @@ import {
 import { Label } from "@/components/ui/label"
 
 type Subject = {
-  id: number;
+  id: string;
   name: string;
   state?: boolean;
   created_at?: string;
@@ -30,19 +40,18 @@ export default function SubjectsPage() {
   const [isUpdating, setIsUpdating] = useState(false)
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const navigate = useNavigate();
-
-  const supabase = createClient();
 
   const fetchSubjects = async () => {
     try {
-      const { data, error } = await supabase
-        .from('subjects')
-        .select('*')
-        .order('name', { ascending: true })
-
-      if (error) throw error
-      setSubjects(data || [])
+      setLoading(true)
+      const q = query(collection(db, 'subjects'), orderBy('name', 'asc'))
+      const querySnapshot = await getDocs(q)
+      const subjectsData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Subject[]
+      
+      setSubjects(subjectsData)
     } catch (error: any) {
       toast.error('Error al cargar asignaturas', { description: error.message })
     } finally {
@@ -69,9 +78,11 @@ export default function SubjectsPage() {
     }
 
     try {
-      const { error } = await supabase.from("subjects").insert([{ name }] as any);
-
-      if (error) throw error;
+      await addDoc(collection(db, "subjects"), {
+        name,
+        state: true,
+        created_at: serverTimestamp()
+      });
 
       toast.success("Asignatura creada correctamente");
       form.reset();
@@ -82,16 +93,13 @@ export default function SubjectsPage() {
     } finally {
       setIsCreating(false);
     }
-  };
+  }
 
   const handleToggleState = async (subject: Subject) => {
     try {
       const newState = !subject.state;
-      const { error } = await (supabase.from("subjects") as any)
-        .update({ state: newState })
-        .eq("id", subject.id);
-
-      if (error) throw error;
+      const subjectRef = doc(db, 'subjects', subject.id)
+      await updateDoc(subjectRef, { state: newState })
 
       toast.success(newState ? "Asignatura activada" : "Asignatura desactivada");
       setSubjects((prev) =>
@@ -117,12 +125,8 @@ export default function SubjectsPage() {
     }
 
     try {
-        const { error } = await (supabase
-            .from('subjects') as any)
-            .update({ name })
-            .eq('id', editingSubject.id)
-
-        if (error) throw error
+        const subjectRef = doc(db, 'subjects', editingSubject.id)
+        await updateDoc(subjectRef, { name })
 
         toast.success('Asignatura actualizada')
         setEditingSubject(null)
@@ -134,16 +138,11 @@ export default function SubjectsPage() {
     }
   }
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
      if(!confirm('¿Estás seguro? Se eliminarán todas las asignaciones asociadas.')) return;
      
      try {
-       const { error } = await supabase
-         .from('subjects')
-         .delete()
-         .eq('id', id)
-       
-       if (error) throw error
+       await deleteDoc(doc(db, 'subjects', id))
        
        toast.success('Asignatura eliminada')
        setSubjects(prev => prev.filter(s => s.id !== id))
@@ -155,7 +154,7 @@ export default function SubjectsPage() {
   if (loading) return <div className="p-8 text-center">Cargando asignaturas...</div>
 
   return (
-    <div className="bg-background-light dark:bg-background-dark min-h-screen pb-20">
+    <div className="bg-background-light dark:bg-background-dark min-h-screen pb-24">
       <div className="p-4 lg:p-8 space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-1">
           <div>
@@ -165,32 +164,28 @@ export default function SubjectsPage() {
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90 text-white rounded-2xl h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-bold uppercase text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95">
+              <Button className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-bold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95">
                 <Plus className="w-5 h-5 stroke-[3]" />
                 Nueva Asignatura
               </Button>
             </DialogTrigger>
-            <DialogContent className="rounded-3xl">
+            <DialogContent className="rounded-lg">
               <DialogHeader>
-                <DialogTitle className="text-xl font-black uppercase tracking-tight">Nueva Asignatura</DialogTitle>
-                <DialogDescription className="text-xs font-bold uppercase tracking-widest text-slate-400">
+                <DialogTitle className="text-xl font-black tracking-tight">Nueva asignatura</DialogTitle>
+                <DialogDescription className="text-xs font-bold tracking-widest text-slate-400">
                   Registra una nueva materia en el sistema.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleCreate} className="space-y-4 pt-4">
                 <div className="space-y-2">
                   <Label>Nombre de la Asignatura</Label>
-                  <input 
-                    name="name"
-                    placeholder="Ej: Matemáticas"
-                    className="w-full h-11 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 text-sm"
-                  />
+                    className="w-full h-11 rounded-lg border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 text-sm"
                 </div>
                 <DialogFooter className="pt-4">
-                  <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="font-bold uppercase text-[10px] tracking-widest rounded-xl">
+                  <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="font-bold text-[10px] tracking-widest rounded-lg">
                     Cancelar
                   </Button>
-                  <Button type="submit" disabled={isCreating} className="bg-primary hover:bg-primary/90 text-white font-bold uppercase text-[10px] tracking-widest rounded-xl px-8 shadow-lg shadow-primary/20">
+                  <Button type="submit" disabled={isCreating} className="bg-primary hover:bg-primary/90 text-white font-bold text-[10px] tracking-widest rounded-lg px-8 shadow-lg shadow-primary/20">
                     {isCreating ? 'Guardando...' : 'Crear Asignatura'}
                   </Button>
                 </DialogFooter>
@@ -202,7 +197,7 @@ export default function SubjectsPage() {
 
       <main className="p-4 space-y-4">
         {subjects.length === 0 ? (
-          <div className="text-center py-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-white/50 dark:bg-slate-900/30">
+          <div className="text-center py-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg bg-white/50 dark:bg-slate-900/30">
             <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
             <p className="text-slate-500 font-medium">
               No hay asignaturas registradas.
@@ -212,7 +207,7 @@ export default function SubjectsPage() {
           subjects.map((subject) => (
             <div
               key={subject.id}
-              className="bg-white dark:bg-[#151b2d] p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between"
+              className="bg-white dark:bg-[#151b2d] p-4 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between"
             >
               <div className="flex items-center gap-4">
                 <div className="h-10 w-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-300">
@@ -224,7 +219,7 @@ export default function SubjectsPage() {
                   </h3>
                   <div
                     onClick={() => handleToggleState(subject)}
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-colors ${
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider cursor-pointer transition-colors ${
                       subject.state !== false
                         ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200"
                         : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200"

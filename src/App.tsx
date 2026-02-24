@@ -18,6 +18,7 @@ import StudentView from '@/pages/dashboard/StudentView';
 import InstitutionalInfo from '@/pages/dashboard/InstitutionalInfo';
 import NeighborhoodsPage from '@/pages/dashboard/Neighborhoods';
 import TodosPage from '@/pages/dashboard/Todos';
+import MigrationPage from '@/pages/Migration';
 import { Toaster } from "@/components/ui/sonner";
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/registro-docente" element={<TeacherRegister />} />
+        <Route path="/migrate" element={<MigrationPage />} />
         
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<DashboardPage />} />

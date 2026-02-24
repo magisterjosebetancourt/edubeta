@@ -1,6 +1,18 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { createClient } from '@/lib/supabase/client'
+import { auth, db } from '@/lib/firebase/config'
+import { 
+  collection, 
+  getDocs, 
+  getDoc,
+  setDoc,
+  updateDoc, 
+  doc, 
+  query, 
+  where,
+  orderBy,
+  limit
+} from "firebase/firestore";
 import { toast } from 'sonner'
 import { format, subDays } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -25,18 +37,18 @@ import {
 import { cn } from '@/lib/utils'
 
 type AttendanceRecord = {
-  id: number;
-  student_id: number;
+  id: string;
+  student_id: string;
   date: string;
   status: 'present' | 'late' | 'absent' | 'excused';
   justified: boolean;
   processed: boolean;
-  subject_id: number;
+  subject_id: string;
   teacher_id: string;
   student: {
     first_name: string;
     last_name: string;
-    grade_id: number;
+    grade_id: string;
   };
   subject: {
     name: string;
@@ -53,7 +65,7 @@ interface Profile {
 }
 
 interface Grade {
-  id: number;
+  id: string;
   name: string;
 }
 
@@ -73,114 +85,116 @@ export default function AttendanceHistoryPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterGradeId, setFilterGradeId] = useState<string>("")
   const [filterSubjectId, setFilterSubjectId] = useState<string>("")
-  const [filterStatus, setFilterStatus] = useState<string>("all") // Change default to 'all' to see everything
+  const [filterStatus, setFilterStatus] = useState<string>("all")
   const [filterProcessed, setFilterProcessed] = useState<string>("all")
-
-  const supabase = createClient()
 
   const fetchData = useCallback(async (refresh = false) => {
     if (!refresh) setLoading(true);
     else setIsRefreshing(true);
 
+    if (startDate > endDate) {
+      toast.error('La fecha inicial no puede ser mayor a la final');
+      setLoading(false);
+      setIsRefreshing(false);
+      return;
+    }
+
     try {
-      // 0. Get Current User and Role
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = auth.currentUser;
       if (!user) return;
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      
-      const role = (profile as unknown as Profile)?.role as UserRole;
+      const profileSnap = await getDoc(doc(db, "profiles", user.uid));
+      const role = profileSnap.data()?.role as UserRole;
       setUserRole(role);
 
-      // 1. Get Grades and Subjects based on Role (to populate filters)
-      let gradesQuery = supabase.from("grades").select("id, name").eq("state", true).order("name");
-      let subjectsQuery = supabase.from("subjects").select("id, name").order("name");
-      
+      // Filters setup based on role
+      let teacherGradeIds: string[] = [];
+      let teacherSubjectIds: string[] = [];
       if (role === 'teacher') {
-        const { data: assignments } = await supabase
-          .from('assignments')
-          .select('grade_id, subject_id')
-          .eq('teacher_id', user.id)
-          .eq('state', true);
-        
-        const assignmentList = assignments as any[];
-        const gradeIds = assignmentList?.map(a => a.grade_id) || [];
-        const subjectIds = assignmentList?.map(a => a.subject_id) || [];
-        
-        gradesQuery = gradesQuery.in('id', gradeIds);
-        subjectsQuery = subjectsQuery.in('id', subjectIds);
+        const assSnap = await getDocs(query(collection(db, "assignments"), where("teacher_id", "==", user.uid), where("state", "==", true)));
+        teacherGradeIds = assSnap.docs.map(d => d.data().grade_id);
+        teacherSubjectIds = assSnap.docs.map(d => d.data().subject_id);
       }
-      
-      const [{ data: gradesData }, { data: subjectsData }] = await Promise.all([
-        gradesQuery,
-        subjectsQuery
+
+      // 1. Fetch dependencies
+      const [gSnap, sSnap, pSnap, stdSnap] = await Promise.all([
+        getDocs(collection(db, "grades")),
+        getDocs(collection(db, "subjects")),
+        getDocs(collection(db, "profiles")),
+        getDocs(collection(db, "students"))
       ]);
+
+      const gradeList = gSnap.docs
+        .filter(d => role !== 'teacher' || teacherGradeIds.includes(d.id))
+        .map(d => ({ id: d.id, name: d.data().name }));
       
-      setGrades((gradesData as unknown as Grade[]) || []);
-      setSubjects((subjectsData as unknown as Grade[]) || []);
+      const subjectList = sSnap.docs
+        .filter(d => role !== 'teacher' || teacherSubjectIds.includes(d.id))
+        .map(d => ({ id: d.id, name: d.data().name }));
 
-      // 2. Fetch Attendance Records
-      let query = supabase
-        .from('attendance_records')
-        .select(`
-          id,
-          student_id,
-          date,
-          status,
-          justified,
-          processed,
-          subject_id,
-          teacher_id,
-          student:students (
-            first_name,
-            last_name,
-            grade_id
-          ),
-          subject:subjects (
-            name
-          ),
-          teacher:profiles!attendance_records_teacher_id_fkey (
-            full_name
-          )
-        `)
-        .gte('date', startDate)
-        .lte('date', endDate)
-        .order('date', { ascending: false });
+      setGrades(gradeList);
+      setSubjects(subjectList);
 
-      if (role === 'teacher') {
-        const gradeIds = (gradesData as any[])?.map(g => g.id) || [];
-        query = query.in('student.grade_id', gradeIds);
-      }
+      const gradeMap = new Map(gSnap.docs.map(d => [d.id, d.data()]));
+      const subjectMap = new Map(sSnap.docs.map(d => [d.id, d.data()]));
+      const profileMap = new Map(pSnap.docs.map(d => [d.id, d.data()]));
+      const studentMap = new Map(stdSnap.docs.map(d => [d.id, d.data()]));
 
-      const { data, error } = await query;
-      if (error) throw error;
-      setRecords(data as unknown as AttendanceRecord[]);
+      // 2. Fetch Attendance Records (Firestore limited with date range)
+      const q = query(
+        collection(db, "attendance_records"),
+        where("date", ">=", startDate),
+        where("date", "<=", endDate),
+        orderBy("date", "desc")
+      );
+
+      const attSnap = await getDocs(q);
+      const attData = attSnap.docs.map(d => {
+        const data = d.data();
+        const student = studentMap.get(data.student_id);
+        const subject = subjectMap.get(data.subject_id);
+        const teacher = profileMap.get(data.teacher_id);
+        
+        // Filter by teacher role if needed
+        if (role === 'teacher' && !teacherGradeIds.includes(student?.grade_id)) return null;
+
+        return {
+          id: d.id,
+          student_id: data.student_id,
+          date: data.date,
+          status: data.status,
+          justified: data.justified,
+          processed: data.processed,
+          subject_id: data.subject_id,
+          teacher_id: data.teacher_id,
+          student: {
+            first_name: student?.first_name || '',
+            last_name: student?.last_name || '',
+            grade_id: student?.grade_id || ''
+          },
+          subject: { name: subject?.name || 'S/A' },
+          teacher: { full_name: teacher?.full_name || 'S/D' }
+        } as AttendanceRecord;
+      }).filter(r => r !== null);
+
+      setRecords(attData as AttendanceRecord[]);
 
     } catch (error: any) {
-      toast.error('Error al cargar historial', { description: error.message });
+      console.error("Attendance History Fetch Error:", error);
+      toast.error('Error al cargar historial');
     } finally {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [startDate, endDate, supabase]);
+  }, [startDate, endDate]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  const handleToggleJustification = async (recordId: number, currentJustified: boolean) => {
+  const handleToggleJustification = async (recordId: string, currentJustified: boolean) => {
     try {
-      const { error } = await (supabase
-        .from('attendance_records') as any)
-        .update({ justified: !currentJustified })
-        .eq('id', recordId);
-
-      if (error) throw error;
-
+      await updateDoc(doc(db, "attendance_records", recordId), { justified: !currentJustified });
       setRecords(prev => prev.map(r => r.id === recordId ? { ...r, justified: !currentJustified } : r));
       toast.success(!currentJustified ? 'Inasistencia justificada' : 'Justificación removida');
     } catch (error: any) {
@@ -188,15 +202,9 @@ export default function AttendanceHistoryPage() {
     }
   };
 
-  const handleToggleProcessed = async (recordId: number, currentProcessed: boolean) => {
+  const handleToggleProcessed = async (recordId: string, currentProcessed: boolean) => {
     try {
-      const { error } = await (supabase
-        .from('attendance_records') as any)
-        .update({ processed: !currentProcessed })
-        .eq('id', recordId);
-
-      if (error) throw error;
-
+      await updateDoc(doc(db, "attendance_records", recordId), { processed: !currentProcessed });
       setRecords(prev => prev.map(r => r.id === recordId ? { ...r, processed: !currentProcessed } : r));
       toast.success(!currentProcessed ? 'Marcado como procesado' : 'Marcado como pendiente');
     } catch (error: any) {
@@ -224,13 +232,8 @@ export default function AttendanceHistoryPage() {
     }
     toast.loading('Generando informe...');
     try {
-      const { data: rawSettings } = await supabase
-        .from('settings')
-        .select('*')
-        .limit(1)
-        .single();
-      
-      const schoolSettings = rawSettings as any;
+      const instSnap = await getDoc(doc(db, "settings", "institutional"));
+      const schoolSettings = instSnap.data();
       
       const branding = {
         name: schoolSettings?.school_name || 'EDUBETA',
@@ -238,38 +241,35 @@ export default function AttendanceHistoryPage() {
         logo: schoolSettings?.logo_url || ''
       };
 
-      // 1. Fetch all absences for this specific session (same date, grade, subject, teacher)
-      const { data: sessionStats } = await supabase
-        .from('attendance_records')
-        .select('status')
-        .eq('date', record.date)
-        .eq('subject_id', record.subject_id)
-        .eq('teacher_id', record.teacher_id);
-
-      const { data: rawAbsences, error } = await supabase
-        .from('attendance_records')
-        .select(`
-          status,
-          justified,
-          student_id,
-          students!inner(first_name, last_name)
-        `)
-        .eq('date', record.date)
-        .eq('subject_id', Number(record.subject_id))
-        .eq('teacher_id', record.teacher_id)
-        .in('status', ['absent', 'late']);
-
-      if (error) throw error;
-
-      // Ordenar por apellido alfabéticamente
-      const sortedAbsences = (rawAbsences || []).sort((a: any, b: any) => 
-        (a.students.first_name || '').localeCompare(b.students.first_name || '')
+      // 1. Fetch all records for this specific session
+      const q = query(
+        collection(db, "attendance_records"),
+        where("date", "==", record.date),
+        where("subject_id", "==", record.subject_id),
+        where("teacher_id", "==", record.teacher_id)
       );
 
+      const recordsSnap = await getDocs(q);
+      const studentSnap = await getDocs(collection(db, "students"));
+      const studentMap = new Map(studentSnap.docs.map(d => [d.id, d.data()]));
+
+      const sessionStats = recordsSnap.docs.map(d => d.data());
+      const sortedAbsences = sessionStats
+        .filter(d => d.status === 'absent' || d.status === 'late')
+        .map(d => {
+          const s = studentMap.get(d.student_id);
+          return {
+            status: d.status,
+            justified: d.justified,
+            students: { first_name: s?.first_name || '', last_name: s?.last_name || '' }
+          };
+        })
+        .sort((a, b) => a.students.first_name.localeCompare(b.students.first_name));
+
       const stats = {
-        present: (sessionStats || []).filter((s: any) => s.status === 'present').length,
-        absent: (sessionStats || []).filter((s: any) => s.status === 'absent').length,
-        late: (sessionStats || []).filter((s: any) => s.status === 'late').length,
+        present: sessionStats.filter(s => s.status === 'present').length,
+        absent: sessionStats.filter(s => s.status === 'absent').length,
+        late: sessionStats.filter(s => s.status === 'late').length,
       };
 
       // 2. HTML to Print
@@ -305,9 +305,9 @@ export default function AttendanceHistoryPage() {
             .school-logo { max-height: 60px; max-width: 150px; object-fit: contain; }
             .edubeta-branding { text-align: right; }
             .edubeta-logo { font-size: 18px; font-weight: 900; color: #4f46e5; letter-spacing: -0.05em; }
-            .edubeta-tag { font-size: 8px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; }
+            .edubeta-tag { font-size: 8px; font-weight: 700; color: #94a3b8; letter-spacing: 0.1em; }
             
-            h1 { margin: 0; font-size: 18px; font-weight: 900; letter-spacing: -0.025em; color: #1e293b; text-transform: uppercase; }
+            h1 { margin: 0; font-size: 18px; font-weight: 900; letter-spacing: -0.025em; color: #1e293b; }
             .school-year { font-size: 11px; font-weight: 700; color: #64748b; margin-top: 2px; }
             .report-title-bar { 
               background: #f8fafc; 
@@ -317,7 +317,6 @@ export default function AttendanceHistoryPage() {
               font-size: 12px; 
               font-weight: 800; 
               color: #4f46e5; 
-              text-transform: uppercase; 
               letter-spacing: 0.1em; 
               margin-bottom: 25px;
               border: 1px solid #f1f5f9;
@@ -325,7 +324,7 @@ export default function AttendanceHistoryPage() {
             
             .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px; }
             .meta-item { background: #ffffff; padding: 12px; border-radius: 12px; border: 1px solid #f1f5f9; }
-            .meta-label { font-size: 9px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+            .meta-label { font-size: 9px; font-weight: 900; color: #94a3b8; letter-spacing: 0.05em; margin-bottom: 4px; }
             .meta-value { font-size: 13px; font-weight: 700; color: #1e293b; }
             
             .stats-container { display: flex; gap: 10px; margin-bottom: 25px; }
@@ -335,7 +334,7 @@ export default function AttendanceHistoryPage() {
             .stat-late { background: #fff7ed; color: #ea580c; border-color: #ffedd5; }
             
             table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 10px; border: 1px solid #f1f5f9; border-radius: 8px; overflow: hidden; }
-            th { text-align: left; background: #f8fafc; color: #64748b; padding: 12px 15px; font-size: 10px; text-transform: uppercase; font-weight: 900; border-bottom: 2px solid #f1f5f9; }
+            th { text-align: left; background: #f8fafc; color: #64748b; padding: 12px 15px; font-size: 10px; font-weight: 900; border-bottom: 2px solid #f1f5f9; }
             td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #334155; }
             .student-name { font-weight: 700; color: #1e293b; }
             
@@ -353,7 +352,7 @@ export default function AttendanceHistoryPage() {
             </div>
             <div class="header-center">
               <h1>${branding.name}</h1>
-              <div class="school-year">AÑO ESCOLAR: ${branding.year}</div>
+              <div className="school-year">Año escolar: ${branding.year}</div>
             </div>
             <div class="header-side edubeta-branding">
               <div class="edubeta-logo">EDUBETA</div>
@@ -390,7 +389,7 @@ export default function AttendanceHistoryPage() {
             </div>
           </div>
 
-          <h2 style="font-size: 13px; font-weight: 900; margin: 20px 0 10px; text-transform: uppercase;">Listado de Estudiantes Reportados</h2>
+          <h2 style="font-size: 13px; font-weight: 900; margin: 20px 0 10px;">Listado de estudiantes reportados</h2>
           <table>
             <thead>
               <tr>
@@ -402,9 +401,9 @@ export default function AttendanceHistoryPage() {
             <tbody>
               ${(sortedAbsences || []).map((r: any) => `
                 <tr>
-                  <td style="font-weight: 600;">${r.students.first_name.toUpperCase()}, ${r.students.last_name}</td>
-                  <td style="text-align: center; font-weight: 800; font-size: 10px; color: ${r.status === 'absent' ? '#dc2626' : '#ea580c'}">${r.status === 'absent' ? 'AUSENTE' : 'TARDE'}</td>
-                  <td style="text-align: center; font-weight: 600;">${r.justified ? 'SÍ' : 'NO'}</td>
+                  <td style="font-weight: 600;">${r.students.first_name}, ${r.students.last_name}</td>
+                  <td style="text-align: center; font-weight: 800; font-size: 10px; color: ${r.status === 'absent' ? '#dc2626' : '#ea580c'}">${r.status === 'absent' ? 'Ausente' : 'Tarde'}</td>
+                  <td style="text-align: center; font-weight: 600;">${r.justified ? 'Sí' : 'No'}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -448,21 +447,15 @@ export default function AttendanceHistoryPage() {
 
   const getStatusBadge = (status: string) => {
     switch(status) {
-      case 'present': return <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px] font-bold uppercase"><CheckCircle2 className="w-3 h-3" /> Presente</div>;
-      case 'late': return <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 text-[10px] font-bold uppercase"><Clock className="w-3 h-3" /> Tarde</div>;
-      case 'absent': return <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[10px] font-bold uppercase"><XCircle className="w-3 h-3" /> Ausente</div>;
+      case 'present': return <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px] font-bold"><CheckCircle2 className="w-3 h-3" /> Presente</div>;
+      case 'late': return <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 text-[10px] font-bold"><Clock className="w-3 h-3" /> Tarde</div>;
+      case 'absent': return <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[10px] font-bold"><XCircle className="w-3 h-3" /> Ausente</div>;
       default: return null;
     }
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-background-dark pb-20 lg:pb-0">
-      <div className="px-5 py-4 bg-white dark:bg-background-dark border-b border-slate-100 dark:border-slate-800">
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Consulta y gestiona el historial de inasistencias.
-        </p>
-      </div>
-      
+    <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-background-dark pb-24 lg:pb-0">
       {/* Filters Area */}
       <div className="p-4 space-y-4">
         {/* Row 1: Search - Main Placeholder */}
@@ -473,7 +466,7 @@ export default function AttendanceHistoryPage() {
             placeholder="Buscar por nombre del estudiante..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm transition-all"
+            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm transition-all"
           />
         </div>
 
@@ -484,7 +477,7 @@ export default function AttendanceHistoryPage() {
             <select 
               value={filterGradeId}
               onChange={(e) => setFilterGradeId(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[11px] font-bold uppercase focus:outline-none appearance-none transition-all"
+              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] font-bold focus:outline-none appearance-none transition-all"
             >
               <option value="">Grados</option>
               {grades.map(g => (
@@ -497,7 +490,7 @@ export default function AttendanceHistoryPage() {
             <select 
               value={filterSubjectId}
               onChange={(e) => setFilterSubjectId(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[11px] font-bold uppercase focus:outline-none appearance-none transition-all"
+              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] font-bold focus:outline-none appearance-none transition-all"
             >
               <option value="">Materias</option>
               {subjects.map(s => (
@@ -510,7 +503,7 @@ export default function AttendanceHistoryPage() {
             <select 
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[11px] font-bold uppercase focus:outline-none appearance-none transition-all"
+              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] font-bold focus:outline-none appearance-none transition-all"
             >
               <option value="all">Estados</option>
               <option value="absent">Inasistencias</option>
@@ -524,7 +517,7 @@ export default function AttendanceHistoryPage() {
               <select 
                 value={filterProcessed}
                 onChange={(e) => setFilterProcessed(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[11px] font-bold uppercase focus:outline-none appearance-none transition-all"
+                className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] font-bold focus:outline-none appearance-none transition-all"
               >
                 <option value="all">Gestión</option>
                 <option value="false">Pendientes</option>
@@ -538,51 +531,51 @@ export default function AttendanceHistoryPage() {
         <div className="flex flex-col md:flex-row gap-2 items-center">
           <div className="flex-1 w-full grid grid-cols-2 gap-2">
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 pointer-events-none uppercase">De</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 pointer-events-none">De</span>
               <input 
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[11px] focus:outline-none"
+                className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] focus:outline-none"
               />
             </div>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 pointer-events-none uppercase">A</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 pointer-events-none">A</span>
               <input 
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[11px] focus:outline-none"
+                className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] focus:outline-none"
               />
             </div>
           </div>
           <button 
             onClick={() => fetchData(true)}
             disabled={isRefreshing}
-            className="w-full md:w-auto px-4 py-2 bg-primary text-white rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full md:w-auto px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <RefreshCcw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
-            <span className="text-[11px] font-bold uppercase">Actualizar</span>
+            <span className="text-[11px] font-bold">Actualizar</span>
           </button>
         </div>
       </div>
 
       {/* Results Title */}
       <div className="px-5 py-2 flex items-center justify-between">
-         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+         <span className="text-[10px] font-bold text-slate-400 tracking-widest">
             {filteredRecords.length} Registros encontrados
          </span>
       </div>
 
       {/* Main Content */}
-      <div className="px-4 space-y-3 pb-20">
+      <div className="px-4 space-y-3 pb-24">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3 opacity-50">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
             <p className="text-sm font-medium">Buscando en los archivos...</p>
           </div>
         ) : filteredRecords.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4 bg-white dark:bg-slate-800 border rounded-2xl border-dashed">
+          <div className="flex flex-col items-center justify-center py-20 gap-4 bg-white dark:bg-slate-800 border rounded-lg border-dashed">
             <AlertCircle className="w-10 h-10 text-slate-300" />
             <div className="text-center">
               <p className="text-slate-900 dark:text-white font-bold">No se encontraron registros</p>
@@ -594,11 +587,11 @@ export default function AttendanceHistoryPage() {
             {filteredRecords.map((record) => (
               <div 
                 key={record.id}
-                className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all active:scale-[0.99] group relative overflow-hidden"
+                className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg p-4 shadow-sm hover:shadow-md transition-all active:scale-[0.99] group relative overflow-hidden"
               >
                 {record.justified && (
                   <div className="absolute top-0 right-0">
-                    <div className="bg-green-500 text-white text-[9px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-widest shadow-sm">
+                    <div className="bg-green-500 text-white text-[9px] font-bold px-3 py-1 rounded-bl-xl tracking-widest shadow-sm">
                        Justificada
                     </div>
                   </div>
@@ -615,20 +608,20 @@ export default function AttendanceHistoryPage() {
                   {/* Middle: Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                      <span className="text-[10px] font-bold text-slate-400 tracking-tighter">
                         {format(new Date(record.date + 'T00:00:00'), 'EEEE, d MMM yyyy')}
                       </span>
                       <ChevronRight className="w-3 h-3 text-slate-300" />
-                      <span className="text-[10px] font-bold text-primary uppercase">
+                      <span className="text-[10px] font-bold text-primary">
                         {grades.find(g => g.id === record.student.grade_id)?.name}
                       </span>
                       <ChevronRight className="w-3 h-3 text-slate-300" />
-                      <span className="text-[10px] font-bold text-indigo-500 uppercase flex items-center gap-1">
+                      <span className="text-[10px] font-bold text-indigo-500 flex items-center gap-1">
                         <BookOpen className="w-2.5 h-2.5" />
                         {record.subject?.name}
                       </span>
                     </div>
-                    <h3 className="font-bold text-slate-900 dark:text-white truncate uppercase">
+                    <h3 className="font-bold text-slate-900 dark:text-white truncate">
                       {record.student.first_name}, {record.student.last_name}
                     </h3>
                     <p className="text-[9px] text-slate-400 mt-0.5 flex items-center gap-1">
@@ -646,7 +639,7 @@ export default function AttendanceHistoryPage() {
                        {record.status !== 'present' && (
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleNotifyWhatsApp(record); }}
-                          className="flex items-center justify-center w-9 h-9 bg-green-500 hover:bg-green-600 text-white rounded-xl transition-all shadow-sm"
+                          className="flex items-center justify-center w-9 h-9 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-all shadow-sm"
                           title="Notificar por WhatsApp"
                         >
                           <MessageSquare className="w-4 h-4" />
@@ -655,7 +648,7 @@ export default function AttendanceHistoryPage() {
                        
                        <button 
                          onClick={(e) => { e.stopPropagation(); generateReport(record); }}
-                         className="flex items-center justify-center w-9 h-9 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl transition-all hover:bg-primary hover:text-white border border-slate-200 dark:border-slate-700"
+                         className="flex items-center justify-center w-9 h-9 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg transition-all hover:bg-primary hover:text-white border border-slate-200 dark:border-slate-700"
                          title="Generar Informe"
                        >
                          <FileText className="w-4 h-4" />
@@ -665,7 +658,7 @@ export default function AttendanceHistoryPage() {
                          <button
                            onClick={(e) => { e.stopPropagation(); handleToggleJustification(record.id, record.justified); }}
                            className={cn(
-                             "flex items-center gap-1 px-3 h-9 rounded-xl text-[10px] font-bold uppercase transition-all border",
+                             "flex items-center gap-1 px-3 h-9 rounded-lg text-[10px] font-bold transition-all border",
                              record.justified 
                                ? "bg-blue-50 border-blue-100 text-blue-600 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400"
                                : "bg-white border-slate-200 text-slate-400 dark:bg-slate-900 dark:border-slate-800"
@@ -680,7 +673,7 @@ export default function AttendanceHistoryPage() {
                         <button
                           onClick={(e) => { e.stopPropagation(); handleToggleProcessed(record.id, record.processed); }}
                           className={cn(
-                            "flex items-center gap-1 px-3 h-9 rounded-xl text-[10px] font-bold uppercase transition-all border shadow-sm",
+                            "flex items-center gap-1 px-3 h-9 rounded-lg text-[10px] font-bold transition-all border shadow-sm",
                             record.processed
                               ? "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-400"
                               : "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/10 dark:text-orange-300 animate-pulse"

@@ -1,15 +1,18 @@
 import { Sidebar } from '@/components/layout/sidebar'
 import { BottomNav } from '@/components/layout/BottomNav'
-import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { createClient } from '@/lib/supabase/client'
+import { Outlet, useLocation, useNavigate, Link } from 'react-router-dom'
+import { auth, db } from '@/lib/firebase/config'
+import { getUserProfile } from '@/lib/firebase/firestore'
+import { onAuthStateChanged } from 'firebase/auth'
+import { doc, getDoc } from 'firebase/firestore'
 import { School as SchoolIcon, Menu, ArrowLeft } from "lucide-react"
-import { Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+
 export default function DashboardLayout() {
   const location = useLocation()
   const navigate = useNavigate()
-  const supabase = createClient()
   const [loading, setLoading] = useState(true)
+  const [logoUrl, setLogoUrl] = useState<string | null>(null)
   
   interface UserProfile {
     full_name: string;
@@ -19,30 +22,46 @@ export default function DashboardLayout() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
 
   useEffect(() => {
-    async function checkUser() {
-      // Usamos getSession primero para evitar NavigatorLockAcquireTimeoutError
-      const { data: { session } } = await supabase.auth.getSession()
-      const user = session?.user
-      
+    const fetchLogo = async () => {
+      try {
+        const settingsSnap = await getDoc(doc(db, 'settings', 'institutional'))
+        if (settingsSnap.exists()) {
+          setLogoUrl(settingsSnap.data().logo_url || null)
+        }
+      } catch (error) {
+        console.error("Error fetching logo for global header:", error)
+      }
+    }
+    fetchLogo()
+  }, [])
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         navigate('/login')
       } else {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name, role, avatar_url')
-          .eq('id', user.id)
-          .single() as { data: { full_name: string; role: string; avatar_url: string } | null }
-        
-        setUserProfile({
-          full_name: profile?.full_name || 'Usuario',
-          role: profile?.role || 'user',
-          avatar_url: profile?.avatar_url
-        })
-        setLoading(false)
+        try {
+          const profile = await getUserProfile(user.uid)
+          
+          setUserProfile({
+            full_name: profile?.full_name || 'Usuario',
+            role: profile?.role || 'user',
+            avatar_url: profile?.avatar_url
+          })
+        } catch (error) {
+          console.error("Error fetching profile:", error)
+          setUserProfile({
+            full_name: user.displayName || 'Usuario',
+            role: 'user'
+          })
+        } finally {
+          setLoading(false)
+        }
       }
-    }
-    checkUser()
-  }, [navigate, supabase])
+    });
+
+    return () => unsubscribe();
+  }, [navigate])
 
   const getMobileTitle = () => {
     const path = location.pathname.split('/')[2]
@@ -68,8 +87,6 @@ export default function DashboardLayout() {
   }
 
   const handleBack = () => {
-    // Si estamos en una subruta profunda, intentamos volver
-    // pero si el historial está vacío o es externo, vamos al dashboard
     if (window.history.length > 2) {
       navigate(-1)
     } else {
@@ -83,56 +100,88 @@ export default function DashboardLayout() {
 
   const isMainPage = ['/dashboard', '/dashboard/', '/dashboard/menu'].includes(location.pathname)
 
-  if (loading) return <div className="h-screen w-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">Cargando...</div>
+  if (loading) return <div className="h-screen w-full flex items-center justify-center bg-gray-50 dark:bg-gray-900 font-bold text-primary animate-pulse">Cargando...</div>
 
   return (
-    <>
-      <div className="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
-        {/* Desktop Sidebar */}
-        <Sidebar />
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
+      {/* Desktop Sidebar */}
+      <Sidebar />
 
-        <div className="flex-1 flex flex-col h-full overflow-hidden">
-          <header className="lg:hidden h-16 bg-white dark:bg-[#121022] border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 shrink-0 z-40">
-             <div className="flex items-center gap-3">
-               {!isMainPage ? (
-                 <button 
-                   onClick={handleBack}
-                   className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                 >
-                   <ArrowLeft className="w-5 h-5" />
-                 </button>
-               ) : (
-                 <Link to="/dashboard/menu" className="text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-md">
-                    <Menu className="w-5 h-5" />
-                 </Link>
-               )}
-               <span className="text-lg font-bold text-slate-800 dark:text-white truncate max-w-[150px]">{getMobileTitle()}</span>
-             </div>
-             
-             <div className="flex items-center gap-2">
-                <div className="text-right hidden sm:block">
-                  <p className="text-[10px] font-bold text-slate-900 dark:text-white leading-none">{userProfile?.full_name.split(' ')[0]}</p>
-                  <p className="text-[8px] font-medium text-primary uppercase tracking-tighter">{userProfile?.role}</p>
-                </div>
-                <Link to="/dashboard/profile" className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center hover:bg-primary/20 transition-colors text-primary font-black text-xs overflow-hidden">
-                    {userProfile?.avatar_url ? (
-                      <img src={userProfile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      userProfile ? getInitials(userProfile.full_name) : <SchoolIcon className="w-5 h-5" />
-                    )}
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
+        {/* Unified Global Header */}
+        <header className="h-20 bg-white dark:bg-[#121022] border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 shrink-0 z-40 transition-colors duration-300">
+           <div className="flex items-center gap-3">
+             {!isMainPage ? (
+               <button 
+                 onClick={handleBack}
+                 className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all active:scale-90"
+               >
+                 <ArrowLeft className="w-5 h-5" />
+               </button>
+             ) : (
+                <Link 
+                  to="/dashboard/menu" 
+                  className="lg:hidden text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-lg transition-all active:scale-95 border border-transparent hover:border-slate-200"
+                >
+                  <Menu className="w-5 h-5" />
                 </Link>
+             )}
+             <div className="flex flex-col">
+               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary leading-none mb-1">
+                 Betasoft
+               </span>
+               <h1 className="text-xl font-bold text-slate-800 dark:text-white truncate max-w-[180px] leading-tight tracking-tight">
+                 {getMobileTitle()}
+               </h1>
              </div>
-          </header>
+           </div>
+           
+           <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                 <div className="text-right hidden sm:block">
+                   <p className="text-[11px] font-black text-slate-900 dark:text-white leading-none mb-0.5">{userProfile?.full_name.split(' ')[0]}</p>
+                   <p className="text-[8px] font-bold text-primary uppercase tracking-widest">{userProfile?.role}</p>
+                 </div>
+                 
+                 {/* Premium Avatar Container */}
+                 <Link 
+                  to="/dashboard/profile" 
+                  className="group relative w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 p-px flex items-center justify-center hover:shadow-lg hover:shadow-primary/10 transition-all duration-500 overflow-hidden active:scale-95"
+                 >
+                    <div className="w-full h-full rounded-[7px] bg-white dark:bg-[#121022] flex items-center justify-center overflow-hidden">
+                      {userProfile?.avatar_url ? (
+                        <img 
+                          src={userProfile.avatar_url} 
+                          alt="Avatar" 
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                        />
+                      ) : (
+                        <span className="text-primary font-black text-[11px] tracking-tighter">
+                          {userProfile ? getInitials(userProfile.full_name) : <SchoolIcon className="w-5 h-5 opacity-40" />}
+                        </span>
+                      )}
+                    </div>
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                 </Link>
+              </div>
 
-          {/* Main Content Area */}
-          <main className="flex-1 overflow-y-auto scroll-smooth pb-20 lg:pb-0">
-            <Outlet />
-          </main>
+              {logoUrl && (
+                <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200/60 dark:border-slate-800 bg-white p-1.5 flex items-center justify-center shadow-sm shrink-0 hover:scale-105 transition-transform duration-300 cursor-pointer">
+                  <img src={logoUrl} alt="Institution Logo" className="max-w-full max-h-full object-contain filter drop-shadow-sm" />
+                </div>
+              )}
+           </div>
+        </header>
 
-          {/* Mobile Bottom Navigation */}
-          <BottomNav />
-        </div>
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-y-auto scroll-smooth pb-20 lg:pb-0 bg-slate-50/30 dark:bg-[#0c0a1a]">
+          <Outlet />
+        </main>
+
+        {/* Mobile Bottom Navigation */}
+        <BottomNav />
       </div>
-    </>
+    </div>
   )
 }

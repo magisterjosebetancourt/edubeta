@@ -1,6 +1,12 @@
 import { useState } from 'react'
 import Papa from 'papaparse'
-import { createClient } from '@/lib/supabase/client'
+import { db } from '@/lib/firebase/config'
+import { 
+  collection, 
+  writeBatch, 
+  doc, 
+  serverTimestamp 
+} from 'firebase/firestore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,21 +22,21 @@ type CsvRow = {
   barrio?: string
 }
 
-type Grade = {
-  id: number
-  name: string
-}
 
 type UploadMode = 'csv' | 'text'
 
-const supabase = createClient()
 
-export function CsvUploader({ onSuccess }: { onSuccess: () => void }) {
+export function CsvUploader({ 
+  grades: initialGrades, 
+  onComplete 
+}: { 
+  grades: any[], 
+  onComplete: () => void 
+}) {
   const [mode, setMode] = useState<UploadMode>('csv')
   const [file, setFile] = useState<File | null>(null)
   const [textList, setTextList] = useState('')
   const [preview, setPreview] = useState<CsvRow[]>([])
-  const [grades, setGrades] = useState<Grade[]>([])
   const [errors, setErrors] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [validating, setValidating] = useState(false)
@@ -113,17 +119,11 @@ export function CsvUploader({ onSuccess }: { onSuccess: () => void }) {
   const validateGrades = async (rows: CsvRow[]) => {
     setValidating(true)
     try {
-      const { data: dbGrades, error } = await supabase.from('grades').select('id, name')
-      if (error) throw error
-      
-      const gradeList = (dbGrades as any[]) || []
-      setGrades(gradeList)
-
       const newErrors: string[] = []
       const uniqueCsvGrades = new Set(rows.map((r) => r.grado?.trim()))
       
       uniqueCsvGrades.forEach(csvGradeName => {
-        const exists = gradeList.some(g => (g.name || '').toLowerCase() === (csvGradeName || '').toLowerCase())
+        const exists = initialGrades.some(g => (g.name || '').toLowerCase() === (csvGradeName || '').toLowerCase())
         if (!exists) {
           newErrors.push(`El grado "${csvGradeName}" no existe en la base de datos.`)
         }
@@ -145,25 +145,30 @@ export function CsvUploader({ onSuccess }: { onSuccess: () => void }) {
 
     setLoading(true)
     try {
-      const studentsToInsert = preview.map(row => {
-        const grade = grades.find(g => (g.name || '').toLowerCase() === row.grado.trim().toLowerCase())
-        return {
+      const batch = writeBatch(db);
+      
+      preview.forEach(row => {
+        const grade = initialGrades.find(g => (g.name || '').toLowerCase() === row.grado.trim().toLowerCase())
+        const studentRef = doc(collection(db, "students"));
+        batch.set(studentRef, {
           first_name: row.nombres,
           last_name: row.apellidos,
           neighborhood: row.barrio || null,
-          grade_id: grade?.id
-        }
-      })
+          grade_id: grade?.id,
+          state: true,
+          created_at: serverTimestamp()
+        });
+      });
 
-      const { error } = await supabase.from('students').insert(studentsToInsert as any)
-      if (error) throw error
+      await batch.commit();
 
-      toast.success(`${studentsToInsert.length} estudiantes importados correctamente`)
+      toast.success(`${preview.length} estudiantes importados correctamente`)
       setFile(null)
       setTextList('')
       setPreview([])
-      onSuccess()
+      onComplete()
     } catch (err: any) {
+      console.error("CSV Upload Error:", err);
       toast.error('Error en la importación', { description: err.message })
     } finally {
       setLoading(false)

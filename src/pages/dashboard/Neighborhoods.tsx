@@ -1,10 +1,20 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { createClient } from '@/lib/supabase/client'
+import { useState, useEffect } from "react";
+import { db } from '@/lib/firebase/config'
+import { 
+  collection,
+  getDocs, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc, 
+  query, 
+  orderBy,
+  serverTimestamp 
+} from 'firebase/firestore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { Trash2, Plus, MapPin, Pencil, ArrowLeft } from 'lucide-react'
+import { Trash2, Plus, MapPin, Pencil } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -17,7 +27,7 @@ import {
 import { Label } from "@/components/ui/label"
 
 type Neighborhood = {
-  id: number;
+  id: string;
   name: string;
   state?: boolean;
   created_at?: string;
@@ -31,18 +41,17 @@ export default function NeighborhoodsPage() {
   const [editingNeighborhood, setEditingNeighborhood] = useState<Neighborhood | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const navigate = useNavigate();
-  const supabase = createClient();
-
   const fetchNeighborhoods = async () => {
     try {
-      const { data, error } = await supabase
-        .from('neighborhoods')
-        .select('*')
-        .order('name', { ascending: true })
-
-      if (error) throw error
-      setNeighborhoods(data || [])
+      setLoading(true)
+      const q = query(collection(db, 'neighborhoods'), orderBy('name', 'asc'))
+      const querySnapshot = await getDocs(q)
+      const neighborhoodsData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Neighborhood[]
+      
+      setNeighborhoods(neighborhoodsData)
     } catch (error: any) {
       toast.error('Error al cargar barrios', { description: error.message })
     } finally {
@@ -69,9 +78,11 @@ export default function NeighborhoodsPage() {
     }
 
     try {
-      const { error } = await supabase.from("neighborhoods").insert([{ name }] as any);
-
-      if (error) throw error;
+      await addDoc(collection(db, "neighborhoods"), {
+        name,
+        state: true,
+        created_at: serverTimestamp()
+      });
 
       toast.success("Barrio creado correctamente");
       form.reset();
@@ -87,11 +98,8 @@ export default function NeighborhoodsPage() {
   const handleToggleState = async (neighborhood: Neighborhood) => {
     try {
       const newState = !neighborhood.state;
-      const { error } = await (supabase.from("neighborhoods") as any)
-        .update({ state: newState })
-        .eq("id", neighborhood.id);
-
-      if (error) throw error;
+      const neighborhoodRef = doc(db, 'neighborhoods', neighborhood.id)
+      await updateDoc(neighborhoodRef, { state: newState })
 
       toast.success(newState ? "Barrio activado" : "Barrio desactivado");
       setNeighborhoods((prev) =>
@@ -117,12 +125,8 @@ export default function NeighborhoodsPage() {
     }
 
     try {
-        const { error } = await (supabase
-            .from('neighborhoods') as any)
-            .update({ name })
-            .eq('id', editingNeighborhood.id)
-
-        if (error) throw error
+        const neighborhoodRef = doc(db, 'neighborhoods', editingNeighborhood.id)
+        await updateDoc(neighborhoodRef, { name })
 
         toast.success('Barrio actualizado')
         setEditingNeighborhood(null)
@@ -134,16 +138,11 @@ export default function NeighborhoodsPage() {
     }
   }
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
      if(!confirm('¿Estás seguro de eliminar este barrio?')) return;
      
      try {
-       const { error } = await supabase
-         .from('neighborhoods')
-         .delete()
-         .eq('id', id)
-       
-       if (error) throw error
+       await deleteDoc(doc(db, 'neighborhoods', id))
        
        toast.success('Barrio eliminado')
        setNeighborhoods(prev => prev.filter(n => n.id !== id))
@@ -155,7 +154,7 @@ export default function NeighborhoodsPage() {
   if (loading) return <div className="p-8 text-center">Cargando barrios...</div>
 
   return (
-    <div className="bg-background-light dark:bg-background-dark min-h-screen pb-20 text-slate-800 dark:text-slate-100">
+    <div className="bg-background-light dark:bg-background-dark min-h-screen pb-24 text-slate-800 dark:text-slate-100">
       <div className="p-4 lg:p-8 space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-1">
           <div>
@@ -165,15 +164,15 @@ export default function NeighborhoodsPage() {
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90 text-white rounded-2xl h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-bold uppercase text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95">
+              <Button className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-bold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95">
                 <Plus className="w-5 h-5 stroke-[3]" />
                 Nuevo Barrio
               </Button>
             </DialogTrigger>
-            <DialogContent className="rounded-3xl">
+            <DialogContent className="rounded-lg">
               <DialogHeader>
-                <DialogTitle className="text-xl font-black uppercase tracking-tight">Nuevo Barrio</DialogTitle>
-                <DialogDescription className="text-xs font-bold uppercase tracking-widest text-slate-400">
+                <DialogTitle className="text-xl font-black tracking-tight">Nuevo barrio</DialogTitle>
+                <DialogDescription className="text-xs font-bold tracking-widest text-slate-400">
                   Agrega un nuevo sector a la lista.
                 </DialogDescription>
               </DialogHeader>
@@ -183,15 +182,15 @@ export default function NeighborhoodsPage() {
                   <input 
                     name="name"
                     placeholder="Ej: Centro"
-                    className="w-full h-11 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 text-sm"
+                    className="w-full h-11 rounded-lg border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 text-sm"
                   />
                 </div>
                 <DialogFooter className="pt-4">
-                  <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="font-bold uppercase text-[10px] tracking-widest rounded-xl">
+                  <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="font-bold text-[10px] tracking-widest rounded-lg">
                     Cancelar
                   </Button>
-                  <Button type="submit" disabled={isCreating} className="bg-primary hover:bg-primary/90 text-white font-bold uppercase text-[10px] tracking-widest rounded-xl px-8 shadow-lg shadow-primary/20">
-                    {isCreating ? 'Guardando...' : 'Crear Barrio'}
+                  <Button type="submit" disabled={isCreating} className="bg-primary hover:bg-primary/90 text-white font-bold text-[10px] tracking-widest rounded-lg px-8 shadow-lg shadow-primary/20">
+                    {isCreating ? 'Guardando...' : 'Crear barrio'}
                   </Button>
                 </DialogFooter>
               </form>
@@ -202,7 +201,7 @@ export default function NeighborhoodsPage() {
 
       <main className="p-4 space-y-4">
         {neighborhoods.length === 0 ? (
-          <div className="text-center py-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-white/50 dark:bg-slate-900/30">
+          <div className="text-center py-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg bg-white/50 dark:bg-slate-900/30">
             <MapPin className="w-12 h-12 text-slate-300 mx-auto mb-3" />
             <p className="text-slate-500 font-medium">
               No hay barrios registrados.
@@ -212,19 +211,19 @@ export default function NeighborhoodsPage() {
           neighborhoods.map((neighborhood) => (
             <div
               key={neighborhood.id}
-              className="bg-white dark:bg-[#151b2d] p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between"
+              className="bg-white dark:bg-[#151b2d] p-4 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between"
             >
               <div className="flex items-center gap-4">
                 <div className="h-10 w-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-300">
                   <MapPin className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900 dark:text-white uppercase text-sm">
+                  <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
                     {neighborhood.name}
                   </h3>
                   <div
                     onClick={() => handleToggleState(neighborhood)}
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider cursor-pointer transition-colors ${
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider cursor-pointer transition-colors ${
                       neighborhood.state !== false
                         ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200"
                         : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200"

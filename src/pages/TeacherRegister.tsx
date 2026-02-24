@@ -1,5 +1,16 @@
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { auth, db } from '@/lib/firebase/config'
+import { createUserWithEmailAndPassword } from 'firebase/auth'
+import { 
+  collection, 
+  getDocs, 
+  setDoc, 
+  doc, 
+  query, 
+  where,
+  deleteDoc,
+  serverTimestamp 
+} from 'firebase/firestore'
 import { useNavigate, Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,7 +21,6 @@ import { GraduationCap, ArrowRight, Loader2, CheckCircle } from 'lucide-react'
 
 export default function TeacherRegister() {
   const navigate = useNavigate()
-  const supabase = createClient()
   
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -38,30 +48,45 @@ export default function TeacherRegister() {
     }
 
     try {
-        const { data, error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-                data: {
-                    invite_token: token,
-                    role: 'teacher' // Aunque el trigger lo fuerza, es bueno enviarlo
-                }
-            }
-        })
-
-        if (error) throw error
-
-        if (data.user) {
-            setSuccess(true)
-            toast.success('Cuenta creada exitosamente')
-            setTimeout(() => navigate('/login'), 3000)
+        // 1. Verify invitation token
+        const q = query(
+            collection(db, "teacher_invites"), 
+            where("email", "==", email), 
+            where("token", "==", token)
+        );
+        const inviteSnap = await getDocs(q);
+        
+        if (inviteSnap.empty) {
+            toast.error('Código de invitación o correo inválido');
+            setLoading(false);
+            return;
         }
+
+        const inviteData = inviteSnap.docs[0].data();
+        const inviteDocId = inviteSnap.docs[0].id;
+
+        // 2. Create User in Firebase Auth
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // 3. Create Profile in Firestore
+        await setDoc(doc(db, "profiles", user.uid), {
+            full_name: inviteData.full_name || email.split('@')[0],
+            email: email,
+            role: 'teacher',
+            state: true,
+            created_at: serverTimestamp()
+        });
+
+        // 4. Delete Invitation
+        await deleteDoc(doc(db, "teacher_invites", inviteDocId));
+
+        setSuccess(true)
+        toast.success('Cuenta creada exitosamente')
+        setTimeout(() => navigate('/login'), 3000)
     } catch (error: any) {
-        if (error.status === 429) {
-            toast.error('Demasiados intentos. Por favor espera unos minutos antes de intentar registrarte de nuevo.')
-        } else {
-            toast.error('Error en el registro', { description: error.message })
-        }
+        console.error("Register Error:", error);
+        toast.error('Error en el registro', { description: error.message })
     } finally {
         setLoading(false)
     }

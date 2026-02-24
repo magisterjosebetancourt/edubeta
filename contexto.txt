@@ -1,0 +1,41 @@
+# CONTEXTO DEL PROYECTO: EduBeta
+
+## Características del Proyecto
+EduBeta es una plataforma de gestión académica integral diseñada para instituciones educativas. Permite gestionar estudiantes, docentes, inasistencias, grados, asignaturas y caracterización socioeconómica.
+
+## Aplicación
+- **Frontend**: React (Vite) + Tailwind CSS + Lucide Icons + Shadcn UI.
+- **Backend**: Firebase (Firestore para base de datos, Authentication para usuarios).
+- **Branding**: Marca "BETASOFT" con estética premium (HSL tailored colors, micro-animaciones).
+
+## Avances y Resumen de Planes
+- **Migración a Firebase**: Se completó la transición desde Supabase a Firebase Firestore y Auth. Todas las vistas principales han sido migradas.
+- **Implementación de Branding**: Se estableció la identidad visual inicial "BETASOFT" en todo el dashboard.
+- **Corrección de Errores**: Se resolvieron problemas de inicialización de hooks en la vista de docentes y errores de índices en Firestore mediante optimización en memoria.
+
+## Decisiones Tomadas
+1. **Firebase**: Elegido por su facilidad de integración y escalabilidad para tiempo real.
+2. **Ordenamiento en Memoria**: Decidido para evitar la complejidad de crear índices compuestos en Firebase cada vez que se requiera un filtro/orden simple, mejorando la agilidad del desarrollo.
+3. **Diseño Mobile-First**: Estructura de navegación adaptable optimizada para dispositivos móviles (MobileMenuPage).
+
+## Registro de Cambios (23/02/2026)
+- Creación de este archivo de contexto (`contexto.txt`) para seguimiento histórico.
+- **Refinamiento de Branding Global (Arquitectura Unificada)**:
+  - **Decisión Final**: Se descartó el uso de encabezados individuales por página para evitar redundancias y mejorar el rendimiento.
+  - **Encabezado Centralizado**: Se modificó `DashboardLayout.tsx` para que actúe como la única barra de título global.
+    - El branding **BETASOFT** ahora aparece siempre sobre el título de la página.
+    - Implementación de **Logo Institucional Dinámico** cargado desde Firestore (`settings/institutional`).
+    - Visibilidad universal (eliminado `lg:hidden`) para una marca consistente en móvil y escritorio.
+  - **Limpieza**: Se eliminaron todos los componentes redundantes (`DashboardPageHeader.tsx`) y bloques de marca manuales de todas las vistas del dashboard para asegurar una estructura limpia y mantenible.
+- **Rediseño de Tareas (24/02/2026)**:
+  - Implementación de layout basado en categorías (Todas, Pendientes, Completadas, Exámenes).
+  - Nuevo diseño de tarjetas: bordes ultra-redondeados, insignias de prioridad de alto contraste y pie de tarjeta con estados interactivos.
+  - El filtrado de "Exámenes" es inteligente (título o categoría).
+- **Estandarización Tipográfica Global**:
+  - Eliminación masiva de clases `uppercase` y textos en mayúsculas sostenidas en todas las vistas (Alumnos, Docentes, Asistencias, Configuración, etc.).
+  - Transición a "Sentence case" para una estética más profesional y legible.
+- **Limpieza de Código y Estabilización**:
+  - Resolución de advertencias de lint (variables no usadas) en múltiples archivos.
+  - Enlace de invitaciones mediante `mailto` funcional.
+  - Refinamiento del avatar global con bordes dinámicos y sombras.
+走
