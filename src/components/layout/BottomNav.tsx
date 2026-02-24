@@ -5,7 +5,7 @@ import {
   Users, 
   PieChart, 
   Settings,
-  UserCircle
+  Menu
 } from 'lucide-react'
 
 
@@ -18,7 +18,7 @@ export function BottomNav() {
     { title: 'Estudiantes', href: '/dashboard/students', icon: Users },
     { title: 'Asistencia', href: '/dashboard/attendance', icon: PieChart },
     { title: 'Ajustes', href: '/dashboard/settings', icon: Settings },
-    { title: 'Perfil', href: '/dashboard/profile', icon: UserCircle },
+    { title: 'Menú', href: '/dashboard/menu', icon: Menu },
   ]
 
   return (

@@ -9,7 +9,6 @@ import {
   doc, 
   query, 
   where,
-  orderBy,
   serverTimestamp,
   writeBatch
 } from "firebase/firestore";
@@ -287,8 +286,7 @@ export default function AttendancePage() {
       const studentsSnap = await getDocs(query(
         collection(db, "students"), 
         where("grade_id", "==", config.gradeId),
-        where("state", "==", true),
-        orderBy("first_name")
+        where("state", "==", true)
       ));
 
       // 2. Fetch existing records for this session
@@ -301,7 +299,14 @@ export default function AttendancePage() {
 
       const attMap = new Map(attSnap.docs.map(d => [d.data().student_id, d.data()]));
 
-      const merged = studentsSnap.docs.map((docSnap, index) => {
+      // 3. Sort students in memory to avoid needing a composite index
+      const sortedStudentDocs = [...studentsSnap.docs].sort((a, b) => {
+        const nameA = (a.data().first_name || "").toLowerCase();
+        const nameB = (b.data().first_name || "").toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+
+      const merged = sortedStudentDocs.map((docSnap, index) => {
         const s = docSnap.data();
         const record: any = attMap.get(docSnap.id);
         return {
@@ -323,8 +328,8 @@ export default function AttendancePage() {
       });
       setView('taking');
     } catch (err: any) {
-      console.error("Start Attendance Error:", err);
-      toast.error('Error al iniciar clase');
+      console.error("Critical Start Attendance Error:", err);
+      toast.error('Error al iniciar clase', { description: err.message || 'Error de conexión o permisos' });
     } finally {
       setLoading(false);
     }

@@ -101,11 +101,6 @@ export default function MobileMenuPage() {
 
     return (
         <div className="p-6 space-y-8 pb-32 min-h-screen bg-slate-50 dark:bg-[#0f1117]">
-            <div className="px-1">
-                <p className="text-[10px] font-black tracking-widest text-primary">
-                    BETASOFT
-                </p>
-            </div>
             <div className="flex items-center gap-4 mb-6">
                  <div className="w-14 h-14 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/30 shrink-0">
                     <UserIcon className="text-white w-8 h-8" />

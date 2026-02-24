@@ -39,6 +39,7 @@ type Period = {
 export default function InstitutionalInfo() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   // Info Institucional
   const [schoolName, setSchoolName] = useState('')
@@ -114,6 +115,41 @@ export default function InstitutionalInfo() {
   }
 
   const totalWeeks = periods.reduce((acc, p) => acc + calculateWeeks(p.start_date, p.end_date), 0)
+
+  const handleUploadLogo = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploading(true)
+      
+      if (!event.target.files || event.target.files.length === 0) {
+        throw new Error('Debes seleccionar una imagen para subir.')
+      }
+
+      const file = event.target.files[0]
+      if (file.size > 1024 * 1024) { // 1MB limit
+        throw new Error('La imagen es demasiado grande (Máximo 1MB para optimización).')
+      }
+
+      const reader = new FileReader()
+      reader.onloadend = async () => {
+        const base64String = reader.result as string
+        setLogoUrl(base64String)
+        
+        // Auto-save logo
+        const settingsRef = doc(db, 'settings', 'institutional')
+        await setDoc(settingsRef, {
+          logo_url: base64String,
+          updated_at: serverTimestamp()
+        }, { merge: true })
+        
+        toast.success('Logo actualizado correctamente')
+        setUploading(false)
+      }
+      reader.readAsDataURL(file)
+    } catch (error: any) {
+      toast.error('Error subiendo imagen', { description: error.message })
+      setUploading(false)
+    }
+  }
 
   const handleSave = async () => {
     try {
@@ -218,24 +254,43 @@ export default function InstitutionalInfo() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="logoUrl">Logo (URL de imagen)</Label>
-                <div className="flex gap-4 items-start">
-                  <div className="relative flex-1">
-                    <ImageIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      id="logoUrl" 
-                      className="pl-9"
-                      value={logoUrl}
-                      onChange={(e) => setLogoUrl(e.target.value)}
-                      placeholder="https://servidor.com/logo.png" 
-                    />
-                  </div>
-                  {logoUrl && (
-                    <div className="w-16 h-16 border rounded-lg bg-white p-2 flex items-center justify-center overflow-hidden">
-                      <img src={logoUrl} alt="Logo Preview" className="max-w-full max-h-full object-contain" />
+              <div className="space-y-4">
+                <Label>Logo Institucional</Label>
+                <div className="flex flex-col items-center sm:flex-row gap-6">
+                  <div className="relative group">
+                    <div className="w-32 h-32 rounded-lg overflow-hidden border-2 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex items-center justify-center shadow-md transition-all group-hover:shadow-lg">
+                      {logoUrl ? (
+                        <img src={logoUrl} alt="School Logo" className="w-full h-full object-contain p-2" />
+                      ) : (
+                        <ImageIcon className="w-10 h-10 text-slate-300" />
+                      )}
+                      
+                      {uploading && (
+                        <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center">
+                          <Loader2 className="w-6 h-6 text-white animate-spin" />
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
+
+                  <div className="flex-1 space-y-3">
+                    <Label htmlFor="logo-upload" className="cursor-pointer inline-flex items-center justify-center w-full md:w-auto gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors text-sm font-medium text-slate-700 dark:text-slate-200 shadow-sm">
+                      <ImageIcon className="w-4 h-4" />
+                      {logoUrl ? 'Cambiar Logo' : 'Subir Logo'}
+                    </Label>
+                    <input
+                      id="logo-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleUploadLogo}
+                      disabled={uploading}
+                      className="hidden" 
+                    />
+                    <div className="space-y-1">
+                      <p className="text-xs text-slate-500 font-medium">Recomendado: Imagen cuadrada o rectangular con fondo transparente.</p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Máximo 1MB (JPG, PNG)</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -323,15 +378,17 @@ export default function InstitutionalInfo() {
       </Tabs>
 
       {/* Floating Save Button */}
-      <div className="fixed bottom-20 lg:bottom-8 right-8 z-50">
-        <Button 
-          onClick={handleSave} 
-          disabled={saving}
-          className="bg-primary hover:bg-primary/90 text-white rounded-lg h-14 px-8 gap-3 shadow-2xl shadow-primary/40 font-bold text-xs tracking-widest transition-all active:scale-95"
-        >
-          {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-          Guardar Cambios
-        </Button>
+      <div className="fixed bottom-20 lg:bottom-8 left-0 right-0 z-50 px-6">
+        <div className="max-w-5xl mx-auto">
+          <Button 
+            onClick={handleSave} 
+            disabled={saving}
+            className="w-full rounded-lg shadow-2xl"
+          >
+            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            Guardar Cambios
+          </Button>
+        </div>
       </div>
     </div>
   )

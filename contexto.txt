@@ -16,7 +16,10 @@ EduBeta es una plataforma de gestión académica integral diseñada para institu
 ## Decisiones Tomadas
 1. **Firebase**: Elegido por su facilidad de integración y escalabilidad para tiempo real.
 2. **Ordenamiento en Memoria**: Decidido para evitar la complejidad de crear índices compuestos en Firebase cada vez que se requiera un filtro/orden simple, mejorando la agilidad del desarrollo.
-3. **Diseño Mobile-First**: Estructura de navegación adaptable optimizada para dispositivos móviles (MobileMenuPage).
+3. **Resolución del error "Error al iniciar clase"**: Optimización de la consulta de estudiantes para evitar la dependencia de índices compuestos mediante ordenamiento en memoria.
+4. **Refinamiento de la navegación inferior**: Reemplazo de 'Perfil' por 'Menú' para mejorar la accesibilidad móvil.
+5. **Estandarización de carga de imágenes**: Uso de Base64 con límites de 1MB y guardado automático para Avatar y Logo Escolar.
+6. **Diseño Mobile-First**: Estructura de navegación adaptable optimizada para dispositivos móviles (MobileMenuPage).
 
 ## Registro de Cambios (23/02/2026)
 - Creación de este archivo de contexto (`contexto.txt`) para seguimiento histórico.

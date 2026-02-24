@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { User, Mail, Shield, Save, Loader2 } from 'lucide-react'
+import { User, Mail, Shield, Save, Loader2, Image as ImageIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function ProfilePage() {
@@ -131,7 +131,8 @@ export default function ProfilePage() {
 
                 <div className="flex-1 w-full space-y-2">
                     <Label htmlFor="avatar-upload" className="cursor-pointer">
-                        <div className="flex items-center justify-center w-full md:w-auto px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors text-sm font-medium text-slate-700 dark:text-slate-200 shadow-sm">
+                        <div className="flex items-center justify-center w-full md:w-auto px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors text-sm font-medium text-slate-700 dark:text-slate-200 shadow-sm gap-2">
+                             <ImageIcon className="w-4 h-4" />
                              Cambiar Foto
                         </div>
                         <input
@@ -209,15 +210,22 @@ export default function ProfilePage() {
                         />
                     </div>
                 </div>
-
-                <div className="pt-2">
-                    <Button onClick={handleSave} disabled={saving} className="w-full md:w-auto rounded-lg">
-                        {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        Guardar Cambios
-                    </Button>
-                </div>
             </CardContent>
         </Card>
+      </div>
+
+      {/* Floating Save Button */}
+      <div className="fixed bottom-20 lg:bottom-8 left-0 right-0 z-50 px-6">
+        <div className="max-w-2xl mx-auto">
+          <Button 
+            onClick={handleSave} 
+            disabled={saving}
+            className="w-full rounded-lg shadow-2xl"
+          >
+            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            Guardar Cambios
+          </Button>
+        </div>
       </div>
     </div>
   )
