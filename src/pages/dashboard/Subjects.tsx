@@ -178,8 +178,14 @@ export default function SubjectsPage() {
               </DialogHeader>
               <form onSubmit={handleCreate} className="space-y-4 pt-4">
                 <div className="space-y-2">
-                  <Label>Nombre de la Asignatura</Label>
+                  <Label htmlFor="subject-name">Nombre de la Asignatura</Label>
+                  <Input 
+                    id="subject-name"
+                    name="name"
+                    placeholder="Ej: Matemáticas"
+                    required
                     className="w-full h-11 rounded-lg border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 text-sm"
+                  />
                 </div>
                 <DialogFooter className="pt-4">
                   <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="font-bold text-[10px] tracking-widest rounded-lg">

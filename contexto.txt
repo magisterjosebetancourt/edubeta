@@ -37,5 +37,11 @@ EduBeta es una plataforma de gestión académica integral diseñada para institu
 - **Limpieza de Código y Estabilización**:
   - Resolución de advertencias de lint (variables no usadas) en múltiples archivos.
   - Enlace de invitaciones mediante `mailto` funcional.
-  - Refinamiento del avatar global con bordes dinámicos y sombras.
-走
+  - **Estadísticas Dinámicas en el Menú (24/02/2026)**:
+  - Implementación de tarjetas rápidas en `/dashboard/menu`.
+  - Conteo real de Estudiantes, Grados y Asignaturas sincronizado con Firestore.
+  - Lógica adaptativa por rol: total institucional para administradores y carga académica para docentes.
+- **Correcciones Técnicas**:
+- **Reparación del Formulario de Asignaturas (24/02/2026)**:
+  - Restauración del componente `Input` en el diálogo de creación que había desaparecido por error de sintaxis.
+  - Vinculación correcta del atributo `name="name"` para la captura de datos vía `FormData`.

@@ -17,13 +17,14 @@ import {
   ChevronDown,
   BookOpen,
   LayoutGrid,
-  CheckCircle2
+  CheckCircle2,
+  School
 } from 'lucide-react'
 
 export default function DashboardPage() {
   const navigate = useNavigate()
   const [userProfile, setUserProfile] = useState<{ role: string; id: string; fullName: string; avatarUrl: string } | null>(null)
-  const [stats, setStats] = useState({ students: 0, teachers: 0, attendance: 0 })
+  const [stats, setStats] = useState({ students: 0, teachers: 0, attendance: 0, grades: 0, subjects: 0 })
   const [assignments, setAssignments] = useState<any[]>([])
   const [todos, setTodos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -62,18 +63,26 @@ export default function DashboardPage() {
 
         if (role === 'admin' || role === 'coordinator') {
           // Global Stats
-          const [sSnap, tSnap, pSnap] = await Promise.all([
+          const [sSnap, tSnap, pSnap, gSnap, subSnap] = await Promise.all([
             getDocs(collection(db, "students")),
             getDocs(query(collection(db, "profiles"), where("role", "==", "teacher"))),
-            getDocs(query(collection(db, "attendance_records"), where("date", "==", today), where("status", "==", "present")))
+            getDocs(query(collection(db, "attendance_records"), where("date", "==", today), where("status", "==", "present"))),
+            getDocs(collection(db, "grades")),
+            getDocs(collection(db, "subjects"))
           ]);
           studentCount = sSnap.size;
           teacherCount = tSnap.size;
           presentCount = pSnap.size;
+          setStats(prev => ({ ...prev, grades: gSnap.size, subjects: subSnap.size }));
         } else {
           // Teacher Stats
           const assSnap = await getDocs(query(collection(db, "assignments"), where("teacher_id", "==", user.uid), where("state", "==", true)));
           const assignmentsData = assSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+          const gradeIds = Array.from(new Set(assignmentsData.map((a: any) => a.grade_id)));
+          const subjectIds = Array.from(new Set(assignmentsData.map((a: any) => a.subject_id)));
+          
+          setStats(prev => ({ ...prev, grades: gradeIds.length, subjects: subjectIds.length }));
           
           // Fetch names for grades and subjects in assignments
           const [gSnap, sbjSnap] = await Promise.all([
@@ -90,7 +99,6 @@ export default function DashboardPage() {
           }));
           setAssignments(augmentedAssignments);
 
-          const gradeIds = Array.from(new Set(assignmentsData.map((a: any) => a.grade_id)));
 
           if (gradeIds.length > 0) {
             // Firestore doesn't support easy "IN" for large arrays or complex joins
@@ -113,7 +121,7 @@ export default function DashboardPage() {
         setTodos(todoSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
         const rate = (studentCount > 0) ? Math.round((presentCount / studentCount) * 100) : 0;
-        setStats({ students: studentCount, teachers: teacherCount, attendance: rate });
+        setStats(prev => ({ ...prev, students: studentCount, teachers: teacherCount, attendance: rate }));
 
       } catch (error) {
         console.error('Error loading dashboard data:', error)
@@ -159,10 +167,7 @@ export default function DashboardPage() {
       <div className="flex-1 p-4 lg:p-8 space-y-6">
         
         {/* Stats Grid */}
-        <div className={cn(
-          "grid gap-6",
-          userProfile?.role === 'admin' ? "grid-cols-1 md:grid-cols-3" : "grid-cols-1 md:grid-cols-2"
-        )}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
           {/* Card 1: Total Students */}
           <div className="bg-primary text-white rounded-2xl p-6 shadow-xl shadow-primary/20 relative overflow-hidden group">
             <div className="absolute right-[-20px] top-[-20px] bg-white/10 w-32 h-32 rounded-full blur-2xl group-hover:scale-110 transition-transform"></div>
@@ -198,7 +203,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Card 3: Active Teachers (Admin only) */}
+          {/* Card 3: Docentes (Admin only) */}
           {(userProfile?.role === 'admin' || userProfile?.role === 'coordinator') && (
             <div className="bg-white dark:bg-[#1e1c30] rounded-2xl p-6 shadow-soft border border-slate-100 dark:border-slate-800">
               <div className="flex justify-between items-start">
@@ -212,6 +217,32 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
+
+          {/* Card 4: Total Grades */}
+          <div className="bg-white dark:bg-[#1e1c30] rounded-2xl p-6 shadow-soft border border-slate-100 dark:border-slate-800">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1 uppercase tracking-wider">Grados/Grupos</p>
+                <h3 className="text-4xl font-bold text-slate-800 dark:text-white">{stats.grades}</h3>
+              </div>
+              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center text-green-600 dark:text-green-400">
+                <School className="w-6 h-6" />
+              </div>
+            </div>
+          </div>
+
+          {/* Card 5: Total Subjects */}
+          <div className="bg-white dark:bg-[#1e1c30] rounded-2xl p-6 shadow-soft border border-slate-100 dark:border-slate-800">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1 uppercase tracking-wider">Asignaturas</p>
+                <h3 className="text-4xl font-bold text-slate-800 dark:text-white">{stats.subjects}</h3>
+              </div>
+              <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center text-amber-600 dark:text-amber-400">
+                <BookOpen className="w-6 h-6" />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Global Accordion Section: General for all but specially for teacher grouping */}

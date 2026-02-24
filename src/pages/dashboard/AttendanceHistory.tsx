@@ -1,17 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { auth, db } from '@/lib/firebase/config'
 import { 
   collection, 
   getDocs, 
   getDoc,
-  setDoc,
-  updateDoc, 
   doc, 
   query, 
   where,
   orderBy,
-  limit
+  updateDoc
 } from "firebase/firestore";
 import { toast } from 'sonner'
 import { format, subDays } from 'date-fns'
@@ -31,8 +28,7 @@ import {
   Clock,
   AlertCircle,
   Search,
-  Filter,
-  ArrowLeft
+  Filter
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -60,9 +56,6 @@ type AttendanceRecord = {
 
 type UserRole = 'admin' | 'teacher' | 'coordinator' | null;
 
-interface Profile {
-  role: UserRole;
-}
 
 interface Grade {
   id: string;
@@ -71,7 +64,6 @@ interface Grade {
 
 
 export default function AttendanceHistoryPage() {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [records, setRecords] = useState<AttendanceRecord[]>([])
@@ -135,7 +127,6 @@ export default function AttendanceHistoryPage() {
       setGrades(gradeList);
       setSubjects(subjectList);
 
-      const gradeMap = new Map(gSnap.docs.map(d => [d.id, d.data()]));
       const subjectMap = new Map(sSnap.docs.map(d => [d.id, d.data()]));
       const profileMap = new Map(pSnap.docs.map(d => [d.id, d.data()]));
       const studentMap = new Map(stdSnap.docs.map(d => [d.id, d.data()]));
