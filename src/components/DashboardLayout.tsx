@@ -80,7 +80,8 @@ export default function DashboardLayout() {
       'neighborhoods': 'Barrios',
       'profile': 'Perfil',
       'todos': 'Tareas',
-      'menu': 'Menú'
+      'menu': 'Menú',
+      'infractions': 'Faltas'
     }
     
     return titles[path] || path.charAt(0).toUpperCase() + path.slice( path.length > 0 ? 1 : 0)

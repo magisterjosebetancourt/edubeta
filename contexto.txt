@@ -48,3 +48,17 @@ EduBeta es una plataforma de gestión académica integral diseñada para institu
 - **Reparación del Formulario de Asignaturas (24/02/2026)**:
   - Restauración del componente `Input` en el diálogo de creación que había desaparecido por error de sintaxis.
   - Vinculación correcta del atributo `name="name"` para la captura de datos vía `FormData`.
+
+## Registro de Cambios (24/02/2026) – Fase 21
+- **Nueva Vista: Faltas Disciplinarias (`/dashboard/infractions`)**:
+  - Creación del componente `Infractions.tsx` para el módulo Observador del Estudiante.
+  - **Faltas del Sistema**: 7 faltas predefinidas según el Decreto 1965/2013 (Art. 40), completamente no editables ni eliminables, renderizadas desde array estático en código.
+  - **Faltas Personalizadas**: Registro con campos `student_id`, `student_name`, `type` (leve/grave/gravísima), `description`, `date`, `status` (abierto/seguimiento/cerrado), `reported_by_name`. Persistencia en colección Firestore `infractions`.
+  - **Control de acceso**: Solo el rol `admin` puede registrar, editar y eliminar faltas. Los demás roles (teacher, coordinator) tienen acceso de solo lectura.
+  - Filtros por tipo de falta (tabs: Todas / Leve / Grave / Gravísima) y barra de búsqueda.
+  - Acceso desde el Menú (MobileMenuPage) en la categoría "Herramientas" – visible para todos los roles.
+  - Ruta registrada: `/dashboard/infractions` en `App.tsx`.
+- **Ordenamiento Alfabético de Estudiantes (A → Z por apellido)**:
+  - `Students.tsx`: Lista de tarjetas (cards) ahora ordenada por `last_name` ascendente usando `localeCompare('es')`.
+  - `Attendance.tsx`: Lista de alumnos en la pantalla de toma de asistencia ahora ordenada por `last_name` ascendente usando `localeCompare('es')`.
+

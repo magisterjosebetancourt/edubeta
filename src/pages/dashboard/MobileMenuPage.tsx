@@ -15,7 +15,8 @@ import {
   Building,
   MapPin,
   User as UserIcon,
-  CheckCircle2
+  CheckCircle2,
+  ShieldAlert
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -80,6 +81,7 @@ export default function MobileMenuPage() {
                 { title: 'Tareas', href: '/dashboard/todos', icon: CheckCircle2, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-900/20' },
                 { title: 'Asistencia', href: '/dashboard/attendance', icon: PieChart, color: 'text-pink-500', bg: 'bg-pink-50 dark:bg-pink-900/20' },
                 { title: 'Historial', href: '/dashboard/history', icon: PieChart, color: 'text-cyan-500', bg: 'bg-cyan-50 dark:bg-cyan-900/20' },
+                { title: 'Faltas', href: '/dashboard/infractions', icon: ShieldAlert, color: 'text-rose-600', bg: 'bg-rose-50 dark:bg-rose-900/20' },
                 { title: 'Configuración', href: '/dashboard/settings', icon: Settings, color: 'text-slate-500', bg: 'bg-slate-50 dark:bg-slate-900/20' },
             ]
         }

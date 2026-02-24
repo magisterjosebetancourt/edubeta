@@ -175,6 +175,11 @@ export default function StudentsPage() {
         } as Student;
       });
 
+      // Ordenar A→Z por apellido (localeCompare 'es' respeta tildes)
+      transformedStudents.sort((a, b) =>
+        (a.last_name || '').localeCompare(b.last_name || '', 'es')
+      );
+
       setStudents(transformedStudents);
       
       // Filter grades for selection if teacher

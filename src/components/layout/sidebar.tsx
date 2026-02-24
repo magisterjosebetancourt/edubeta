@@ -14,7 +14,8 @@ import {
   LogOut, 
   PieChart,
   MapPin,
-  CheckCircle2
+  CheckCircle2,
+  ShieldAlert
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -44,6 +45,7 @@ const sidebarItems = [
     items: [
       { title: 'Asistencia', href: '/dashboard/attendance', icon: PieChart },
       { title: 'Historial', href: '/dashboard/history', icon: PieChart }, 
+      { title: 'Faltas', href: '/dashboard/infractions', icon: ShieldAlert },
       { title: 'Configuración', href: '/dashboard/settings', icon: Settings },
     ]
   }

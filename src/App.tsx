@@ -18,6 +18,7 @@ import StudentView from '@/pages/dashboard/StudentView';
 import InstitutionalInfo from '@/pages/dashboard/InstitutionalInfo';
 import NeighborhoodsPage from '@/pages/dashboard/Neighborhoods';
 import TodosPage from '@/pages/dashboard/Todos';
+import InfractionsPage from '@/pages/dashboard/Infractions';
 import { Toaster } from "@/components/ui/sonner";
 
 function App() {
@@ -44,6 +45,7 @@ function App() {
           <Route path="menu" element={<MobileMenuPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="todos" element={<TodosPage />} />
+          <Route path="infractions" element={<InfractionsPage />} />
         </Route>
         
         <Route path="*" element={<Navigate to="/" replace />} />

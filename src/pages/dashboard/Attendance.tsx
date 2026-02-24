@@ -299,11 +299,11 @@ export default function AttendancePage() {
 
       const attMap = new Map(attSnap.docs.map(d => [d.data().student_id, d.data()]));
 
-      // 3. Sort students in memory to avoid needing a composite index
+      // 3. Sort students in memory by last_name A→Z (localeCompare 'es' respects tildes)
       const sortedStudentDocs = [...studentsSnap.docs].sort((a, b) => {
-        const nameA = (a.data().first_name || "").toLowerCase();
-        const nameB = (b.data().first_name || "").toLowerCase();
-        return nameA.localeCompare(nameB);
+        const nameA = (a.data().last_name || "").toLowerCase();
+        const nameB = (b.data().last_name || "").toLowerCase();
+        return nameA.localeCompare(nameB, 'es');
       });
 
       const merged = sortedStudentDocs.map((docSnap, index) => {
@@ -404,55 +404,66 @@ export default function AttendancePage() {
   }
 
   const generateReport = async (session: AttendanceSession) => {
-    if (!session.date || !session.subject_id || !session.teacher_id || !session.grade_id) {
+    if (!session.date || !session.subject_id || !session.grade_id) {
       toast.error('Datos de sesión incompletos');
       return;
     }
+
+    // ── Abrir la ventana ANTES de cualquier operación async ────────────────
+    // Los navegadores bloquean window.open() si no ocurre en el hilo del evento.
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error('Bloqueador de popups activo', {
+        description: 'Permite ventanas emergentes para este sitio e intenta de nuevo.',
+      });
+      return;
+    }
+
+    // Mostrar contenido provisional mientras cargamos datos
+    printWindow.document.write('<html><body style="font-family:sans-serif;padding:40px;color:#64748b;text-align:center"><p>Generando informe…</p></body></html>');
+
     toast.loading('Generando informe...');
     try {
-      const instSnap = await getDoc(doc(db, "settings", "institutional"));
+      const [instSnap, recordsSnap, studentSnap] = await Promise.all([
+        getDoc(doc(db, "settings", "institutional")),
+        // Solo 2 filtros → no requiere índice compuesto extra
+        getDocs(query(
+          collection(db, "attendance_records"),
+          where("date", "==", session.date),
+          where("subject_id", "==", session.subject_id)
+        )),
+        getDocs(collection(db, "students")),
+      ]);
+
       const schoolSettings = instSnap.data();
-      
       const branding = {
         name: schoolSettings?.school_name || 'EDUBETA',
         year: schoolSettings?.academic_year || new Date().getFullYear().toString(),
         logo: schoolSettings?.logo_url || ''
       };
 
-      // 1. Fetch detailed attendance for this session
-      const q = query(
-        collection(db, "attendance_records"),
-        where("date", "==", session.date),
-        where("subject_id", "==", session.subject_id),
-        where("teacher_id", "==", session.teacher_id)
-      );
-
-      const recordsSnap = await getDocs(q);
-      const studentSnap = await getDocs(collection(db, "students"));
       const studentMap = new Map(studentSnap.docs.map(d => [d.id, d.data()]));
 
-      const data = recordsSnap.docs.map(docSnap => {
-        const d = docSnap.data();
-        const s = studentMap.get(d.student_id);
-        // Only include students from THIS grade (NoSQL extra filtering)
-        if (s?.grade_id !== session.grade_id) return null;
+      // Filtrar en memoria por grade_id (evita índice compuesto triple)
+      const data = recordsSnap.docs
+        .map(docSnap => {
+          const d = docSnap.data();
+          const s = studentMap.get(d.student_id);
+          if (!s || s.grade_id !== session.grade_id) return null;
+          return {
+            status: d.status as string,
+            justified: d.justified as boolean,
+            students: { first_name: s.first_name || '', last_name: s.last_name || '' }
+          };
+        })
+        .filter((i): i is NonNullable<typeof i> => i !== null);
 
-        return {
-          status: d.status,
-          justified: d.justified,
-          students: { first_name: s?.first_name || '', last_name: s?.last_name || '' }
-        };
-      }).filter(i => i !== null);
-
-      // Ordenar por apellido alfabéticamente
-      const sortedData = (data || []).sort((a: any, b: any) => 
-        (a.students.first_name || '').localeCompare(b.students.first_name || '')
+      // Ordenar A→Z por apellido
+      data.sort((a, b) =>
+        (a.students.last_name || '').localeCompare(b.students.last_name || '', 'es')
       );
 
-      // 2. Filter only absences (and late?)
-      const absences = sortedData.filter((r: any) => r.status === 'absent' || r.status === 'late');
-      
-      // 3. Create HTML for printing
+      const absences = data.filter(r => r.status === 'absent' || r.status === 'late');
       const dateFormatted = format(new Date(session.date + 'T00:00:00'), 'PPP', { locale: es });
       const generationDate = format(new Date(), 'Pp', { locale: es });
 
@@ -482,12 +493,10 @@ export default function AttendancePage() {
             }
             .header-side { width: 180px; }
             .header-center { flex: 1; text-align: center; }
-            
             .school-logo { max-height: 60px; max-width: 150px; object-fit: contain; }
             .edubeta-branding { text-align: right; }
             .edubeta-logo { font-size: 18px; font-weight: 900; color: #4f46e5; letter-spacing: -0.05em; }
             .edubeta-tag { font-size: 8px; font-weight: 700; color: #94a3b8; letter-spacing: 0.1em; }
-            
             h1 { margin: 0; font-size: 18px; font-weight: 900; letter-spacing: -0.025em; color: #1e293b; }
             .school-year { font-size: 11px; font-weight: 700; color: #64748b; margin-top: 2px; }
             .report-title-bar { 
@@ -502,23 +511,18 @@ export default function AttendancePage() {
               margin-bottom: 25px;
               border: 1px solid #f1f5f9;
             }
-            
             .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px; }
             .meta-item { background: #ffffff; padding: 12px; border-radius: 12px; border: 1px solid #f1f5f9; }
             .meta-label { font-size: 9px; font-weight: 900; color: #94a3b8; letter-spacing: 0.05em; margin-bottom: 4px; }
             .meta-value { font-size: 13px; font-weight: 700; color: #1e293b; }
-            
-            .stats-container { display: flex; gap: 10px; margin-bottom: 25px; }
+            .stats-row { display: flex; gap: 8px; margin-top: 8px; }
             .stat-badge { padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 800; flex: 1; text-align: center; }
             .stat-present { background: #f0fdf4; color: #16a34a; border: 1px solid #dcfce7; }
             .stat-absent { background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; }
             .stat-late { background: #fff7ed; color: #ea580c; border: 1px solid #ffedd5; }
-            
             table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 10px; }
             th { text-align: left; background: #f8fafc; color: #64748b; padding: 12px 15px; font-size: 10px; font-weight: 900; border-bottom: 2px solid #f1f5f9; }
             td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #334155; }
-            .student-name { font-weight: 700; color: #1e293b; }
-            
             .footer { margin-top: 50px; font-size: 10px; color: #94a3b8; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 20px; }
             @media print {
               body { padding: 20px; }
@@ -574,19 +578,24 @@ export default function AttendancePage() {
           <table>
             <thead>
               <tr>
+                <th>#</th>
                 <th>Estudiante</th>
                 <th style="width: 120px; text-align: center;">Estado</th>
                 <th style="width: 120px; text-align: center;">Justificado</th>
               </tr>
             </thead>
             <tbody>
-              ${absences.length > 0 ? absences.map((r: any) => `
-                <tr>
-                  <td style="font-weight: 700;">${r.students.first_name.toUpperCase()}, ${r.students.last_name}</td>
-                  <td style="text-align: center; color: ${r.status === 'absent' ? '#dc2626' : '#ea580c'}; font-weight: 800; font-size: 10px;">${r.status === 'absent' ? 'AUSENTE' : 'TARDE'}</td>
-                  <td style="text-align: center; font-weight: 700;">${r.justified ? 'SÍ' : 'NO'}</td>
-                </tr>
-              `).join('') : `<tr><td colspan="3" style="text-align: center; color: #94a3b8; padding: 40px;">No se registraron inasistencias en esta sesión.</td></tr>`}
+              ${absences.length > 0
+                ? absences.map((r, idx) => `
+                  <tr>
+                    <td style="color:#94a3b8; width:40px; font-size:11px;">${idx + 1}</td>
+                    <td style="font-weight: 700;">${r.students.last_name.toUpperCase()}, ${r.students.first_name}</td>
+                    <td style="text-align: center; color: ${r.status === 'absent' ? '#dc2626' : '#ea580c'}; font-weight: 800; font-size: 10px;">${r.status === 'absent' ? 'AUSENTE' : 'TARDE'}</td>
+                    <td style="text-align: center; font-weight: 700;">${r.justified ? 'SÍ' : 'NO'}</td>
+                  </tr>
+                `).join('')
+                : `<tr><td colspan="4" style="text-align: center; color: #94a3b8; padding: 40px;">✓ Sin inasistencias registradas en esta sesión.</td></tr>`
+              }
             </tbody>
           </table>
 
@@ -597,25 +606,22 @@ export default function AttendancePage() {
           <script>
             window.onload = () => {
               window.print();
-              setTimeout(() => { window.close(); }, 100);
+              setTimeout(() => { window.close(); }, 500);
             };
           </script>
         </body>
         </html>
       `;
 
-      // 4. Open print window
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.write(htmlContent);
-        printWindow.document.close();
-      } else {
-        throw new Error('No se pudo abrir la ventana de impresión (bloqueador de popups)');
-      }
-      
+      // Escribir el HTML final en la ventana ya abierta
+      printWindow.document.open();
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+
       toast.dismiss();
     } catch (err: any) {
       toast.dismiss();
+      printWindow.close();
       console.error(err);
       toast.error('Error al generar informe', { description: err.message });
     }
