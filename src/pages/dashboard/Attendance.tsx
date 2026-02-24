@@ -409,19 +409,6 @@ export default function AttendancePage() {
       return;
     }
 
-    // ── Abrir la ventana ANTES de cualquier operación async ────────────────
-    // Los navegadores bloquean window.open() si no ocurre en el hilo del evento.
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast.error('Bloqueador de popups activo', {
-        description: 'Permite ventanas emergentes para este sitio e intenta de nuevo.',
-      });
-      return;
-    }
-
-    // Mostrar contenido provisional mientras cargamos datos
-    printWindow.document.write('<html><body style="font-family:sans-serif;padding:40px;color:#64748b;text-align:center"><p>Generando informe…</p></body></html>');
-
     toast.loading('Generando informe...');
     try {
       const [instSnap, recordsSnap, studentSnap] = await Promise.all([
@@ -599,29 +586,49 @@ export default function AttendancePage() {
             </tbody>
           </table>
 
+          <div class="no-print" style="text-align:center; padding: 24px 20px 20px; border-top: 1px solid #f1f5f9; margin-top: 30px;">
+            <button
+              onclick="window.print()"
+              style="background:#4f46e5; color:white; border:none; padding:14px 36px; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; font-family:system-ui,sans-serif; letter-spacing:0.02em; box-shadow:0 4px 14px rgba(79,70,229,0.25);"
+            >
+              🖨️ Imprimir / Guardar como PDF
+            </button>
+            <p style="margin-top:10px; font-size:11px; color:#94a3b8;">En móvil: usa el ícono de compartir de tu navegador y elige "Imprimir" o "Guardar como PDF"</p>
+          </div>
+
           <div class="footer">
             Este documento es un reporte oficial de la plataforma EduBeta.
           </div>
 
           <script>
-            window.onload = () => {
-              window.print();
-              setTimeout(() => { window.close(); }, 500);
-            };
-          </script>
+            // Auto-print solo en desktop
+            const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+            if (!isMobile) {
+              window.onload = () => window.print();
+            }
+          <\/script>
         </body>
         </html>
       `;
 
-      // Escribir el HTML final en la ventana ya abierta
-      printWindow.document.open();
-      printWindow.document.write(htmlContent);
-      printWindow.document.close();
+      // ── Blob URL: funciona en desktop Y móvil, no necesita popup permissions ──
+      const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+      const blobUrl = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      // Liberar memoria después de 60s
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
 
       toast.dismiss();
     } catch (err: any) {
       toast.dismiss();
-      printWindow.close();
       console.error(err);
       toast.error('Error al generar informe', { description: err.message });
     }
