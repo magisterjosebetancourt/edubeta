@@ -3,10 +3,22 @@ import HomePage from '@/pages/Home';
 import LoginPage from '@/pages/Login';
 import DashboardPage from '@/pages/Dashboard';
 import StudentsPage from '@/pages/dashboard/Students';
+import NewStudentFormPage from '@/pages/dashboard/students/NewStudentFormPage';
+import EditStudentFormPage from '@/pages/dashboard/students/EditStudentFormPage';
+import ImportStudentsPage from '@/pages/dashboard/students/ImportStudentsPage';
 import TeachersPage from '@/pages/dashboard/Teachers';
+import NewTeacherFormPage from '@/pages/dashboard/teachers/NewTeacherFormPage';
+import EditTeacherFormPage from '@/pages/dashboard/teachers/EditTeacherFormPage';
 import GradesPage from '@/pages/dashboard/Grades';
+import NewGradeFormPage from '@/pages/dashboard/grades/NewGradeFormPage';
+import EditGradeFormPage from '@/pages/dashboard/grades/EditGradeFormPage';
 import SubjectsPage from '@/pages/dashboard/Subjects';
+import NewSubjectFormPage from '@/pages/dashboard/subjects/NewSubjectFormPage';
+import EditSubjectFormPage from '@/pages/dashboard/subjects/EditSubjectFormPage';
 import AttendancePage from '@/pages/dashboard/Attendance';
+import NewAttendanceFormPage from '@/pages/dashboard/attendance/NewAttendanceFormPage';
+import TakingAttendancePage from '@/pages/dashboard/attendance/TakingAttendancePage';
+import EditAttendanceSessionFormPage from '@/pages/dashboard/attendance/EditAttendanceSessionFormPage';
 import AttendanceHistoryPage from '@/pages/dashboard/AttendanceHistory';
 import SettingsPage from '@/pages/dashboard/Settings';
 import AssignmentsPage from '@/pages/dashboard/Assignments';
@@ -17,8 +29,15 @@ import ProfilePage from '@/pages/dashboard/Profile';
 import StudentView from '@/pages/dashboard/StudentView';
 import InstitutionalInfo from '@/pages/dashboard/InstitutionalInfo';
 import NeighborhoodsPage from '@/pages/dashboard/Neighborhoods';
+import NewNeighborhoodFormPage from '@/pages/dashboard/neighborhoods/NewNeighborhoodFormPage';
+import EditNeighborhoodFormPage from '@/pages/dashboard/neighborhoods/EditNeighborhoodFormPage';
 import TodosPage from '@/pages/dashboard/Todos';
+import NewTodoFormPage from '@/pages/dashboard/todos/NewTodoFormPage';
+import EditTodoFormPage from '@/pages/dashboard/todos/EditTodoFormPage';
 import InfractionsPage from '@/pages/dashboard/Infractions';
+import InfractionFormPage from '@/pages/dashboard/infractions/InfractionFormPage';
+import GroupStudentsListPage from '@/pages/dashboard/GroupStudentsList';
+import AssignmentFormPage from '@/pages/dashboard/assignments/AssignmentFormPage';
 import { Toaster } from "@/components/ui/sonner";
 
 function App() {
@@ -32,20 +51,41 @@ function App() {
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="students" element={<StudentsPage />} />
+          <Route path="students/new" element={<NewStudentFormPage />} />
+          <Route path="students/:id/edit" element={<EditStudentFormPage />} />
+          <Route path="students/import" element={<ImportStudentsPage />} />
           <Route path="students/:id" element={<StudentView />} />
           <Route path="teachers" element={<TeachersPage />} />
+          <Route path="teachers/new" element={<NewTeacherFormPage />} />
+          <Route path="teachers/:id/edit" element={<EditTeacherFormPage />} />
           <Route path="grades" element={<GradesPage />} />
+          <Route path="grades/new" element={<NewGradeFormPage />} />
+          <Route path="grades/:id/edit" element={<EditGradeFormPage />} />
           <Route path="subjects" element={<SubjectsPage />} />
+          <Route path="subjects/new" element={<NewSubjectFormPage />} />
+          <Route path="subjects/:id/edit" element={<EditSubjectFormPage />} />
           <Route path="assignments" element={<AssignmentsPage />} />
+          <Route path="assignments/new" element={<AssignmentFormPage />} />
+          <Route path="assignments/:id/edit" element={<AssignmentFormPage />} />
           <Route path="attendance" element={<AttendancePage />} />
+          <Route path="attendance/new" element={<NewAttendanceFormPage />} />
+          <Route path="attendance/taking/:gradeId/:subjectId/:date/:teacherId" element={<TakingAttendancePage />} />
+          <Route path="attendance/session/edit" element={<EditAttendanceSessionFormPage />} />
           <Route path="history" element={<AttendanceHistoryPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="institution" element={<InstitutionalInfo />} />
           <Route path="neighborhoods" element={<NeighborhoodsPage />} />
+          <Route path="neighborhoods/new" element={<NewNeighborhoodFormPage />} />
+          <Route path="neighborhoods/:id/edit" element={<EditNeighborhoodFormPage />} />
           <Route path="menu" element={<MobileMenuPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="todos" element={<TodosPage />} />
+          <Route path="todos/new" element={<NewTodoFormPage />} />
+          <Route path="todos/:id/edit" element={<EditTodoFormPage />} />
           <Route path="infractions" element={<InfractionsPage />} />
+          <Route path="infractions/new" element={<InfractionFormPage />} />
+          <Route path="infractions/:id/edit" element={<InfractionFormPage />} />
+          <Route path="grades/:gradeId/students" element={<GroupStudentsListPage />} />
         </Route>
         
         <Route path="*" element={<Navigate to="/" replace />} />

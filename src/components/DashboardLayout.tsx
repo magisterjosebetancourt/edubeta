@@ -64,9 +64,35 @@ export default function DashboardLayout() {
   }, [navigate])
 
   const getMobileTitle = () => {
-    const path = location.pathname.split('/')[2]
-    if (!path || path === 'dashboard') return 'Inicio'
-    
+    const segments = location.pathname.split('/').filter(Boolean) // ['dashboard', 'grades', 'new']
+    const section = segments[1] // 'grades', 'students', etc.
+    const sub = segments[2]     // 'new', ':id', etc.
+    const action = segments[3]  // 'edit', etc.
+
+    // Formularios full-screen (sub-rutas)
+    if (section === 'grades' && sub === 'new') return 'Nuevo grupo'
+    if (section === 'grades' && action === 'edit') return 'Editar grupo'
+    if (section === 'students' && sub === 'new') return 'Matricular estudiante'
+    if (section === 'students' && action === 'edit') return 'Editar estudiante'
+    if (section === 'students' && sub === 'import') return 'Carga masiva'
+    if (section === 'teachers' && sub === 'new') return 'Nueva invitación'
+    if (section === 'teachers' && action === 'edit') return 'Editar docente'
+    if (section === 'subjects' && sub === 'new') return 'Nueva asignatura'
+    if (section === 'subjects' && action === 'edit') return 'Editar asignatura'
+    if (section === 'neighborhoods' && sub === 'new') return 'Nuevo barrio'
+    if (section === 'neighborhoods' && action === 'edit') return 'Editar barrio'
+    if (section === 'todos' && sub === 'new') return 'Nueva tarea'
+    if (section === 'todos' && action === 'edit') return 'Editar tarea'
+    if (section === 'assignments' && sub === 'new') return 'Nueva asignación'
+    if (section === 'assignments' && action === 'edit') return 'Editar asignación'
+    if (section === 'infractions' && sub === 'new') return 'Registrar falta'
+    if (section === 'infractions' && action === 'edit') return 'Editar falta'
+    if (section === 'attendance' && sub === 'new') return 'Nueva lista de clase'
+    if (section === 'attendance' && sub === 'taking') return 'Tomando asistencia'
+    if (section === 'attendance' && sub === 'session') return 'Editar sesión'
+
+    if (!section || section === 'dashboard') return 'Inicio'
+
     const titles: Record<string, string> = {
       'students': 'Estudiantes',
       'teachers': 'Docentes',
@@ -83,8 +109,8 @@ export default function DashboardLayout() {
       'menu': 'Menú',
       'infractions': 'Faltas'
     }
-    
-    return titles[path] || path.charAt(0).toUpperCase() + path.slice( path.length > 0 ? 1 : 0)
+
+    return titles[section] || section.charAt(0).toUpperCase() + section.slice(1)
   }
 
   const handleBack = () => {

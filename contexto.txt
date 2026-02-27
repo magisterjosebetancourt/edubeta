@@ -62,3 +62,43 @@ EduBeta es una plataforma de gestión académica integral diseñada para institu
   - `Students.tsx`: Lista de tarjetas (cards) ahora ordenada por `last_name` ascendente usando `localeCompare('es')`.
   - `Attendance.tsx`: Lista de alumnos en la pantalla de toma de asistencia ahora ordenada por `last_name` ascendente usando `localeCompare('es')`.
 
+## Registro de Cambios (27/02/2026) – Arquitectura FormView
+
+- **Decisión de Arquitectura: Formularios Full-Screen (FormView)**:
+  - Se eliminaron todos los modales `Dialog` de los formularios de la app por mala UX en mobile (teclado virtual tapa campos).
+  - Se adoptó el patrón **router-based**: cada formulario es una ruta propia (`/dashboard/modulo/new`, `/dashboard/modulo/:id/edit`).
+  - Se creó `src/components/ui/FormView.tsx` como contenedor base reutilizable.
+  - Usa `min-h-[100dvh]` (Dynamic Viewport Height) para adaptarse al teclado virtual en Android Chrome e iOS Safari.
+  - Animación de entrada `slide-in-right` definida en `index.css`.
+  - **Fase 1 completada**: módulo Grados (`GradesPage`) migrado. Formularios: `NewGradeFormPage`, `EditGradeFormPage`.
+
+- **REGLA DE ORO — Header en vistas FormView**:
+  - La aplicación tiene un Header de navegación **global** (`DashboardLayout`).
+  - Las vistas FormView full-screen **NO deben renderizar un segundo header**.
+  - El header global ya gestiona: título de página (via `getMobileTitle()`), botón ←, branding BETASOFT.
+  - Añadir un header propio en la vista de formulario genera duplicado visual y rompe la UX.
+
+- **Patrón Cancelar con animación de salida**:
+  - Todo formulario FormView incluye un botón "Cancelar" que activa `animate-slide-out-right` antes de navegar.
+  - Implementación: `setExiting(true)` → `setTimeout(() => navigate(-1), 220)` (220ms = duración de la animación).
+  - El guardado exitoso también usa la animación de salida antes de redirigir.
+  - Prohíbido usar `navigate(-1)` directamente sin activar la animación.
+
+- **Regla: No usar `autoFocus` en FormView**:
+  - `autoFocus` en inputs provoca que el browser ejecute un scroll durante la animación `slide-in-right`,
+    haciendo que la vista aparezca más rápida que las demás (rompe consistencia visual).
+  - Si se necesita focus automático, usar `useEffect` con `setTimeout` de más de 220ms.
+
+- **Regla: Flujos de importación masiva como vistas full-screen**:
+  - Los flujos de CSV u otros importadores se tratan como vistas FormView, NO como modales.
+  - El componente `CsvUploader` sigue siendo reutilizable, envuelto en `ImportStudentsPage`.
+
+- **Migración completa de modales → FormView (27/02/2026)**:
+  - Fase 1: `GradesPage` — `NewGradeFormPage`, `EditGradeFormPage`
+  - Fase 2: `StudentsPage` — `NewStudentFormPage`, `EditStudentFormPage`
+  - Fase 3: `TeachersPage` — `NewTeacherFormPage`, `EditTeacherFormPage`; `ImportStudentsPage` (CSV)
+  - Fase 4: `SubjectsPage` — `NewSubjectFormPage`, `EditSubjectFormPage`
+  - Todos los modales `Dialog` de formularios de texto eliminados de la aplicación.
+  - Animaciones: `slide-in-right` 220ms / `slide-out-right` 220ms (igualadas en esta sesión).
+  - Rutas nuevas registradas en `App.tsx`; títulos registrados en `DashboardLayout.getMobileTitle()`.
+

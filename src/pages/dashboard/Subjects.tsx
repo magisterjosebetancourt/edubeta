@@ -1,57 +1,30 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { db } from '@/lib/firebase/config'
-import { 
-  collection, 
-  getDocs, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  query, 
-  orderBy,
-  serverTimestamp 
-} from 'firebase/firestore'
+import { collection, getDocs, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { BookOpen, Plus, Pencil, Trash2 } from 'lucide-react'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
 
 type Subject = {
   id: string;
   name: string;
   state?: boolean;
-  created_at?: string;
 };
 
 export default function SubjectsPage() {
+  const navigate = useNavigate()
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [loading, setLoading] = useState(true)
-  const [isCreating, setIsCreating] = useState(false)
-  const [isUpdating, setIsUpdating] = useState(false)
-  const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  useEffect(() => { fetchSubjects() }, [])
 
   const fetchSubjects = async () => {
     try {
       setLoading(true)
       const q = query(collection(db, 'subjects'), orderBy('name', 'asc'))
-      const querySnapshot = await getDocs(q)
-      const subjectsData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Subject[]
-      
-      setSubjects(subjectsData)
+      const snap = await getDocs(q)
+      setSubjects(snap.docs.map(d => ({ id: d.id, ...d.data() })) as Subject[])
     } catch (error: any) {
       toast.error('Error al cargar asignaturas', { description: error.message })
     } finally {
@@ -59,96 +32,18 @@ export default function SubjectsPage() {
     }
   }
 
-  useEffect(() => {
-    fetchSubjects()
-  }, [])
-
-  const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsCreating(true);
-
-    const form = e.currentTarget;
-    const formData = new FormData(form);
-    const name = formData.get("name") as string;
-
-    if (!name) {
-      toast.error("El nombre de la asignatura es requerido");
-      setIsCreating(false);
-      return;
-    }
-
-    try {
-      await addDoc(collection(db, "subjects"), {
-        name,
-        state: true,
-        created_at: serverTimestamp()
-      });
-
-      toast.success("Asignatura creada correctamente");
-      form.reset();
-      setIsDialogOpen(false);
-      fetchSubjects();
-    } catch (error: any) {
-      toast.error("Error al crear asignatura", { description: error.message });
-    } finally {
-      setIsCreating(false);
-    }
-  }
-
   const handleToggleState = async (subject: Subject) => {
-    try {
-      const newState = !subject.state;
-      const subjectRef = doc(db, 'subjects', subject.id)
-      await updateDoc(subjectRef, { state: newState })
-
-      toast.success(newState ? "Asignatura activada" : "Asignatura desactivada");
-      setSubjects((prev) =>
-        prev.map((s) => (s.id === subject.id ? { ...s, state: newState } : s)),
-      );
-    } catch (error: any) {
-      toast.error("Error al cambiar estado", { description: error.message });
-    }
-  };
-
-  const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (!editingSubject) return
-
-    setIsUpdating(true)
-    const formData = new FormData(e.currentTarget)
-    const name = formData.get('name') as string
-
-    if (!name) {
-        toast.error('El nombre es requerido')
-        setIsUpdating(false)
-        return
-    }
-
-    try {
-        const subjectRef = doc(db, 'subjects', editingSubject.id)
-        await updateDoc(subjectRef, { name })
-
-        toast.success('Asignatura actualizada')
-        setEditingSubject(null)
-        fetchSubjects()
-    } catch (error: any) {
-        toast.error('Error al actualizar', { description: error.message })
-    } finally {
-        setIsUpdating(false)
-    }
+    const newState = !subject.state
+    await updateDoc(doc(db, 'subjects', subject.id), { state: newState })
+    toast.success(newState ? 'Asignatura activada' : 'Asignatura desactivada')
+    setSubjects(prev => prev.map(s => s.id === subject.id ? { ...s, state: newState } : s))
   }
 
   const handleDelete = async (id: string) => {
-     if(!confirm('¿Estás seguro? Se eliminarán todas las asignaciones asociadas.')) return;
-     
-     try {
-       await deleteDoc(doc(db, 'subjects', id))
-       
-       toast.success('Asignatura eliminada')
-       setSubjects(prev => prev.filter(s => s.id !== id))
-     } catch (error: any) {
-       toast.error('Error al eliminar', { description: error.message })
-     }
+    if (!confirm('¿Estás seguro? Se eliminarán todas las asignaciones asociadas.')) return
+    await deleteDoc(doc(db, 'subjects', id))
+    toast.success('Asignatura eliminada')
+    setSubjects(prev => prev.filter(s => s.id !== id))
   }
 
   if (loading) return <div className="p-8 text-center">Cargando asignaturas...</div>
@@ -157,62 +52,28 @@ export default function SubjectsPage() {
     <div className="bg-background-light dark:bg-background-dark min-h-screen pb-24">
       <div className="p-4 lg:p-8 space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-1">
-          <div>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Administra las materias del currículo escolar institucional.
-            </p>
-          </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-bold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95">
-                <Plus className="w-5 h-5 stroke-[3]" />
-                Nueva Asignatura
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="rounded-lg">
-              <DialogHeader>
-                <DialogTitle className="text-xl font-black tracking-tight">Nueva asignatura</DialogTitle>
-                <DialogDescription className="text-xs font-bold tracking-widest text-slate-400">
-                  Registra una nueva materia en el sistema.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleCreate} className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="subject-name">Nombre de la Asignatura</Label>
-                  <Input 
-                    id="subject-name"
-                    name="name"
-                    placeholder="Ej: Matemáticas"
-                    required
-                    className="w-full h-11 rounded-lg border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 text-sm"
-                  />
-                </div>
-                <DialogFooter className="pt-4">
-                  <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)} className="font-bold text-[10px] tracking-widest rounded-lg">
-                    Cancelar
-                  </Button>
-                  <Button type="submit" disabled={isCreating} className="bg-primary hover:bg-primary/90 text-white font-bold text-[10px] tracking-widest rounded-lg px-8 shadow-lg shadow-primary/20">
-                    {isCreating ? 'Guardando...' : 'Crear Asignatura'}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Administra las materias del currículo escolar institucional.
+          </p>
+          <Button
+            onClick={() => navigate('/dashboard/subjects/new')}
+            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95"
+          >
+            <Plus className="w-5 h-5 stroke-[3]" />
+            Nueva Asignatura
+          </Button>
         </div>
       </div>
 
-      <main className="p-4 space-y-4">
+      <main className="p-4 space-y-3">
         {subjects.length === 0 ? (
           <div className="text-center py-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-lg bg-white/50 dark:bg-slate-900/30">
             <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500 font-medium">
-              No hay asignaturas registradas.
-            </p>
+            <p className="text-slate-500 font-medium">No hay asignaturas registradas.</p>
           </div>
         ) : (
-          subjects.map((subject) => (
-            <div
-              key={subject.id}
+          subjects.map(subject => (
+            <div key={subject.id}
               className="bg-white dark:bg-[#151b2d] p-4 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between"
             >
               <div className="flex items-center gap-4">
@@ -220,34 +81,27 @@ export default function SubjectsPage() {
                   <BookOpen className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900 dark:text-white">
-                    {subject.name}
-                  </h3>
+                  <h3 className="font-semibold text-slate-900 dark:text-white">{subject.name}</h3>
                   <div
                     onClick={() => handleToggleState(subject)}
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider cursor-pointer transition-colors ${
+                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wider cursor-pointer transition-colors ${
                       subject.state !== false
-                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200"
-                        : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200"
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200'
+                        : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200'
                     }`}
                   >
-                    {subject.state !== false ? "Activa" : "Inactiva"}
+                    {subject.state !== false ? 'Activa' : 'Inactiva'}
                   </div>
                 </div>
               </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon"
                   className="h-9 w-9 text-slate-400 hover:text-primary hover:bg-primary/10"
-                  onClick={() => setEditingSubject(subject)}
+                  onClick={() => navigate(`/dashboard/subjects/${subject.id}/edit`)}
                 >
                   <Pencil className="w-4 h-4" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
+                <Button variant="ghost" size="icon"
                   className="h-9 w-9 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"
                   onClick={() => handleDelete(subject.id)}
                 >
@@ -258,33 +112,6 @@ export default function SubjectsPage() {
           ))
         )}
       </main>
-
-      {/* Edit Dialog */}
-      <Dialog open={!!editingSubject} onOpenChange={(open) => !open && setEditingSubject(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Asignatura</DialogTitle>
-            <DialogDescription>
-              Modifica el nombre de la asignatura existente.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleUpdate} className="space-y-4">
-             <div className="space-y-2">
-                <Label htmlFor="edit-name">Nombre de la asignatura</Label>
-                <Input 
-                    id="edit-name" 
-                    name="name" 
-                    defaultValue={editingSubject?.name} 
-                    required 
-                />
-             </div>
-             <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setEditingSubject(null)}>Cancelar</Button>
-                <Button type="submit" disabled={isUpdating}>Guardar Cambios</Button>
-             </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

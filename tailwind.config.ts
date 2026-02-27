@@ -76,6 +76,12 @@ const config = {
         'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
         'floating': '0 10px 40px -10px rgba(37, 19, 236, 0.2)',
       },
+      height: {
+        'screen-dvh': '100dvh',
+      },
+      minHeight: {
+        'screen-dvh': '100dvh',
+      },
       keyframes: {
         "accordion-down": {
           from: { height: "0" },

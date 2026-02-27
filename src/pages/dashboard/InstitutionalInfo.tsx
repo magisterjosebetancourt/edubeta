@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { db } from '@/lib/firebase/config'
 import { 
   collection, 
@@ -24,7 +25,8 @@ import {
   Type, 
   Image as ImageIcon,
   Clock,
-  CheckCircle2
+  CheckCircle2,
+  X
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { differenceInWeeks, parseISO } from 'date-fns'
@@ -37,6 +39,7 @@ type Period = {
 }
 
 export default function InstitutionalInfo() {
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -188,6 +191,10 @@ export default function InstitutionalInfo() {
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleCancel = () => {
+    navigate(-1)
   }
 
   if (loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>
@@ -379,14 +386,24 @@ export default function InstitutionalInfo() {
 
       {/* Floating Save Button */}
       <div className="fixed bottom-20 lg:bottom-8 left-0 right-0 z-50 px-6">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-5xl mx-auto flex gap-3">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={handleCancel}
+            disabled={saving}
+            className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 shadow-md font-semibold transition-all"
+          >
+            <X className="mr-2 h-4 w-4" />
+            Cancelar
+          </Button>
           <Button 
             onClick={handleSave} 
             disabled={saving}
-            className="w-full rounded-lg shadow-2xl"
+            className="flex-1 rounded-lg shadow-2xl"
           >
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Guardar Cambios
+            Guardar
           </Button>
         </div>
       </div>
