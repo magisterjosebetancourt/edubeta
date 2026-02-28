@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { FormView } from '@/components/ui/FormView'
+import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -31,6 +32,7 @@ const selectClass =
 export default function EditStudentFormPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
+  const queryClient = useQueryClient()
 
   const [grades, setGrades] = useState<Grade[]>([])
   const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([])
@@ -118,6 +120,17 @@ export default function EditStudentFormPage() {
         neighborhood: neighborhood || null,
         updated_at: serverTimestamp(),
       })
+      
+      // Update local cache
+      queryClient.setQueryData(['students'], (old: any) => {
+        if (!old) return old
+        return old.map((s: any) => 
+          s.id === id 
+            ? { ...s, first_name: firstName.trim(), last_name: lastName.trim(), grade_id: selectedGradeId, neighborhood: neighborhood || null } 
+            : s
+        )
+      })
+
       toast.success('Estudiante actualizado')
       setExiting(true)
       setTimeout(() => navigate('/dashboard/students', { replace: true }), 220)

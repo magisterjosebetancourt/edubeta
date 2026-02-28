@@ -1,19 +1,19 @@
-import { useState, useEffect, useCallback } from 'react'
-import { auth, db } from '@/lib/firebase/config'
-import { 
-  collection, 
-  getDocs, 
-  getDoc,
-  doc, 
-  query, 
+import { useState, useEffect } from 'react'
+import { db } from '@/lib/firebase/config'
+import {
+  collection,
+  query,
   where,
   orderBy,
-  updateDoc
+  updateDoc,
+  getDocs,
+  getDoc,
+  doc
 } from "firebase/firestore";
 import { toast } from 'sonner'
 import { format, subDays } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { 
+import {
   School,
   FileText,
   ChevronRight,
@@ -31,8 +31,10 @@ import {
   Filter
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useUserProfile } from '@/lib/context/UserProfileContext'
+import { useGrades, useSubjects, useStudents } from '@/lib/hooks/useFirebaseData'
 
-type AttendanceRecord = {
+type DailyRecord = {
   id: string;
   student_id: string;
   date: string;
@@ -54,23 +56,22 @@ type AttendanceRecord = {
   };
 }
 
-type UserRole = 'admin' | 'teacher' | 'coordinator' | null;
 
-
-interface Grade {
-  id: string;
-  name: string;
-}
 
 
 export default function AttendanceHistoryPage() {
-  const [loading, setLoading] = useState(true)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [records, setRecords] = useState<AttendanceRecord[]>([])
-  const [grades, setGrades] = useState<Grade[]>([])
-  const [subjects, setSubjects] = useState<Grade[]>([])
-  const [userRole, setUserRole] = useState<UserRole>(null)
-  
+  const { profile, firebaseUser } = useUserProfile()
+  const { data: globalGrades = [], isLoading: loadingGrades } = useGrades()
+  const { data: globalSubjects = [], isLoading: loadingSubjects } = useSubjects()
+  const { data: globalStudents = [], isLoading: loadingStudents } = useStudents()
+  const userRole = profile?.role || 'user'
+
+  const [records, setRecords] = useState<DailyRecord[]>([])
+  const [loadingInitial, setLoadingInitial] = useState(true)
+  const [loadingRecords, setLoadingRecords] = useState(false)
+  const [grades, setGrades] = useState<{id: string, name: string}[]>([])
+  const [subjects, setSubjects] = useState<{id: string, name: string}[]>([])
+
   // Filters
   const [startDate, setStartDate] = useState<string>(format(subDays(new Date(), 30), 'yyyy-MM-dd'))
   const [endDate, setEndDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
@@ -80,56 +81,76 @@ export default function AttendanceHistoryPage() {
   const [filterStatus, setFilterStatus] = useState<string>("all")
   const [filterProcessed, setFilterProcessed] = useState<string>("all")
 
-  const fetchData = useCallback(async (refresh = false) => {
-    if (!refresh) setLoading(true);
+  const fetchInitialData = async () => {
+    try {
+      const user = firebaseUser
+      if (!user) return
+
+      let userGrades: {id: string, name: string}[] = []
+      let userSubjects: {id: string, name: string}[] = []
+
+      if (profile?.role === 'teacher') {
+        const assSnap = await getDocs(query(collection(db, "assignments"), where("teacher_id", "==", user.uid), where("state", "==", true)))
+        const validGradeIds = [...new Set(assSnap.docs.map(d => d.data().grade_id))]
+        const validSubjIds = [...new Set(assSnap.docs.map(d => d.data().subject_id))]
+
+        userGrades = globalGrades.filter(g => validGradeIds.includes(g.id)).map(g => ({ id: g.id, name: g.name }))
+        userSubjects = globalSubjects.filter(s => validSubjIds.includes(s.id)).map(s => ({ id: s.id, name: s.name }))
+      } else {
+        userGrades = globalGrades.map(g => ({ id: g.id, name: g.name }))
+        userSubjects = globalSubjects.map(s => ({ id: s.id, name: s.name }))
+      }
+
+      setGrades(userGrades)
+      setSubjects(userSubjects)
+
+      if (userGrades.length > 0) {
+        setFilterGradeId(userGrades[0].id)
+      }
+      if (userSubjects.length > 0) {
+        setFilterSubjectId(userSubjects[0].id)
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error('Error al cargar datos iniciales')
+    } finally {
+      setLoadingInitial(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!loadingGrades && !loadingSubjects && profile && firebaseUser) {
+      fetchInitialData()
+    }
+  }, [loadingGrades, loadingSubjects, profile, firebaseUser, globalGrades, globalSubjects])
+
+  const loading = loadingInitial || loadingRecords || loadingGrades || loadingSubjects || loadingStudents
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  const fetchData = async (refresh = false) => {
+    if (!refresh) setLoadingRecords(true);
     else setIsRefreshing(true);
 
     if (startDate > endDate) {
       toast.error('La fecha inicial no puede ser mayor a la final');
-      setLoading(false);
+      setLoadingRecords(false);
       setIsRefreshing(false);
       return;
     }
 
     try {
-      const user = auth.currentUser;
+      const user = firebaseUser;
       if (!user) return;
-
-      const profileSnap = await getDoc(doc(db, "profiles", user.uid));
-      const role = profileSnap.data()?.role as UserRole;
-      setUserRole(role);
 
       // Filters setup based on role
       let teacherGradeIds: string[] = [];
-      let teacherSubjectIds: string[] = [];
-      if (role === 'teacher') {
+      if (userRole === 'teacher') {
         const assSnap = await getDocs(query(collection(db, "assignments"), where("teacher_id", "==", user.uid), where("state", "==", true)));
         teacherGradeIds = assSnap.docs.map(d => d.data().grade_id);
-        teacherSubjectIds = assSnap.docs.map(d => d.data().subject_id);
       }
 
-      // 1. Fetch dependencies
-      const [gSnap, sSnap, pSnap, stdSnap] = await Promise.all([
-        getDocs(collection(db, "grades")),
-        getDocs(collection(db, "subjects")),
-        getDocs(collection(db, "profiles")),
-        getDocs(collection(db, "students"))
-      ]);
-
-      const gradeList = gSnap.docs
-        .filter(d => role !== 'teacher' || teacherGradeIds.includes(d.id))
-        .map(d => ({ id: d.id, name: d.data().name }));
-      
-      const subjectList = sSnap.docs
-        .filter(d => role !== 'teacher' || teacherSubjectIds.includes(d.id))
-        .map(d => ({ id: d.id, name: d.data().name }));
-
-      setGrades(gradeList);
-      setSubjects(subjectList);
-
-      const subjectMap = new Map(sSnap.docs.map(d => [d.id, d.data()]));
-      const profileMap = new Map(pSnap.docs.map(d => [d.id, d.data()]));
-      const studentMap = new Map(stdSnap.docs.map(d => [d.id, d.data()]));
+      const subjectMap = new Map(globalSubjects.map(d => [d.id, d]));
+      const studentMap = new Map(globalStudents.map(d => [d.id, d]));
 
       // 2. Fetch Attendance Records (Firestore limited with date range)
       const q = query(
@@ -144,10 +165,9 @@ export default function AttendanceHistoryPage() {
         const data = d.data();
         const student = studentMap.get(data.student_id);
         const subject = subjectMap.get(data.subject_id);
-        const teacher = profileMap.get(data.teacher_id);
-        
+
         // Filter by teacher role if needed
-        if (role === 'teacher' && !teacherGradeIds.includes(student?.grade_id)) return null;
+        if (userRole === 'teacher' && !teacherGradeIds.includes((student as any)?.grade_id || '')) return null;
 
         return {
           id: d.id,
@@ -164,24 +184,28 @@ export default function AttendanceHistoryPage() {
             grade_id: student?.grade_id || ''
           },
           subject: { name: subject?.name || 'S/A' },
-          teacher: { full_name: teacher?.full_name || 'S/D' }
-        } as AttendanceRecord;
+          teacher: { full_name: profile?.full_name || 'S/D' } // Use profile's full_name
+        } as DailyRecord;
       }).filter(r => r !== null);
 
-      setRecords(attData as AttendanceRecord[]);
+      setRecords(attData as DailyRecord[]);
 
     } catch (error: any) {
       console.error("Attendance History Fetch Error:", error);
       toast.error('Error al cargar historial');
     } finally {
-      setLoading(false);
+      if (!refresh) setLoadingRecords(false);
       setIsRefreshing(false);
     }
-  }, [startDate, endDate]);
+  }
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (!loadingInitial && !loadingGrades && !loadingSubjects && !loadingStudents) { // Only fetch if initial data is loaded
+      fetchData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate, endDate, loadingInitial, loadingGrades, loadingSubjects, loadingStudents, profile, firebaseUser]);
+
 
   const handleToggleJustification = async (recordId: string, currentJustified: boolean) => {
     try {
@@ -203,20 +227,20 @@ export default function AttendanceHistoryPage() {
     }
   };
 
-  const handleNotifyWhatsApp = (record: AttendanceRecord) => {
+  const handleNotifyWhatsApp = (record: DailyRecord) => {
     const studentName = `${record.student.first_name} ${record.student.last_name}`;
     const dateStr = format(new Date(record.date + 'T00:00:00'), 'dd/MM/yyyy');
     const statusText = record.status === 'absent' ? 'ausente' : 'tarde';
     const justifiedText = record.justified ? ' (Con justificación)' : ' (Sin justificar)';
-    
+
     const message = `Estimado representante, le informamos que el estudiante *${studentName}* se reportó *${statusText}* en la clase de *${record.subject.name}* el día *${dateStr}*${justifiedText}. Por favor estar al tanto. Saludos de EduBeta.`;
-    
+
     const encodedMessage = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
     window.open(whatsappUrl, '_blank');
   };
 
-  const generateReport = async (record: AttendanceRecord) => {
+  const generateReport = async (record: DailyRecord) => {
     if (!record.date || !record.subject_id || !record.teacher_id) {
       toast.error('Datos de sesión incompletos para generar el reporte');
       return;
@@ -225,7 +249,7 @@ export default function AttendanceHistoryPage() {
     try {
       const instSnap = await getDoc(doc(db, "settings", "institutional"));
       const schoolSettings = instSnap.data();
-      
+
       const branding = {
         name: schoolSettings?.school_name || 'EDUBETA',
         year: schoolSettings?.academic_year || new Date().getFullYear().toString(),
@@ -241,8 +265,7 @@ export default function AttendanceHistoryPage() {
       );
 
       const recordsSnap = await getDocs(q);
-      const studentSnap = await getDocs(collection(db, "students"));
-      const studentMap = new Map(studentSnap.docs.map(d => [d.id, d.data()]));
+      const studentMap = new Map(globalStudents.map(d => [d.id, d]));
 
       const sessionStats = recordsSnap.docs.map(d => d.data());
       const sortedAbsences = sessionStats

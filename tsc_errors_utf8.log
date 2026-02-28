@@ -1,0 +1,13 @@
+﻿src/pages/Dashboard.tsx(26,45): error TS6133: 'loadingGrades' is declared but its value is never read.
+src/pages/Dashboard.tsx(27,47): error TS6133: 'loadingSubjects' is declared but its value is never read.
+src/pages/Dashboard.tsx(126,9): error TS6133: 'subjectMap' is declared but its value is never read.
+src/pages/dashboard/Assignments.tsx(5,74): error TS6133: 'serverTimestamp' is declared but its value is never read.
+src/pages/dashboard/Attendance.tsx(1,31): error TS6133: 'useMemo' is declared but its value is never read.
+src/pages/dashboard/AttendanceHistory.tsx(1,31): error TS6133: 'useMemo' is declared but its value is never read.
+src/pages/dashboard/AttendanceHistory.tsx(60,11): error TS6196: 'Grade' is declared but never used.
+src/pages/dashboard/AttendanceHistory.tsx(83,10): error TS6133: 'students' is declared but its value is never read.
+src/pages/dashboard/AttendanceHistory.tsx(83,20): error TS6133: 'setStudents' is declared but its value is never read.
+src/pages/dashboard/AttendanceHistory.tsx(157,11): error TS6133: 'teacherSubjectIds' is declared but its value is never read.
+src/pages/dashboard/AttendanceHistory.tsx(180,15): error TS6133: 'teacher' is declared but its value is never read.
+src/pages/dashboard/Todos.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/pages/dashboard/Todos.tsx(5,65): error TS6133: 'serverTimestamp' is declared but its value is never read.

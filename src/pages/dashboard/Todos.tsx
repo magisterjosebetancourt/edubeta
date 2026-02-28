@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "@/lib/firebase/config";
 import {
-  collection, getDocs, updateDoc, deleteDoc, doc, query, where, serverTimestamp
+  collection, getDocs, updateDoc, deleteDoc, doc, query, where
 } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

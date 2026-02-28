@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FormView } from '@/components/ui/FormView'
+import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,6 +12,7 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
 
 export default function NewSubjectFormPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [name, setName] = useState('')
   const [saving, setSaving] = useState(false)
   const [exiting, setExiting] = useState(false)
@@ -25,11 +27,19 @@ export default function NewSubjectFormPage() {
     if (!name.trim()) { toast.error('El nombre es requerido'); return }
     setSaving(true)
     try {
-      await addDoc(collection(db, 'subjects'), {
+      const docRef = await addDoc(collection(db, 'subjects'), {
         name: name.trim(),
         state: true,
         created_at: serverTimestamp(),
       })
+      
+      // Update local cache directly 
+      queryClient.setQueryData(['subjects'], (old: any) => {
+        const newSubject = { id: docRef.id, name: name.trim(), state: true }
+        const newList = old ? [...old, newSubject] : [newSubject]
+        return newList.sort((a, b) => a.name.localeCompare(b.name, "es"))
+      })
+
       toast.success('Asignatura creada')
       setExiting(true)
       setTimeout(() => navigate('/dashboard/subjects', { replace: true }), 220)

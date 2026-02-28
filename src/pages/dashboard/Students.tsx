@@ -1,17 +1,18 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth, db } from "@/lib/firebase/config";
+import { db } from "@/lib/firebase/config";
 import {
   collection,
   getDocs,
-  getDoc,
   updateDoc,
   deleteDoc,
   doc,
   query,
   where,
-  orderBy,
 } from "firebase/firestore";
+import { useUserProfile } from "@/lib/context/UserProfileContext";
+import { useQueryClient } from "@tanstack/react-query";
+import { useStudents, useGrades } from '@/lib/hooks/useFirebaseData';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Search, Edit, MapPin, UserPlus, FileUp } from "lucide-react";
@@ -36,93 +37,90 @@ type Student = {
 
 export default function StudentsPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { profile, firebaseUser } = useUserProfile();
+  const { data: studentsData, isLoading: isLoadingStudents } = useStudents();
+  const { data: gradesData, isLoading: isLoadingGrades } = useGrades();
 
   const [students, setStudents] = useState<Student[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState<string>("user");
+  const [loadingInitial, setLoadingInitial] = useState(true);
+  const userRole = profile?.role || 'user';
   const [searchTerm, setSearchTerm] = useState("");
   const [filterGradeId, setFilterGradeId] = useState<string>("");
 
   useEffect(() => {
+    if (isLoadingStudents || isLoadingGrades) return;
     fetchData();
-  }, []);
+  }, [profile, firebaseUser, studentsData, gradesData, isLoadingStudents, isLoadingGrades]);
 
   const fetchData = async () => {
     try {
-      setLoading(true);
-      const user = auth.currentUser;
-      if (!user) return;
+      setLoadingInitial(true);
+      const user = firebaseUser;
+      if (!user || !profile) return;
 
-      const profileSnap = await getDoc(doc(db, "profiles", user.uid));
-      const role = profileSnap.data()?.role || "user";
-      setUserRole(role);
+      const role = profile.role;
 
-      let gradeIds: string[] = [];
+      let validGradeIds: string[] = [];
       if (role === "teacher") {
+        // Obtenemos qué asignaturas le pertenecen al docente (assignments)
+        // Esto sí es específico de cada usuario y cambia
         const assSnap = await getDocs(
-          query(collection(db, "assignments"), where("teacher_id", "==", user.uid))
+          query(
+            collection(db, "assignments"),
+            where("teacher_id", "==", user.uid),
+            where("state", "==", true)
+          )
         );
-        gradeIds = assSnap.docs.map((d) => d.data().grade_id);
-        if (gradeIds.length === 0) {
-          setStudents([]);
-          setGrades([]);
-          setLoading(false);
-          return;
-        }
+        validGradeIds = assSnap.docs.map((d) => d.data().grade_id);
       }
 
-      const [studentsSnap, allGradesSnap, attendanceSnap] = await Promise.all([
-        getDocs(query(collection(db, "students"), orderBy("first_name"))),
-        getDocs(query(collection(db, "grades"), where("state", "==", true))),
-        getDocs(collection(db, "attendance_records")),
-      ]);
-
-      const gradeMap = new Map(allGradesSnap.docs.map((d) => [d.id, d.data().name]));
-      const attendanceData = attendanceSnap.docs.map((d) => d.data());
-
-      let studentDocs = studentsSnap.docs;
+      // Cargamos Grades desde RC Cache
+      let gradesList = gradesData ? [...gradesData] : [];
       if (role === "teacher") {
-        studentDocs = studentDocs.filter((d) => gradeIds.includes(d.data().grade_id));
+        gradesList = gradesList.filter(g => validGradeIds.includes(g.id));
+      } else if (role === "admin" || role === "coordinator") {
+        gradesList = gradesList.filter(g => g.state === true); // active grades only
+      }
+      gradesList.sort((a,b) => a.name.localeCompare(b.name));
+      setGrades(gradesList);
+
+      // Cargamos estudiantes desde RC cache
+      let studentsList = studentsData ? [...studentsData] : [];
+      if (role === "teacher") {
+         studentsList = studentsList.filter(s => validGradeIds.includes(s.grade_id as string));
       }
 
-      const transformed = studentDocs.map((docSnap) => {
-        const data = docSnap.data();
-        const att = attendanceData.filter((a) => a.student_id === docSnap.id);
-        return {
-          id: docSnap.id,
-          ...data,
-          grades: { name: gradeMap.get(data.grade_id) || "Sin Grado" },
-          attendance_stats: {
-            present: att.filter((a) => a.status === "present").length,
-            absent: att.filter((a) => a.status === "absent").length,
-            late: att.filter((a) => a.status === "late").length,
-            excused: att.filter((a) => a.status === "excused").length,
-          },
-        } as Student;
-      });
-
-      transformed.sort((a, b) =>
-        (a.last_name || "").localeCompare(b.last_name || "", "es")
-      );
-
-      setStudents(transformed);
-      setGrades(
-        allGradesSnap.docs
-          .filter((d) => role !== "teacher" || gradeIds.includes(d.id))
-          .map((d) => ({ id: d.id, name: d.data().name }))
-      );
+      // Map grade names
+      const gradeMap = new Map((gradesData || []).map(g => [g.id, g.name]));
+      const enrichedStudents = studentsList.map(s => ({
+         ...s,
+         grades: { name: gradeMap.get(s.grade_id as string) || "Sin Asignar" }
+      }));
+      
+      enrichedStudents.sort((a,b) => (a.last_name || "").localeCompare(b.last_name || "", "es"));
+      setStudents(enrichedStudents);
     } catch (error: any) {
-      toast.error("Error al cargar datos", { description: error.message });
+      console.error("Error loading students view context:", error);
+      toast.error("Error al cargar la información");
     } finally {
-      setLoading(false);
+      setLoadingInitial(false);
     }
   };
+
+  const loading = loadingInitial || isLoadingStudents || isLoadingGrades;
 
   const handleToggleState = async (student: Student) => {
     try {
       const newState = !student.state;
       await updateDoc(doc(db, "students", student.id), { state: newState });
+      
+      // Actualización de cache y UI local simultánea
+      queryClient.setQueryData(['students'], (old: any) => 
+        old ? old.map((s: any) => (s.id === student.id ? { ...s, state: newState } : s)) : old
+      );
+
       toast.success(newState ? "Estudiante activado" : "Estudiante desactivado");
       setStudents((prev) =>
         prev.map((s) => (s.id === student.id ? { ...s, state: newState } : s))
@@ -136,7 +134,13 @@ export default function StudentsPage() {
     if (!confirm("¿Estás seguro de eliminar este estudiante?")) return;
     try {
       await deleteDoc(doc(db, "students", id));
-      toast.success("Estudiante eliminado");
+      
+      // Eliminar de caché local directamente, previniendo recarga
+      queryClient.setQueryData(['students'], (old: any) => 
+        old ? old.filter((s: any) => s.id !== id) : old
+      );
+
+      toast.success("Estudiante eliminado exitosamente");
       setStudents((prev) => prev.filter((s) => s.id !== id));
     } catch (error: any) {
       toast.error("Error al eliminar", { description: error.message });

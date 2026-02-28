@@ -1,14 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { db } from "@/lib/firebase/config";
-import {
-  collection,
-  getDocs,
-  doc,
-  getDoc,
-  query,
-  orderBy,
-} from "firebase/firestore";
+import { useParams } from "react-router-dom";
+import { useStudents, useGrades } from "@/lib/hooks/useFirebaseData";
 import { toast } from "sonner";
 import { Search, Users, MapPin } from "lucide-react";
 
@@ -16,9 +8,9 @@ type Student = {
   id: string;
   first_name: string;
   last_name: string;
-  grade_id?: string;
+  grade_id: string; // Changed from optional to required
   neighborhood?: string;
-  state?: boolean;
+  state: boolean; // Changed from optional to required
   guardian_name?: string;
   attendance_stats?: {
     present: number;
@@ -27,82 +19,44 @@ type Student = {
   };
 };
 
-type Grade = {
-  id: string;
-  name: string;
-};
-
 export default function GroupStudentsListPage() {
   const { gradeId } = useParams<{ gradeId: string }>();
-  const navigate = useNavigate();
+  const { data: studentsData, isLoading: loadingStudents } = useStudents();
+  const { data: gradesData, isLoading: loadingGrades } = useGrades();
 
-  const [grade, setGrade] = useState<Grade | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [gradeName, setGradeName] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterBy, setFilterBy] = useState<"apellido" | "nombre">("apellido");
 
   useEffect(() => {
-    if (gradeId) fetchData(gradeId);
-  }, [gradeId]);
+    const fetchStudents = async () => {
+      try {
+        if (!gradeId) return;
 
-  const fetchData = async (gid: string) => {
-    try {
-      setLoading(true);
+        // Obtain grade name from Cache
+        const currentGrade = (gradesData || []).find((g) => g.id === gradeId);
+        if (currentGrade) setGradeName(currentGrade.name);
+        else setGradeName("Grado Desconocido");
 
-      // 1. Fetch grade info
-      const gradeSnap = await getDoc(doc(db, "grades", gid));
-      if (!gradeSnap.exists()) {
-        toast.error("Grupo no encontrado");
-        navigate("/dashboard/grades");
-        return;
+        // Filter students from cache
+        const filtered = (studentsData || []).filter((s) => s.grade_id === gradeId);
+
+        // Sort A→Z by last_name (keeping original sort logic from previous version)
+        filtered.sort((a, b) =>
+          (a.last_name || "").localeCompare(b.last_name || "", "es")
+        );
+
+        setStudents(filtered as Student[]);
+      } catch (error: any) {
+        toast.error("Error al cargar datos", { description: error.message });
       }
-      setGrade({ id: gradeSnap.id, name: gradeSnap.data().name });
+    };
 
-      // 2. Fetch all students + attendance in parallel
-      const [studentsSnap, attendanceSnap] = await Promise.all([
-        getDocs(query(collection(db, "students"), orderBy("last_name"))),
-        getDocs(collection(db, "attendance_records")),
-      ]);
+    if (!loadingStudents && !loadingGrades) fetchStudents();
+  }, [gradeId, studentsData, gradesData, loadingStudents, loadingGrades]);
 
-      const attendanceData = attendanceSnap.docs.map((d) => d.data());
-
-      // 3. Filter by grade_id and build stats
-      const filtered = studentsSnap.docs
-        .filter((d) => d.data().grade_id === gid)
-        .map((docSnap) => {
-          const data = docSnap.data();
-          const studentAtt = attendanceData.filter(
-            (a) => a.student_id === docSnap.id
-          );
-          return {
-            id: docSnap.id,
-            first_name: data.first_name,
-            last_name: data.last_name,
-            grade_id: data.grade_id,
-            neighborhood: data.neighborhood,
-            state: data.state,
-            guardian_name: data.guardian_name,
-            attendance_stats: {
-              present: studentAtt.filter((a) => a.status === "present").length,
-              absent: studentAtt.filter((a) => a.status === "absent").length,
-              late: studentAtt.filter((a) => a.status === "late").length,
-            },
-          } as Student;
-        });
-
-      // Sort A→Z by last_name
-      filtered.sort((a, b) =>
-        (a.last_name || "").localeCompare(b.last_name || "", "es")
-      );
-
-      setStudents(filtered);
-    } catch (error: any) {
-      toast.error("Error al cargar datos", { description: error.message });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const loading = loadingStudents || loadingGrades;
 
   const filteredStudents = useMemo(() => {
     if (!searchTerm.trim()) return students;
@@ -127,7 +81,7 @@ export default function GroupStudentsListPage() {
       <div className="p-4 space-y-3">
         <div>
           <h2 className="font-semibold text-slate-900 dark:text-white leading-tight">
-            Grupo {grade?.name}
+            {gradeName}
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
             <Users className="w-3 h-3" />

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { FormView } from '@/components/ui/FormView'
+import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,6 +13,7 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore'
 export default function EditGradeFormPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
+  const queryClient = useQueryClient()
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -52,6 +54,14 @@ export default function EditGradeFormPage() {
     setSaving(true)
     try {
       await updateDoc(doc(db, 'grades', id!), { name: name.trim() })
+      
+      // Update local cache
+      queryClient.setQueryData(['grades'], (old: any) => {
+        if (!old) return old
+        const newList = old.map((g: any) => g.id === id ? { ...g, name: name.trim() } : g)
+        return newList.sort((a: any, b: any) => a.name.localeCompare(b.name, "es"))
+      })
+
       toast.success('Grupo actualizado')
       setExiting(true)
       setTimeout(() => navigate('/dashboard/grades', { replace: true }), 220)

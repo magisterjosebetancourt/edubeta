@@ -39,10 +39,24 @@ import InfractionFormPage from '@/pages/dashboard/infractions/InfractionFormPage
 import GroupStudentsListPage from '@/pages/dashboard/GroupStudentsList';
 import AssignmentFormPage from '@/pages/dashboard/assignments/AssignmentFormPage';
 import { Toaster } from "@/components/ui/sonner";
+import { UserProfileProvider } from '@/lib/context/UserProfileContext';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 60, // 1 hora
+      gcTime: 1000 * 60 * 60 * 24, // 24 horas (ex cacheTime)
+      refetchOnWindowFocus: false, // Evita recargas redundantes al cambiar de pestaña
+    },
+  },
+});
 
 function App() {
   return (
-    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <QueryClientProvider client={queryClient}>
+      <UserProfileProvider>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
@@ -89,9 +103,11 @@ function App() {
         </Route>
         
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-      <Toaster />
-    </Router>
+      </Routes>        
+        <Toaster />
+      </Router>
+      </UserProfileProvider>
+    </QueryClientProvider>
   );
 }
 

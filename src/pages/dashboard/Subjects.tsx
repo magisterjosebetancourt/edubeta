@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from '@/lib/firebase/config'
-import { collection, getDocs, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore'
+import { updateDoc, deleteDoc, doc } from 'firebase/firestore'
+import { useSubjects } from '@/lib/hooks/useFirebaseData'
+import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { BookOpen, Plus, Pencil, Trash2 } from 'lucide-react'
@@ -14,36 +16,48 @@ type Subject = {
 
 export default function SubjectsPage() {
   const navigate = useNavigate()
+  const { data: subjectsData, isLoading: loadingSubjects } = useSubjects()
+  const queryClient = useQueryClient()
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { fetchSubjects() }, [])
-
-  const fetchSubjects = async () => {
-    try {
-      setLoading(true)
-      const q = query(collection(db, 'subjects'), orderBy('name', 'asc'))
-      const snap = await getDocs(q)
-      setSubjects(snap.docs.map(d => ({ id: d.id, ...d.data() })) as Subject[])
-    } catch (error: any) {
-      toast.error('Error al cargar asignaturas', { description: error.message })
-    } finally {
-      setLoading(false)
-    }
-  }
+  useEffect(() => {
+    if (loadingSubjects || !subjectsData) return
+    const sorted = [...subjectsData].sort((a,b) => a.name.localeCompare(b.name, "es"))
+    setSubjects(sorted)
+    setLoading(false)
+  }, [subjectsData, loadingSubjects])
 
   const handleToggleState = async (subject: Subject) => {
-    const newState = !subject.state
-    await updateDoc(doc(db, 'subjects', subject.id), { state: newState })
-    toast.success(newState ? 'Asignatura activada' : 'Asignatura desactivada')
-    setSubjects(prev => prev.map(s => s.id === subject.id ? { ...s, state: newState } : s))
+    try {
+      const newState = !subject.state
+      await updateDoc(doc(db, 'subjects', subject.id), { state: newState })
+      
+      queryClient.setQueryData(['subjects'], (old: any) => 
+        old ? old.map((s: any) => s.id === subject.id ? { ...s, state: newState } : s) : old
+      )
+
+      toast.success(newState ? 'Asignatura activada' : 'Asignatura desactivada')
+      setSubjects(prev => prev.map(s => s.id === subject.id ? { ...s, state: newState } : s))
+    } catch (error: any) {
+      toast.error('Error al cambiar estado', { description: error.message })
+    }
   }
 
   const handleDelete = async (id: string) => {
     if (!confirm('¿Estás seguro? Se eliminarán todas las asignaciones asociadas.')) return
-    await deleteDoc(doc(db, 'subjects', id))
-    toast.success('Asignatura eliminada')
-    setSubjects(prev => prev.filter(s => s.id !== id))
+    try {
+      await deleteDoc(doc(db, 'subjects', id))
+      
+      queryClient.setQueryData(['subjects'], (old: any) => 
+        old ? old.filter((s: any) => s.id !== id) : old
+      )
+
+      toast.success('Asignatura eliminada')
+      setSubjects(prev => prev.filter(s => s.id !== id))
+    } catch (error: any) {
+      toast.error('Error al eliminar', { description: error.message })
+    }
   }
 
   if (loading) return <div className="p-8 text-center">Cargando asignaturas...</div>

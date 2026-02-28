@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FormView } from '@/components/ui/FormView'
+import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -30,6 +31,7 @@ const selectClass =
 
 export default function NewStudentFormPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [grades, setGrades] = useState<Grade[]>([])
   const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([])
   const [loadingData, setLoadingData] = useState(true)
@@ -87,7 +89,7 @@ export default function NewStudentFormPage() {
     }
     setSaving(true)
     try {
-      await addDoc(collection(db, 'students'), {
+      const docRef = await addDoc(collection(db, 'students'), {
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         grade_id: selectedGradeId,
@@ -95,6 +97,13 @@ export default function NewStudentFormPage() {
         state: true,
         created_at: serverTimestamp(),
       })
+      
+      // Update local cache
+      queryClient.setQueryData(['students'], (old: any) => {
+        const newStudent = { id: docRef.id, first_name: firstName.trim(), last_name: lastName.trim(), grade_id: selectedGradeId, neighborhood: neighborhood || null, state: true }
+        return old ? [...old, newStudent] : [newStudent]
+      })
+
       toast.success('Estudiante matriculado')
       setExiting(true)
       setTimeout(() => navigate('/dashboard/students', { replace: true }), 220)

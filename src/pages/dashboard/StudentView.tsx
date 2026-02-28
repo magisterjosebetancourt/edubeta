@@ -1,25 +1,25 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { db } from "@/lib/firebase/config";
-import { 
-  doc, 
-  getDoc, 
-  getDocs, 
-  collection, 
-  query, 
-  where, 
-  orderBy 
+import {
+  doc,
+  getDoc,
+  getDocs,
+  collection,
+  query,
+  where
 } from "firebase/firestore";
+import { useStudents } from '@/lib/hooks/useFirebaseData';
 import { cn } from "@/lib/utils";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
-import { 
-  User, 
-  CalendarDays, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
+import {
+  User,
+  CalendarDays,
+  CheckCircle,
+  XCircle,
+  Clock,
   History,
   TrendingUp,
   MapPin
@@ -33,6 +33,7 @@ type Student = {
   last_name: string;
   grade_id: string;
   grades: { name: string };
+  grade_name?: string; // Added for the new structure
   neighborhood?: string;
   attendance_stats?: {
     present: number;
@@ -52,81 +53,104 @@ type AttendanceRecord = {
   subjects: { name: string };
 };
 
-export default function StudentView() {
+export default function StudentViewPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { data: studentsData, isLoading: loadingStudents } = useStudents() || {};
+
   const [student, setStudent] = useState<Student | null>(null);
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingInitial, setLoadingInitial] = useState(true);
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]); 
 
   useEffect(() => {
-    if (id) {
+    const fetchStudentData = async () => {
+      if (!id) return;
+      setLoadingInitial(true);
+      try {
+        let studentData: any = null;
+
+        // 1. Try to get student from cached data
+        const cachedStudent = (studentsData || []).find((s: any) => s.id === id);
+
+        if (cachedStudent) {
+          studentData = cachedStudent;
+        } else {
+          // 2. Fallback to Firestore if not in cache
+          const studentDoc = await getDoc(doc(db, "students", id));
+          if (!studentDoc.exists()) {
+            toast.error('Estudiante no encontrado');
+            navigate('/dashboard/students');
+            return;
+          }
+          studentData = { id: studentDoc.id, ...studentDoc.data() };
+        }
+
+        // 3. Fetch Grade Name
+        const gradeSnap = await getDoc(doc(db, "grades", studentData.grade_id));
+        const gradeName = gradeSnap.exists() ? gradeSnap.data().name : "Sin Grado";
+
+        // 4. Fetch Attendance and Subjects in parallel
+        const [attSnap, subSnap] = await Promise.all([
+          getDocs(query(collection(db, "attendance_records"), where("student_id", "==", id))),
+          getDocs(collection(db, "subjects"))
+        ]);
+
+        const subjectMap = new Map(subSnap.docs.map(d => [d.id, d.data().name]));
+
+        const records = attSnap.docs.map(d => {
+          const data = d.data();
+          return {
+            id: d.id,
+            date: data.date,
+            status: data.status,
+            justified: data.justified,
+            subjects: { name: subjectMap.get(data.subject_id) || "Materia no registrada" }
+          } as AttendanceRecord;
+        });
+
+        // Sort descending by date locally to avoid composite index requirement
+        records.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        const stats = {
+          present: records.filter(r => r.status === 'present').length,
+          absent: records.filter(r => r.status === 'absent').length,
+          late: records.filter(r => r.status === 'late').length,
+          excused: records.filter(r => r.status === 'excused').length,
+          total: records.length,
+          rate: records.length > 0 ? Math.round((records.filter(r => r.status === 'present').length / records.length) * 100) : 0
+        };
+
+        setStudent({
+          ...studentData,
+          grades: { name: gradeName }, // Keep original grades structure for compatibility
+          grade_name: gradeName, // Add new grade_name for easier access
+          attendance_stats: stats
+        } as Student);
+
+        setAttendance(records);
+
+        // Placeholder for grades and incidents fetching if needed in the future
+        // const gradesSnap = await getDocs(query(collection(db, "grades"), where("student_id", "==", id)));
+        // setGrades(gradesSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+
+        // const incidentsSnap = await getDocs(query(collection(db, "incidents"), where("student_id", "==", id)));
+        // setIncidents(incidentsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+
+      } catch (error: any) {
+        console.error("Fetch Student Detail Error:", error);
+        toast.error("Error al cargar datos", { description: error.message });
+        navigate("/dashboard/students");
+      } finally {
+        setLoadingInitial(false);
+      }
+    };
+
+    if (id && !loadingStudents) { // Only fetch if ID is present and studentsData is done loading
       fetchStudentData();
     }
-  }, [id]);
+  }, [id, navigate, studentsData, loadingStudents]); // Added studentsData and loadingStudents to dependencies
 
-  const fetchStudentData = async () => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      // 1. Fetch Student Doc
-      const studentSnap = await getDoc(doc(db, "students", id));
-      if (!studentSnap.exists()) throw new Error("Estudiante no encontrado");
-      
-      const sData = studentSnap.data();
-
-      // 2. Fetch Grade Name
-      const gradeSnap = await getDoc(doc(db, "grades", sData.grade_id));
-      const gradeName = gradeSnap.exists() ? gradeSnap.data().name : "Sin Grado";
-
-      // 3. Fetch Attendance and Subjects in parallel
-      const [attSnap, subSnap] = await Promise.all([
-        getDocs(query(collection(db, "attendance_records"), where("student_id", "==", id), orderBy("date", "desc"))),
-        getDocs(collection(db, "subjects"))
-      ]);
-
-      const subjectMap = new Map(subSnap.docs.map(d => [d.id, d.data().name]));
-
-      const records = attSnap.docs.map(d => {
-        const data = d.data();
-        return {
-          id: d.id,
-          date: data.date,
-          status: data.status,
-          justified: data.justified,
-          subjects: { name: subjectMap.get(data.subject_id) || "Materia no registrada" }
-        } as AttendanceRecord;
-      });
-
-      const stats = {
-        present: records.filter(r => r.status === 'present').length,
-        absent: records.filter(r => r.status === 'absent').length,
-        late: records.filter(r => r.status === 'late').length,
-        excused: records.filter(r => r.status === 'excused').length,
-        total: records.length,
-        rate: records.length > 0 ? Math.round((records.filter(r => r.status === 'present').length / records.length) * 100) : 0
-      };
-
-      setStudent({
-        id: studentSnap.id,
-        first_name: sData.first_name,
-        last_name: sData.last_name,
-        grade_id: sData.grade_id,
-        neighborhood: sData.neighborhood,
-        grades: { name: gradeName },
-        attendance_stats: stats
-      } as Student);
-      
-      setAttendance(records);
-
-    } catch (error: any) {
-      console.error("Fetch Student Detail Error:", error);
-      toast.error("Error al cargar datos", { description: error.message });
-      navigate("/dashboard/students");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const loading = loadingInitial || loadingStudents;
 
   if (loading) {
     return <div className="p-8 text-center">Cargando perfil del estudiante...</div>;

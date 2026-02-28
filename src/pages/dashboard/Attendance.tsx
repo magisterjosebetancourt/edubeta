@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { auth, db } from '@/lib/firebase/config'
+import { db } from '@/lib/firebase/config'
 import {
   collection, getDocs, getDoc, writeBatch,
   doc, query, where
 } from "firebase/firestore"
+import { useUserProfile } from '@/lib/context/UserProfileContext'
+import { useGrades, useSubjects, useStudents } from '@/lib/hooks/useFirebaseData'
 import { cn } from '@/lib/utils'
 import {
   Clock, CheckCircle, Loader2, FileText, CalendarDays, BookOpen, Plus,
@@ -26,40 +28,33 @@ interface AttendanceSession {
 
 export default function AttendancePage() {
   const navigate = useNavigate()
+  const { profile, firebaseUser } = useUserProfile()
+  const { data: globalGrades = [], isLoading: loadingGrades } = useGrades()
+  const { data: globalSubjects = [], isLoading: loadingSubjects } = useSubjects()
+  const { data: globalStudents = [], isLoading: loadingStudents } = useStudents()
+
   const [sessions, setSessions] = useState<AttendanceSession[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loadingInitial, setLoadingInitial] = useState(false)
   const [filterDate, setFilterDate] = useState(format(new Date(), 'yyyy-MM-dd'))
-  const [appRole, setAppRole] = useState<UserRole>(null)
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const appRole = profile?.role as UserRole
+  const currentUserId = firebaseUser?.uid ?? null
 
-
-  useEffect(() => { fetchInitialData() }, [])
 
   useEffect(() => {
     if (appRole && currentUserId) {
       fetchSessions(appRole, currentUserId)
     }
-  }, [filterDate, appRole, currentUserId])
+  }, [appRole, currentUserId])
 
-  const fetchInitialData = async () => {
-    setLoading(true)
-    try {
-      const user = auth.currentUser
-      if (!user) return
-      setCurrentUserId(user.uid)
-      const profileSnap = await getDoc(doc(db, "profiles", user.uid))
-      const role = profileSnap.data()?.role as UserRole
-      setAppRole(role)
-      await fetchSessions(role, user.uid)
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
+  useEffect(() => {
+    if (appRole && currentUserId) {
+      fetchSessions(appRole, currentUserId)
     }
-  }
+  }, [filterDate])
 
   const fetchSessions = async (role: UserRole, userId: string) => {
     try {
+      setLoadingInitial(true)
       const q = query(collection(db, "attendance_records"), where("date", "==", filterDate))
       const recordsSnap = await getDocs(q)
       let records = recordsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
@@ -68,17 +63,14 @@ export default function AttendancePage() {
         records = records.filter((r: any) => r.teacher_id === userId)
       }
 
-      const [studentsSnap, subjectsSnap, profilesSnap, gradesSnap] = await Promise.all([
-        getDocs(collection(db, "students")),
-        getDocs(collection(db, "subjects")),
-        getDocs(collection(db, "profiles")),
-        getDocs(collection(db, "grades")),
-      ])
-
-      const studentMap = new Map(studentsSnap.docs.map(d => [d.id, d.data()]))
-      const subjectMap = new Map(subjectsSnap.docs.map(d => [d.id, d.data()]))
+      // 1. Necesitamos teachers (profiles) sí o sí porque no lo guardamos en react-query
+      const profilesSnap = await getDocs(collection(db, "profiles"))
       const profileMap = new Map(profilesSnap.docs.map(d => [d.id, d.data()]))
-      const gradeMap = new Map(gradesSnap.docs.map(d => [d.id, d.data()]))
+
+      // 2. Mapas cacheados
+      const studentMap = new Map(globalStudents.map(d => [d.id, d]))
+      const subjectMap = new Map(globalSubjects.map(d => [d.id, d]))
+      const gradeMap = new Map(globalGrades.map(d => [d.id, d]))
 
       const groups: { [key: string]: AttendanceSession } = {}
       records.forEach((row: any) => {
@@ -109,9 +101,14 @@ export default function AttendancePage() {
       }))
       setSessions(sessionList.sort((a, b) => a.subject_name.localeCompare(b.subject_name)))
     } catch (err: any) {
+      console.error(err)
       toast.error('Error al cargar sesiones')
+    } finally {
+      setLoadingInitial(false)
     }
   }
+
+  const loading = loadingInitial || loadingGrades || loadingSubjects || loadingStudents;
 
 
   const markSessionAsProcessed = async (session: AttendanceSession) => {

@@ -102,3 +102,12 @@ EduBeta es una plataforma de gestión académica integral diseñada para institu
   - Animaciones: `slide-in-right` 220ms / `slide-out-right` 220ms (igualadas en esta sesión).
   - Rutas nuevas registradas en `App.tsx`; títulos registrados en `DashboardLayout.getMobileTitle()`.
 
+## Registro de Cambios (28/02/2026) – Fase 2 y 3: React Query & Mutaciones de caché
+- **Integración de React Query (`@tanstack/react-query`)**:
+  - Sustitución de peticiones manuales en cada vista por hooks centralizados (`useStudents`, `useGrades`, `useSubjects`) con `staleTime: Infinity` para evitar sobrecostos por lecturas redundantes en Firebase.
+- **Mutaciones Locales Optimistas (Fase 3)**:
+  - Implementación de `queryClient.setQueryData` transversal en las operaciones de Crear, Editar, Eliminar y Cambiar Estado para las entidades Estudiantes, Grados y Asignaturas.
+  - Al completar escrituras en Backend, la UI se actualiza inyectando los datos en la memoria RAM en lugar de refetchear las colecciones completas, reduciendo drásticamente la latencia y las facturas de Firestore.
+- **Bugfixes concurrentes**:
+  - Solucionado error `Maximum update depth exceeded` eliminando auto-generación de arrays de fallback `[]` infinitos en los destructuring de React Query.
+  - Reemplazo de multi-índices de Firebase (evitando "The query requires an index") por ordenamiento temporal a nivel de JavaScript (`JS Array.sort()`) en historiales de estudiantes.

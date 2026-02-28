@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth, db } from "@/lib/firebase/config";
+import { db } from "@/lib/firebase/config";
 import {
-  collection, getDocs, deleteDoc, doc, getDoc, query, orderBy
+  collection, getDocs, deleteDoc, doc, query, orderBy
 } from "firebase/firestore";
+import { useUserProfile } from "@/lib/context/UserProfileContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -47,21 +48,16 @@ const TABS: { id: TabFilter; label: string }[] = [
 
 export default function InfractionsPage() {
   const navigate = useNavigate();
+  const { profile } = useUserProfile();
   const [infractions, setInfractions] = useState<Infraction[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabFilter>("todas");
   const [searchTerm, setSearchTerm] = useState("");
-  const [userRole, setUserRole] = useState<string>("teacher");
+  const userRole = profile?.role || 'teacher';
 
   const fetchData = async () => {
     try {
-      const user = auth.currentUser;
-      if (!user) return;
-      const [profileSnap, infSnap] = await Promise.all([
-        getDoc(doc(db, "profiles", user.uid)),
-        getDocs(query(collection(db, "infractions"), orderBy("created_at", "desc"))),
-      ]);
-      setUserRole(profileSnap.data()?.role || "teacher");
+      const infSnap = await getDocs(query(collection(db, "infractions"), orderBy("created_at", "desc")));
       setInfractions(infSnap.docs.map(d => ({ id: d.id, ...d.data() } as Infraction)));
     } catch (err: any) {
       toast.error("Error al cargar faltas", { description: err.message });

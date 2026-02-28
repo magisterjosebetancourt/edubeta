@@ -1,8 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
-import { auth, db } from '@/lib/firebase/config'
-import { getDoc, doc } from 'firebase/firestore'
-import { useState, useEffect } from 'react'
+import { auth } from '@/lib/firebase/config'
+import { useUserProfile } from '@/lib/context/UserProfileContext'
 import { 
   LayoutDashboard, 
   Users, 
@@ -55,32 +54,7 @@ export function SidebarContent({ className, onLinkClick }: { className?: string,
   const location = useLocation()
   const navigate = useNavigate()
   const pathname = location.pathname
-  
-  interface UserProfile {
-    full_name: string;
-    email: string;
-    role: string;
-    avatar_url?: string;
-  }
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
-
-  useEffect(() => {
-    async function getProfile() {
-      const user = auth.currentUser;
-      if (user) {
-        const profileSnap = await getDoc(doc(db, "profiles", user.uid));
-        const profile = profileSnap.data();
-        
-        setUserProfile({
-          full_name: profile?.full_name || 'Usuario',
-          email: user.email || '',
-          role: profile?.role || 'user',
-          avatar_url: profile?.avatar_url
-        })
-      }
-    }
-    getProfile()
-  }, [])
+  const { profile: userProfile } = useUserProfile()
 
   const handleSignOut = async () => {
     try {

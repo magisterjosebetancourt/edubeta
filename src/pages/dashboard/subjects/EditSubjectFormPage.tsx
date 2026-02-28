@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { FormView } from '@/components/ui/FormView'
+import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,6 +13,7 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore'
 export default function EditSubjectFormPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
+  const queryClient = useQueryClient()
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -39,6 +41,14 @@ export default function EditSubjectFormPage() {
     setSaving(true)
     try {
       await updateDoc(doc(db, 'subjects', id!), { name: name.trim() })
+
+      // Update local cache 
+      queryClient.setQueryData(['subjects'], (old: any) => {
+        if (!old) return old
+        const newList = old.map((s: any) => s.id === id ? { ...s, name: name.trim() } : s)
+        return newList.sort((a: any, b: any) => a.name.localeCompare(b.name, "es"))
+      })
+
       toast.success('Asignatura actualizada')
       setExiting(true)
       setTimeout(() => navigate('/dashboard/subjects', { replace: true }), 220)

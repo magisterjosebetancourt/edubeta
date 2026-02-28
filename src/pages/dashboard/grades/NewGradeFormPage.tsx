@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FormView } from '@/components/ui/FormView'
+import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
@@ -34,6 +35,7 @@ const fieldClass =
 
 export default function NewGradeFormPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [selectedLevel, setSelectedLevel] = useState('')
   const [selectedGradeName, setSelectedGradeName] = useState('')
   const [groupSuffix, setGroupSuffix] = useState('')
@@ -64,11 +66,19 @@ export default function NewGradeFormPage() {
     }
 
     try {
-      await addDoc(collection(db, 'grades'), {
+      const docRef = await addDoc(collection(db, 'grades'), {
         name: finalName,
         state: true,
         created_at: serverTimestamp(),
       })
+      
+      // Mutación de caché local
+      queryClient.setQueryData(['grades'], (old: any) => {
+        const newGrade = { id: docRef.id, name: finalName, state: true }
+        const newList = old ? [...old, newGrade] : [newGrade]
+        return newList.sort((a,b) => a.name.localeCompare(b.name, "es"))
+      })
+
       toast.success(`Grupo ${finalName} creado correctamente`)
       setExiting(true)
       setTimeout(() => navigate('/dashboard/grades', { replace: true }), 220)

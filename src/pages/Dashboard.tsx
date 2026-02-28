@@ -1,14 +1,14 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { auth, db } from '@/lib/firebase/config'
+import { useEffect, useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
+import { db } from '@/lib/firebase/config'
 import { 
   collection, 
   getDocs, 
-  getDoc, 
   query, 
-  where, 
-  doc
+  where
 } from 'firebase/firestore'
+import { useUserProfile } from '@/lib/context/UserProfileContext'
+import { useGrades, useSubjects } from '@/lib/hooks/useFirebaseData'
 import { cn } from '@/lib/utils'
 import { 
   Users, 
@@ -22,8 +22,10 @@ import {
 } from 'lucide-react'
 
 export default function DashboardPage() {
-  const navigate = useNavigate()
-  const [userProfile, setUserProfile] = useState<{ role: string; id: string; fullName: string; avatarUrl: string } | null>(null)
+  const { profile: userProfile, firebaseUser } = useUserProfile()
+  const { data: gradesData = [] } = useGrades()
+  const { data: subjectsData = [] } = useSubjects()
+  
   const [stats, setStats] = useState({ students: 0, teachers: 0, attendance: 0, grades: 0, subjects: 0 })
   const [assignments, setAssignments] = useState<any[]>([])
   const [todos, setTodos] = useState<any[]>([])
@@ -35,45 +37,29 @@ export default function DashboardPage() {
   const [openTasks, setOpenTasks] = useState(true)
 
   useEffect(() => {
+    if (!userProfile || !firebaseUser) return
+
     async function getInitialData() {
       try {
-        const user = auth.currentUser;
-        if (!user) {
-          navigate('/login')
-          return
-        }
-
-        // 1. Get Profile
-        const profileSnap = await getDoc(doc(db, "profiles", user.uid));
-        const profileData = profileSnap.data();
-        const role = profileData?.role || 'user';
-        
-        setUserProfile({ 
-          role, 
-          id: user.uid, 
-          fullName: profileData?.full_name || '',
-          avatarUrl: profileData?.avatar_url || ''
-        });
+        const user = firebaseUser!
+        const role = userProfile!.role
+        const today = new Date().toISOString().split('T')[0]
 
         // 2. Fetch Stats based on Role
         let studentCount = 0;
         let teacherCount = 0;
         let presentCount = 0;
-        const today = new Date().toISOString().split('T')[0];
 
         if (role === 'admin' || role === 'coordinator') {
           // Global Stats
-          const [sSnap, tSnap, pSnap, gSnap, subSnap] = await Promise.all([
+          const [sSnap, tSnap, pSnap] = await Promise.all([
             getDocs(collection(db, "students")),
             getDocs(query(collection(db, "profiles"), where("role", "==", "teacher"))),
-            getDocs(query(collection(db, "attendance_records"), where("date", "==", today), where("status", "==", "present"))),
-            getDocs(collection(db, "grades")),
-            getDocs(collection(db, "subjects"))
+            getDocs(query(collection(db, "attendance_records"), where("date", "==", today), where("status", "==", "present")))
           ]);
           studentCount = sSnap.size;
           teacherCount = tSnap.size;
           presentCount = pSnap.size;
-          setStats(prev => ({ ...prev, grades: gSnap.size, subjects: subSnap.size }));
         } else {
           // Teacher Stats
           const assSnap = await getDocs(query(collection(db, "assignments"), where("teacher_id", "==", user.uid), where("state", "==", true)));
@@ -84,20 +70,12 @@ export default function DashboardPage() {
           
           setStats(prev => ({ ...prev, grades: gradeIds.length, subjects: subjectIds.length }));
           
-          // Fetch names for grades and subjects in assignments
-          const [gSnap, sbjSnap] = await Promise.all([
-            getDocs(collection(db, "grades")),
-            getDocs(collection(db, "subjects"))
-          ]);
-          const gradeMap = new Map(gSnap.docs.map(d => [d.id, d.data().name]));
-          const subjectMap = new Map(sbjSnap.docs.map(d => [d.id, d.data().name]));
+          // No necesitamos cargar names desde db porque usamos la cache de react-query
+          const todosSnap = await getDocs(query(collection(db, "todos"), where("user_id", "==", user.uid), where("completed", "==", false)));
+          const todosData = todosSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-          const augmentedAssignments = assignmentsData.map((a: any) => ({
-            ...a,
-            grades: { name: gradeMap.get(a.grade_id) || 'N/A' },
-            subjects: { name: subjectMap.get(a.subject_id) || 'N/A' }
-          }));
-          setAssignments(augmentedAssignments);
+          setAssignments(assignmentsData);
+          setTodos(todosData);
 
 
           if (gradeIds.length > 0) {
@@ -116,13 +94,13 @@ export default function DashboardPage() {
           }
         }
 
-        // 3. Fetch Todos
-        const todoSnap = await getDocs(query(collection(db, "todos"), where("user_id", "==", user.uid)));
-        setTodos(todoSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-
-        const rate = (studentCount > 0) ? Math.round((presentCount / studentCount) * 100) : 0;
-        setStats(prev => ({ ...prev, students: studentCount, teachers: teacherCount, attendance: rate }));
-
+        setStats(prev => ({ 
+          ...prev, 
+          students: studentCount, 
+          teachers: teacherCount, 
+          attendance: presentCount 
+        }))
+        
       } catch (error) {
         console.error('Error loading dashboard data:', error)
       } finally {
@@ -131,7 +109,20 @@ export default function DashboardPage() {
     }
 
     getInitialData()
-  }, [navigate])
+  }, [userProfile, firebaseUser])
+
+  // Sync Global counts when Cache Loads (only for Admin)
+  useEffect(() => {
+    if (userProfile && (userProfile.role === 'admin' || userProfile.role === 'coordinator')) {
+      setStats(prev => ({
+        ...prev,
+        grades: gradesData.length,
+        subjects: subjectsData.length
+      }))
+    }
+  }, [gradesData.length, subjectsData.length, userProfile]);
+
+  const gradeMap = useMemo(() => new Map(gradesData.map(d => [d.id, d.name])), [gradesData]);
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -150,14 +141,14 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-4">
            <div className="text-right">
-              <p className="text-xs font-bold text-slate-900 dark:text-white leading-none">{userProfile?.fullName}</p>
+              <p className="text-xs font-bold text-slate-900 dark:text-white leading-none">{userProfile?.full_name}</p>
               <p className="text-[10px] font-medium text-primary uppercase tracking-tighter">{userProfile?.role}</p>
            </div>
            <Link to="/dashboard/profile" className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden transition-all hover:ring-2 hover:ring-primary/20 group">
-              {userProfile?.avatarUrl ? (
-                <img src={userProfile.avatarUrl} alt="Perfil" className="w-full h-full object-cover" />
+              {userProfile?.avatar_url ? (
+                <img src={userProfile.avatar_url} alt="Perfil" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-primary font-black text-xs group-hover:scale-110 transition-transform">{userProfile ? getInitials(userProfile.fullName) : 'JB'}</span>
+                <span className="text-primary font-black text-xs group-hover:scale-110 transition-transform">{userProfile ? getInitials(userProfile.full_name) : 'JB'}</span>
               )}
            </Link>
         </div>
@@ -326,13 +317,13 @@ export default function DashboardPage() {
                   {openGrades && (
                     <div className="px-4 pb-4 animate-in slide-in-from-top-2 duration-300">
                       <div className="pt-2 border-t border-slate-50 dark:border-slate-800/50 grid grid-cols-2 gap-2">
-                        {Array.from(new Set(assignments.map(a => a.grades?.name)))
+                        {Array.from(new Set(assignments.map(a => a.grade_id)))
                           .filter(Boolean)
-                          .sort()
-                          .map((gradeName, idx) => (
+                          .sort((a, b) => (gradeMap.get(a) || '').localeCompare(gradeMap.get(b) || ''))
+                          .map((gradeId, idx) => (
                             <div key={idx} className="px-3 py-2 bg-slate-50 dark:bg-slate-900/50 rounded-lg text-[10px] font-bold text-slate-600 dark:text-slate-300 flex items-center gap-2">
                               <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                              {gradeName}
+                              {gradeMap.get(gradeId) || 'N/A'}
                             </div>
                         ))}
                       </div>

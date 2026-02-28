@@ -2,14 +2,12 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from '@/lib/firebase/config'
 import { 
-  collection, 
-  getDocs, 
   updateDoc, 
   deleteDoc, 
-  doc, 
-  query, 
-  orderBy
+  doc
 } from 'firebase/firestore'
+import { useGrades, useStudents } from '@/lib/hooks/useFirebaseData'
+import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { toast } from 'sonner'
@@ -35,47 +33,47 @@ export default function GradesPage() {
   const [grades, setGrades] = useState<Grade[]>([])
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
+  
+  const { data: gradesData, isLoading: loadingGrades } = useGrades()
+  const { data: studentsData, isLoading: loadingStudents } = useStudents()
+  const queryClient = useQueryClient()
 
-  const fetchGrades = async () => {
+  useEffect(() => {
+    if (loadingGrades || loadingStudents || !gradesData || !studentsData) return;
+    
     try {
-      setLoading(true)
-      const q = query(collection(db, 'grades'), orderBy('name', 'asc'))
-      const querySnapshot = await getDocs(q)
-      const gradesData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Grade[]
+      // Sort A-Z
+      const sortedGrades = [...gradesData].sort((a,b) => a.name.localeCompare(b.name, "es"))
 
-      // Contar estudiantes por grade_id en memoria (una sola query)
-      const studentsSnap = await getDocs(collection(db, 'students'))
       const countMap: Record<string, number> = {}
-      studentsSnap.docs.forEach(d => {
-        const gid = d.data().grade_id as string | undefined
+      studentsData.forEach((s: any) => {
+        const gid = s.grade_id;
         if (gid) countMap[gid] = (countMap[gid] ?? 0) + 1
       })
 
-      const gradesWithCount = gradesData.map(g => ({
+      const gradesWithCount = sortedGrades.map(g => ({
         ...g,
         studentCount: countMap[g.id] ?? 0
       }))
 
       setGrades(gradesWithCount)
     } catch (error: any) {
-      toast.error('Error al cargar grados', { description: error.message })
+      toast.error('Error al procesar grados', { description: error.message })
     } finally {
       setLoading(false)
     }
-  }
-
-  useEffect(() => {
-    fetchGrades()
-  }, [])
+  }, [gradesData, studentsData, loadingGrades, loadingStudents])
 
   const handleToggleState = async (grade: Grade) => {
     try {
       const newState = !grade.state;
       const gradeRef = doc(db, 'grades', grade.id)
       await updateDoc(gradeRef, { state: newState })
+      
+      queryClient.setQueryData(['grades'], (old: any) => 
+        old ? old.map((g: any) => g.id === grade.id ? { ...g, state: newState } : g) : old
+      )
+
       toast.success(newState ? "Grupo activado" : "Grupo desactivado");
       setGrades((prev) =>
         prev.map((g) => (g.id === grade.id ? { ...g, state: newState } : g)),
@@ -95,6 +93,11 @@ export default function GradesPage() {
 
     try {
       await deleteDoc(doc(db, 'grades', id))
+      
+      queryClient.setQueryData(['grades'], (old: any) => 
+        old ? old.filter((g: any) => g.id !== id) : old
+      )
+
       toast.success("Grupo eliminado");
       setGrades((prev) => prev.filter((g) => g.id !== id));
     } catch (error: any) {

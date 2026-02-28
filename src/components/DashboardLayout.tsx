@@ -1,25 +1,23 @@
 import { Sidebar } from '@/components/layout/sidebar'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { Outlet, useLocation, useNavigate, Link } from 'react-router-dom'
-import { auth, db } from '@/lib/firebase/config'
-import { getUserProfile } from '@/lib/firebase/firestore'
-import { onAuthStateChanged } from 'firebase/auth'
+import { db } from '@/lib/firebase/config'
 import { doc, getDoc } from 'firebase/firestore'
+import { useUserProfile } from '@/lib/context/UserProfileContext'
 import { School as SchoolIcon, Menu, ArrowLeft } from "lucide-react"
 import { useState, useEffect } from 'react'
 
 export default function DashboardLayout() {
   const location = useLocation()
   const navigate = useNavigate()
-  const [loading, setLoading] = useState(true)
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
-  
-  interface UserProfile {
-    full_name: string;
-    role: string;
-    avatar_url?: string;
-  }
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const { profile: userProfile, firebaseUser, loading } = useUserProfile()
+
+  useEffect(() => {
+    if (!loading && !firebaseUser) {
+      navigate('/login')
+    }
+  }, [loading, firebaseUser, navigate])
 
   useEffect(() => {
     const fetchLogo = async () => {
@@ -34,34 +32,6 @@ export default function DashboardLayout() {
     }
     fetchLogo()
   }, [])
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        navigate('/login')
-      } else {
-        try {
-          const profile = await getUserProfile(user.uid)
-          
-          setUserProfile({
-            full_name: profile?.full_name || 'Usuario',
-            role: profile?.role || 'user',
-            avatar_url: profile?.avatar_url
-          })
-        } catch (error) {
-          console.error("Error fetching profile:", error)
-          setUserProfile({
-            full_name: user.displayName || 'Usuario',
-            role: 'user'
-          })
-        } finally {
-          setLoading(false)
-        }
-      }
-    });
-
-    return () => unsubscribe();
-  }, [navigate])
 
   const getMobileTitle = () => {
     const segments = location.pathname.split('/').filter(Boolean) // ['dashboard', 'grades', 'new']
