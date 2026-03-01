@@ -14,13 +14,13 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
 const SYSTEM_INFRACTIONS = [
-  { id: "sys-1", title: "Incumplimiento del uniforme escolar", description: "El estudiante asiste a la institución sin el uso adecuado del uniforme reglamentario establecido en el Manual de Convivencia.", type: "leve" as const, legal_ref: "Art. 40 Lit. a · Decreto 1965/2013" },
-  { id: "sys-2", title: "Uso de dispositivos móviles en clase sin autorización", description: "Uso de celular, tablet u otro dispositivo electrónico durante el desarrollo de actividades académicas sin permiso del docente.", type: "leve" as const, legal_ref: "Art. 40 Lit. b · Decreto 1965/2013" },
-  { id: "sys-3", title: "Comportamiento irrespetuoso verbal", description: "Expresiones verbales ofensivas, insultos o lenguaje soez dirigido a compañeros, docentes o personal de la institución.", type: "grave" as const, legal_ref: "Art. 40 Lit. c · Decreto 1965/2013" },
-  { id: "sys-4", title: "Daño intencional a bienes institucionales", description: "Deterioro, destrucción o alteración voluntaria de bienes muebles e inmuebles de la institución educativa o de terceros.", type: "grave" as const, legal_ref: "Art. 40 Lit. d · Decreto 1965/2013" },
-  { id: "sys-5", title: "Agresión física entre estudiantes", description: "Actos de violencia física que causen daño corporal a otro integrante de la comunidad educativa.", type: "gravisima" as const, legal_ref: "Art. 40 Lit. e · Decreto 1965/2013 · Ley 1620/2013" },
-  { id: "sys-6", title: "Porte de armas u objetos peligrosos", description: "Ingreso o tenencia dentro de la institución de armas, explosivos, sustancias peligrosas u objetos que puedan causar daño.", type: "gravisima" as const, legal_ref: "Art. 40 Lit. f · Decreto 1965/2013 · Código Penal" },
-  { id: "sys-7", title: "Acoso escolar (Bullying)", description: "Conducta de hostigamiento, acoso, intimidación o maltrato repetitivo y sistemático que vulnere los derechos del estudiante.", type: "gravisima" as const, legal_ref: "Art. 40 Lit. g · Ley 1620/2013 · Decreto 1965/2013" },
+  { id: "sys-1", title: "1. Incumplimiento del uniforme escolar", description: "El estudiante asiste a la institución sin el uso adecuado del uniforme reglamentario establecido en el Manual de Convivencia.", type: "leve" as const, legal_ref: "Art. 40 Lit. a · Decreto 1965/2013" },
+  { id: "sys-2", title: "2. Uso de dispositivos móviles en clase sin autorización", description: "Uso de celular, tablet u otro dispositivo electrónico durante el desarrollo de actividades académicas sin permiso del docente.", type: "leve" as const, legal_ref: "Art. 40 Lit. b · Decreto 1965/2013" },
+  { id: "sys-3", title: "1. Comportamiento irrespetuoso verbal", description: "Expresiones verbales ofensivas, insultos o lenguaje soez dirigido a compañeros, docentes o personal de la institución.", type: "grave" as const, legal_ref: "Art. 40 Lit. c · Decreto 1965/2013" },
+  { id: "sys-4", title: "2. Daño intencional a bienes institucionales", description: "Deterioro, destrucción o alteración voluntaria de bienes muebles e inmuebles de la institución educativa o de terceros.", type: "grave" as const, legal_ref: "Art. 40 Lit. d · Decreto 1965/2013" },
+  { id: "sys-5", title: "1. Agresión física entre estudiantes", description: "Actos de violencia física que causen daño corporal a otro integrante de la comunidad educativa.", type: "gravisima" as const, legal_ref: "Art. 40 Lit. e · Decreto 1965/2013 · Ley 1620/2013" },
+  { id: "sys-6", title: "2. Porte de armas u objetos peligrosos", description: "Ingreso o tenencia dentro de la institución de armas, explosivos, sustancias peligrosas u objetos que puedan causar daño.", type: "gravisima" as const, legal_ref: "Art. 40 Lit. f · Decreto 1965/2013 · Código Penal" },
+  { id: "sys-7", title: "3. Acoso escolar (Bullying)", description: "Conducta de hostigamiento, acoso, intimidación o maltrato repetitivo y sistemático que vulnere los derechos del estudiante.", type: "gravisima" as const, legal_ref: "Art. 40 Lit. g · Ley 1620/2013 · Decreto 1965/2013" },
 ];
 
 type InfractionType = "leve" | "grave" | "gravisima";
@@ -33,9 +33,9 @@ interface Infraction {
 }
 
 const TYPE_MAP: Record<InfractionType, { label: string; color: string; bg: string; border: string; dot: string }> = {
-  leve: { label: "Leve", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-900/20", border: "border-blue-100 dark:border-blue-800/50", dot: "bg-blue-500" },
-  grave: { label: "Grave", color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-50 dark:bg-orange-900/20", border: "border-orange-100 dark:border-orange-800/50", dot: "bg-orange-500" },
-  gravisima: { label: "Gravísima", color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-900/20", border: "border-red-100 dark:border-red-800/50", dot: "bg-red-500" },
+  leve: { label: "Tipo I", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-900/20", border: "border-blue-100 dark:border-blue-800/50", dot: "bg-blue-500" },
+  grave: { label: "Tipo II", color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-50 dark:bg-orange-900/20", border: "border-orange-100 dark:border-orange-800/50", dot: "bg-orange-500" },
+  gravisima: { label: "Tipo III", color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-900/20", border: "border-red-100 dark:border-red-800/50", dot: "bg-red-500" },
 };
 const STATUS_MAP: Record<InfractionStatus, { label: string; color: string; bg: string }> = {
   abierto: { label: "Abierto", color: "text-red-600", bg: "bg-red-50 dark:bg-red-900/20" },
@@ -43,7 +43,7 @@ const STATUS_MAP: Record<InfractionStatus, { label: string; color: string; bg: s
   cerrado: { label: "Cerrado", color: "text-green-600", bg: "bg-green-50 dark:bg-green-900/20" },
 };
 const TABS: { id: TabFilter; label: string }[] = [
-  { id: "todas", label: "Todas" }, { id: "leve", label: "Leve" }, { id: "grave", label: "Grave" }, { id: "gravisima", label: "Gravísima" },
+  { id: "todas", label: "Todas" }, { id: "leve", label: "Tipo I" }, { id: "grave", label: "Tipo II" }, { id: "gravisima", label: "Tipo III" },
 ];
 
 export default function InfractionsPage() {

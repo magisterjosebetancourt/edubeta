@@ -10,6 +10,7 @@ import {
   where
 } from "firebase/firestore";
 import { useStudents } from '@/lib/hooks/useFirebaseData';
+import { useUserProfile } from "@/lib/context/UserProfileContext";
 import { cn } from "@/lib/utils";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -57,6 +58,8 @@ export default function StudentViewPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { data: studentsData, isLoading: loadingStudents } = useStudents() || {};
+  const { profile } = useUserProfile();
+  const userRole = profile?.role || "user";
 
   const [student, setStudent] = useState<Student | null>(null);
   const [loadingInitial, setLoadingInitial] = useState(true);
@@ -183,10 +186,12 @@ export default function StudentViewPage() {
             </CardHeader>
             <CardContent className="pt-6">
               <div className="space-y-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-500 font-medium">Estado Académico</span>
-                  <span className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-2 py-0.5 rounded-full text-[10px] font-bold">Activo</span>
-                </div>
+                {userRole !== "teacher" && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500 font-medium">Estado Académico</span>
+                    <span className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-2 py-0.5 rounded-full text-[10px] font-bold">Activo</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-500 font-medium">ID Estudiante</span>
                   <span className="font-mono text-slate-900 dark:text-slate-100">#{student.id}</span>

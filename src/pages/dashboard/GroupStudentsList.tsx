@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useStudents, useGrades } from "@/lib/hooks/useFirebaseData";
+import { useUserProfile } from "@/lib/context/UserProfileContext";
 import { toast } from "sonner";
 import { Search, Users, MapPin } from "lucide-react";
 
@@ -23,6 +24,8 @@ export default function GroupStudentsListPage() {
   const { gradeId } = useParams<{ gradeId: string }>();
   const { data: studentsData, isLoading: loadingStudents } = useStudents();
   const { data: gradesData, isLoading: loadingGrades } = useGrades();
+  const { profile } = useUserProfile();
+  const userRole = profile?.role || "user";
 
   const [students, setStudents] = useState<Student[]>([]);
   const [gradeName, setGradeName] = useState("");
@@ -157,15 +160,17 @@ export default function GroupStudentsListPage() {
 
                 {/* Estado + Asistencia */}
                 <div className="flex flex-col items-end gap-1.5">
-                  <div
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wider ${
-                      student.state !== false
-                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                        : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-                    }`}
-                  >
-                    {student.state !== false ? "Activo" : "Inactivo"}
-                  </div>
+                  {userRole !== "teacher" && (
+                    <div
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wider ${
+                        student.state !== false
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                          : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                      }`}
+                    >
+                      {student.state !== false ? "Activo" : "Inactivo"}
+                    </div>
+                  )}
                   <div className="flex gap-1.5">
                     <div
                       className="flex items-center gap-0.5 px-1.5 py-0.5 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded text-[9px] font-semibold border border-green-100 dark:border-green-800"

@@ -130,9 +130,9 @@ export default function InfractionFormPage() {
           <div className="space-y-2">
             <Label className="text-[10px] font-black tracking-widest text-slate-400">Tipo de falta</Label>
             <select value={type} onChange={e => setType(e.target.value as InfractionType)} required className={selectClass}>
-              <option value="leve">Leve</option>
-              <option value="grave">Grave</option>
-              <option value="gravisima">Gravísima</option>
+              <option value="leve">Tipo I</option>
+              <option value="grave">Tipo II</option>
+              <option value="gravisima">Tipo III</option>
             </select>
           </div>
           <div className="space-y-2">

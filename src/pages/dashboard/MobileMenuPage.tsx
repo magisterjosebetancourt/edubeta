@@ -12,6 +12,7 @@ import {
   Settings, 
   LogOut, 
   PieChart,
+  CalendarDays,
   Building,
   MapPin,
   User as UserIcon,
@@ -82,6 +83,7 @@ export default function MobileMenuPage() {
                 { title: 'Asistencia', href: '/dashboard/attendance', icon: PieChart, color: 'text-pink-500', bg: 'bg-pink-50 dark:bg-pink-900/20' },
                 { title: 'Historial', href: '/dashboard/history', icon: PieChart, color: 'text-cyan-500', bg: 'bg-cyan-50 dark:bg-cyan-900/20' },
                 { title: 'Faltas', href: '/dashboard/infractions', icon: ShieldAlert, color: 'text-rose-600', bg: 'bg-rose-50 dark:bg-rose-900/20' },
+                { title: 'Horario', href: '/dashboard/schedules', icon: CalendarDays, color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
                 { title: 'Configuración', href: '/dashboard/settings', icon: Settings, color: 'text-slate-500', bg: 'bg-slate-50 dark:bg-slate-900/20' },
             ]
         }

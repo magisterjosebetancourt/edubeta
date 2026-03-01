@@ -36,3 +36,13 @@ export function useStudents() {
     },
   });
 }
+
+export function useSchedules() {
+  return useQuery({
+    queryKey: ['schedules'],
+    queryFn: async () => {
+      const snap = await getDocs(collection(db, 'schedules'));
+      return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+    },
+  });
+}

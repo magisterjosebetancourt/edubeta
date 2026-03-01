@@ -60,6 +60,8 @@ export default function DashboardLayout() {
     if (section === 'attendance' && sub === 'new') return 'Nueva lista de clase'
     if (section === 'attendance' && sub === 'taking') return 'Tomando asistencia'
     if (section === 'attendance' && sub === 'session') return 'Editar sesión'
+    if (section === 'schedules' && sub === 'new') return 'Nueva hora de clase'
+    if (section === 'schedules' && action === 'edit') return 'Editar hora de clase'
 
     if (!section || section === 'dashboard') return 'Inicio'
 
@@ -77,7 +79,8 @@ export default function DashboardLayout() {
       'profile': 'Perfil',
       'todos': 'Tareas',
       'menu': 'Menú',
-      'infractions': 'Faltas'
+      'infractions': 'Faltas',
+      'schedules': 'Horario de Clases'
     }
 
     return titles[section] || section.charAt(0).toUpperCase() + section.slice(1)

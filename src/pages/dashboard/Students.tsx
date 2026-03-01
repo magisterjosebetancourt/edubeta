@@ -256,16 +256,18 @@ export default function StudentsPage() {
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-medium bg-primary/10 text-primary tracking-wide">
                     {student.grades?.name || "Sin Asignar"}
                   </span>
-                  <div
-                    onClick={() => handleToggleState(student)}
-                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wider cursor-pointer transition-colors ${
-                      student.state !== false
-                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200"
-                        : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200"
-                    }`}
-                  >
-                    {student.state !== false ? "Activo" : "Inactivo"}
-                  </div>
+                  {userRole !== "teacher" && (
+                    <div
+                      onClick={() => handleToggleState(student)}
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wider cursor-pointer transition-colors ${
+                        student.state !== false
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200"
+                          : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200"
+                      }`}
+                    >
+                      {student.state !== false ? "Activo" : "Inactivo"}
+                    </div>
+                  )}
                   <div className="flex gap-1.5 mt-1">
                     <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded text-[9px] font-semibold border border-green-100 dark:border-green-800" title="Asistencias">
                       <span className="w-1.5 h-1.5 rounded-full bg-green-500" />

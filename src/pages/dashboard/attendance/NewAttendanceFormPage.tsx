@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { FormView } from '@/components/ui/FormView'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -13,6 +13,7 @@ type UserRole = 'admin' | 'teacher' | 'coordinator' | null
 
 export default function NewAttendanceFormPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [exiting, setExiting] = useState(false)
 
   const [grades, setGrades] = useState<{ id: string; name: string }[]>([])
@@ -22,8 +23,8 @@ export default function NewAttendanceFormPage() {
   const [loading, setLoading] = useState(true)
   const [starting, setStarting] = useState(false)
 
-  const [gradeId, setGradeId] = useState('')
-  const [subjectId, setSubjectId] = useState('')
+  const [gradeId, setGradeId] = useState(searchParams.get('grade_id') || '')
+  const [subjectId, setSubjectId] = useState(searchParams.get('subject_id') || '')
   const [teacherId, setTeacherId] = useState('')
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'))
 

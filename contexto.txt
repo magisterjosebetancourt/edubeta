@@ -20,6 +20,8 @@ EduBeta es una plataforma de gestión académica integral diseñada para institu
 4. **Refinamiento de la navegación inferior**: Reemplazo de 'Perfil' por 'Menú' para mejorar la accesibilidad móvil.
 5. **Estandarización de carga de imágenes**: Uso de Base64 con límites de 1MB y guardado automático para Avatar y Logo Escolar.
 6. **Diseño Mobile-First**: Estructura de navegación adaptable optimizada para dispositivos móviles (MobileMenuPage).
+   - **REGLA DE ORO GLOBAL**: EduBeta es utilizada en tiempo real desde el aula por docentes, padres y coordinadores predonimantemente en pantallas táctiles. Todo diseño o nueva vista **DEBE ser 100% funcional en móvil**.
+   - Queda estrictamente prohibido ocultar botones de acción críticos (Editar, Eliminar, etc) bajo eventos exclusivos como el "Hover" (pasar el cursor), ya que esto los invisibiliza o vuelve inaccesibles en pantallas táctiles.
 
 ## Registro de Cambios (23/02/2026)
 - Creación de este archivo de contexto (`contexto.txt`) para seguimiento histórico.
@@ -110,4 +112,9 @@ EduBeta es una plataforma de gestión académica integral diseñada para institu
   - Al completar escrituras en Backend, la UI se actualiza inyectando los datos en la memoria RAM en lugar de refetchear las colecciones completas, reduciendo drásticamente la latencia y las facturas de Firestore.
 - **Bugfixes concurrentes**:
   - Solucionado error `Maximum update depth exceeded` eliminando auto-generación de arrays de fallback `[]` infinitos en los destructuring de React Query.
-  - Reemplazo de multi-índices de Firebase (evitando "The query requires an index") por ordenamiento temporal a nivel de JavaScript (`JS Array.sort()`) en historiales de estudiantes.
+- **Ordenamiento temporal a nivel de JavaScript (`JS Array.sort()`) en historiales de estudiantes.
+- **Nueva Herramienta: Horario (`/dashboard/schedules`)**:
+  - Vista `Schedules.tsx` orientada a Lunes-Viernes con horas base (Hora 1 al 10) y `NewScheduleFormPage.tsx` para registro de horas.
+  - Para Rol Administrador/Coordinador se implementó un campo de selección (select) para elegir el docente activo.
+  - Generado el hook custom `useSchedules()` de React Query para escrituras locales optimistas.
+  - Accesible desde "Menú -> Herramientas".
