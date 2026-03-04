@@ -46,3 +46,13 @@ export function useSchedules() {
     },
   });
 }
+
+export function useAssignments() {
+  return useQuery({
+    queryKey: ['assignments'],
+    queryFn: async () => {
+      const snap = await getDocs(collection(db, 'assignments'));
+      return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+    },
+  });
+}

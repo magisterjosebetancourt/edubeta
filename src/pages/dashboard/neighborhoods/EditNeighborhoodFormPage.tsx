@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useNavigate, useParams } from 'react-router-dom'
 import { FormView } from '@/components/ui/FormView'
 import { Button } from '@/components/ui/button'
@@ -48,7 +49,7 @@ export default function EditNeighborhoodFormPage() {
     }
   }
 
-  if (loading) return <div className="p-8 text-center text-sm text-slate-500">Cargando barrio...</div>
+  if (loading) return <LoadingSpinner message="Cargando barrio..." />;
 
   return (
     <FormView exiting={exiting}>

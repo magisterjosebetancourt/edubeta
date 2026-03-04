@@ -51,10 +51,9 @@ export default function NewGradeFormPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!selectedLevel || !selectedGradeName || !groupSuffix.trim()) {
-      toast.error('Completa todos los campos (Nivel, Grado y Grupo)')
-      return
-    }
+    if (!selectedLevel) { toast.error('Selecciona el nivel educativo'); return }
+    if (!selectedGradeName) { toast.error('Selecciona el grado'); return }
+    if (!groupSuffix.trim()) { toast.error('El sufijo de grupo (ej: 01) es obligatorio'); return }
 
     setSaving(true)
 

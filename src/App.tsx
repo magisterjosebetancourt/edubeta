@@ -41,6 +41,10 @@ import AssignmentFormPage from '@/pages/dashboard/assignments/AssignmentFormPage
 import SchedulesPage from '@/pages/dashboard/Schedules';
 import NewScheduleFormPage from '@/pages/dashboard/schedules/NewScheduleFormPage';
 import EditScheduleFormPage from '@/pages/dashboard/schedules/EditScheduleFormPage';
+import ObservadorList from '@/pages/dashboard/observations/ObservadorList';
+import ObservadorForm from '@/pages/dashboard/observations/ObservadorForm';
+import StudentDefenseForm from '@/pages/dashboard/observations/StudentDefenseForm';
+import StudentObservationsPage from '@/pages/dashboard/observations/StudentObservationsPage';
 import { Toaster } from "@/components/ui/sonner";
 import { UserProfileProvider } from '@/lib/context/UserProfileContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -106,6 +110,10 @@ function App() {
           <Route path="schedules" element={<SchedulesPage />} />
           <Route path="schedules/new" element={<NewScheduleFormPage />} />
           <Route path="schedules/:id/edit" element={<EditScheduleFormPage />} />
+          <Route path="observations" element={<ObservadorList />} />
+          <Route path="observations/new" element={<ObservadorForm />} />
+          <Route path="observations/:id" element={<StudentDefenseForm />} />
+          <Route path="students/:id/observations" element={<StudentObservationsPage />} />
         </Route>
         
         <Route path="*" element={<Navigate to="/" replace />} />

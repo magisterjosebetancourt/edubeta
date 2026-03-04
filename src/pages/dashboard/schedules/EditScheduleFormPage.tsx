@@ -8,6 +8,7 @@ import { Save, X, Loader2, CalendarDays } from 'lucide-react'
 import { db } from '@/lib/firebase/config'
 import { collection, getDocs, updateDoc, doc, getDoc, query, where, serverTimestamp } from 'firebase/firestore'
 import { useQueryClient } from '@tanstack/react-query'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 export default function EditScheduleFormPage() {
   const navigate = useNavigate()
@@ -163,12 +164,7 @@ export default function EditScheduleFormPage() {
 
   const selectClass = "w-full h-12 rounded-lg bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none border border-slate-200 dark:border-slate-800 dark:text-white"
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-[200px] gap-2 text-slate-500">
-      <Loader2 className="w-5 h-5 animate-spin" />
-      <span className="text-sm">Cargando...</span>
-    </div>
-  )
+  if (loading) return <LoadingSpinner message="Cargando datos del horario..." />;
 
   return (
     <FormView exiting={exiting}>

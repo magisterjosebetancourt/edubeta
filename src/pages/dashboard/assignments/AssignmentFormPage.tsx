@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useNavigate, useParams } from 'react-router-dom'
 import { FormView } from '@/components/ui/FormView'
 import { Button } from '@/components/ui/button'
@@ -117,7 +118,7 @@ export default function AssignmentFormPage() {
 
   const selectClass = "w-full h-12 rounded-lg bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none border border-slate-200 dark:border-slate-800 dark:text-white"
 
-  if (loading) return <div className="p-8 text-center text-sm text-slate-500">Cargando datos...</div>
+  if (loading) return <LoadingSpinner message="Cargando datos de asignación..." />;
 
   return (
     <FormView exiting={exiting}>

@@ -15,7 +15,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useStudents, useGrades } from '@/lib/hooks/useFirebaseData';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Search, Edit, MapPin, UserPlus, FileUp } from "lucide-react";
+import { Search, Edit, MapPin, UserPlus, FileUp, FileSignature } from "lucide-react";
 
 type Grade = { id: string; name: string };
 
@@ -286,23 +286,32 @@ export default function StudentsPage() {
               </div>
 
               {/* Acciones */}
-              {userRole !== "teacher" && (
-                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50 flex items-center justify-end gap-2">
-                  <button
-                    onClick={() => navigate(`/dashboard/students/${student.id}/edit`)}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                  >
-                    <Edit className="w-4 h-4" />
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => handleDelete(student.id)}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
-                  >
-                    Eliminar
-                  </button>
-                </div>
-              )}
+              <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50 flex flex-wrap items-center justify-end gap-2">
+                <button
+                  onClick={() => navigate(`/dashboard/students/${student.id}/observations`, { state: { student } })}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-primary hover:bg-primary/10 transition-colors shadow-sm border border-primary/20"
+                >
+                  <FileSignature className="w-4 h-4" />
+                  Observador
+                </button>
+                {userRole !== "teacher" && (
+                  <>
+                    <button
+                      onClick={() => navigate(`/dashboard/students/${student.id}/edit`)}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <Edit className="w-4 h-4" />
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => handleDelete(student.id)}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                    >
+                      Eliminar
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           ))
         )}

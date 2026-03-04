@@ -24,10 +24,8 @@ export default function NewTeacherFormPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!fullName.trim() || !email.trim()) {
-      toast.error('Completa nombre y correo')
-      return
-    }
+    if (!fullName.trim()) { toast.error('El nombre completo es obligatorio'); return }
+    if (!email.trim() || !email.includes('@')) { toast.error('Ingresa un correo institucional válido'); return }
     setSaving(true)
     const token = Math.floor(10000 + Math.random() * 90000).toString()
     try {

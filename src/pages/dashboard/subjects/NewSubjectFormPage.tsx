@@ -24,7 +24,7 @@ export default function NewSubjectFormPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) { toast.error('El nombre es requerido'); return }
+    if (!name.trim()) { toast.error('El nombre de la asignatura es obligatorio'); return }
     setSaving(true)
     try {
       const docRef = await addDoc(collection(db, 'subjects'), {

@@ -118,3 +118,16 @@ EduBeta es una plataforma de gestión académica integral diseñada para institu
   - Para Rol Administrador/Coordinador se implementó un campo de selección (select) para elegir el docente activo.
   - Generado el hook custom `useSchedules()` de React Query para escrituras locales optimistas.
   - Accesible desde "Menú -> Herramientas".
+
+## Registro de Cambios (03/03/2026) - Fase Observador del Estudiante
+- M�dulo Observador (Ley 1620 y 1098):
+  - ObservadorList.tsx: Tabla (PC) y Cards (M�vil) para consultar el hist�rico.
+  - StudentObservationsPage.tsx: Vista detallada. REGLA APLICADA: Se elimin� el bot�n de 'Atr�s' (flecha izquierda) aline�ndose a la regla global de EduBeta.
+  - ObservadorForm.tsx: Registro de anotaciones pre-cargando par�metros. Estandarizaci�n de botones.
+
+## Registro de Cambios (04/03/2026) – Estandarización y Validación
+- Implementación de LoadingSpinner.tsx de forma global en DashboardLayout.tsx e integración en todos los formularios del sistema para una carga visual consistente.
+- Refuerzo de políticas de validación de formularios:
+  - Uso obligatorio de .trim() en campos de texto.
+  - Validación específica de campos obligatorios con retroalimentación vía toast.error.
+  - Prevención de envíos de formularios con datos nulos o vacíos.

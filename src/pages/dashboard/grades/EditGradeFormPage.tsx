@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useNavigate, useParams } from 'react-router-dom'
 import { FormView } from '@/components/ui/FormView'
 import { useQueryClient } from '@tanstack/react-query'
@@ -72,13 +73,7 @@ export default function EditGradeFormPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="p-8 text-center text-sm text-slate-500">
-        Cargando grupo...
-      </div>
-    )
-  }
+  if (loading) return <LoadingSpinner message="Cargando datos del grupo..." />;
 
   return (
     <FormView exiting={exiting}>

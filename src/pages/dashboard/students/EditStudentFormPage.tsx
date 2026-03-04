@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useNavigate, useParams } from 'react-router-dom'
 import { FormView } from '@/components/ui/FormView'
 import { useQueryClient } from '@tanstack/react-query'
@@ -107,10 +108,10 @@ export default function EditStudentFormPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!firstName.trim() || !lastName.trim() || !selectedGradeId) {
-      toast.error('Completa nombre, apellido y grupo')
-      return
-    }
+    if (!lastName.trim()) { toast.error('El apellido es obligatorio'); return }
+    if (!firstName.trim()) { toast.error('El nombre es obligatorio'); return }
+    if (!selectedGradeId) { toast.error('Debes seleccionar el grupo'); return }
+    
     setSaving(true)
     try {
       await updateDoc(doc(db, 'students', id!), {
@@ -141,7 +142,7 @@ export default function EditStudentFormPage() {
     }
   }
 
-  if (loadingData) return <div className="p-8 text-center text-sm text-slate-500">Cargando datos...</div>
+  if (loadingData) return <LoadingSpinner message="Cargando datos del estudiante..." />;
 
   return (
     <FormView exiting={exiting}>

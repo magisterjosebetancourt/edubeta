@@ -6,6 +6,7 @@ import { doc, getDoc } from 'firebase/firestore'
 import { useUserProfile } from '@/lib/context/UserProfileContext'
 import { School as SchoolIcon, Menu, ArrowLeft } from "lucide-react"
 import { useState, useEffect } from 'react'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 export default function DashboardLayout() {
   const location = useLocation()
@@ -62,6 +63,8 @@ export default function DashboardLayout() {
     if (section === 'attendance' && sub === 'session') return 'Editar sesión'
     if (section === 'schedules' && sub === 'new') return 'Nueva hora de clase'
     if (section === 'schedules' && action === 'edit') return 'Editar hora de clase'
+    if (section === 'observations' && sub === 'new') return 'Nueva anotación'
+    if (section === 'observations' && sub && sub !== 'new') return 'Descargos'
 
     if (!section || section === 'dashboard') return 'Inicio'
 
@@ -80,7 +83,8 @@ export default function DashboardLayout() {
       'todos': 'Tareas',
       'menu': 'Menú',
       'infractions': 'Faltas',
-      'schedules': 'Horario de Clases'
+      'schedules': 'Horarios de Clase',
+      'observations': 'Observador'
     }
 
     return titles[section] || section.charAt(0).toUpperCase() + section.slice(1)
@@ -100,7 +104,7 @@ export default function DashboardLayout() {
 
   const isMainPage = ['/dashboard', '/dashboard/', '/dashboard/menu'].includes(location.pathname)
 
-  if (loading) return <div className="h-screen w-full flex items-center justify-center bg-gray-50 dark:bg-gray-900 font-bold text-primary animate-pulse">Cargando...</div>
+  if (loading) return <LoadingSpinner fullScreen />;
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">

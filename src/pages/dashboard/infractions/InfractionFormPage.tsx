@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useNavigate, useParams } from 'react-router-dom'
 import { FormView } from '@/components/ui/FormView'
 import { Button } from '@/components/ui/button'
@@ -70,7 +71,8 @@ export default function InfractionFormPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!studentId) { toast.error('Selecciona un estudiante'); return }
+    if (!studentId) { toast.error('Debes seleccionar un estudiante'); return }
+    if (!description.trim()) { toast.error('La descripción del hecho es obligatoria'); return }
     setSaving(true)
 
     const selectedStudent = students.find(s => s.id === studentId)
@@ -104,12 +106,7 @@ export default function InfractionFormPage() {
 
   const selectClass = "w-full h-12 rounded-lg bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none border border-slate-200 dark:border-slate-800 dark:text-white"
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-[200px] gap-2 text-slate-500">
-      <Loader2 className="w-5 h-5 animate-spin" />
-      <span className="text-sm">Cargando...</span>
-    </div>
-  )
+  if (loading) return <LoadingSpinner message="Cargando datos de la falta..." />;
 
   return (
     <FormView exiting={exiting}>
