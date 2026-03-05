@@ -15,7 +15,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useStudents, useGrades } from '@/lib/hooks/useFirebaseData';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Search, Edit, MapPin, UserPlus, FileUp, FileSignature } from "lucide-react";
+import { Search, Edit, MapPin, UserPlus, FileUp, FileSignature, Trash2 } from "lucide-react";
 
 type Grade = { id: string; name: string };
 
@@ -173,7 +173,7 @@ export default function StudentsPage() {
             <input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-100 dark:bg-[#1e2536] border rounded-lg py-3 pl-10 pr-4 text-sm text-slate-900 dark:text-white placeholder-slate-500 focus:ring-2 focus:ring-primary/50 transition-all outline-none"
+              className="w-full bg-slate-100 dark:bg-[#1e2536] border rounded-[5px] py-3 pl-10 pr-4 text-sm text-slate-900 dark:text-white placeholder-slate-500 focus:ring-2 focus:ring-primary/50 transition-all outline-none"
               placeholder="Buscar por apellido o nombre..."
               type="text"
             />
@@ -183,7 +183,7 @@ export default function StudentsPage() {
             <select
               value={filterGradeId}
               onChange={(e) => setFilterGradeId(e.target.value)}
-              className="col-span-2 w-full bg-slate-100 dark:bg-[#1e2536] border dark:border-slate-800 rounded-lg py-3 px-4 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 transition-all outline-none appearance-none"
+              className="col-span-2 w-full bg-slate-100 dark:bg-[#1e2536] border dark:border-slate-800 rounded-[5px] py-3 px-4 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 transition-all outline-none appearance-none"
             >
               <option value="">Grados</option>
               {grades.map((g) => (
@@ -196,7 +196,7 @@ export default function StudentsPage() {
                 <Button
                   onClick={() => navigate("/dashboard/students/import")}
                   variant="outline"
-                  className="rounded-lg h-auto py-3 gap-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#1e2536] text-slate-700 dark:text-slate-200"
+                  className="rounded-[5px] h-auto py-3 gap-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#1e2536] text-slate-700 dark:text-slate-200"
                 >
                   <FileUp className="w-4 h-4" />
                   <span className="hidden lg:inline">Carga Masiva</span>
@@ -204,11 +204,11 @@ export default function StudentsPage() {
                 </Button>
                 <Button
                   onClick={() => navigate("/dashboard/students/new")}
-                  className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3 gap-2 shadow-lg shadow-primary/20"
+                  className="bg-primary hover:bg-primary/90 text-white rounded-[5px] h-auto py-3 gap-2 shadow-lg shadow-primary/20"
                 >
                   <UserPlus className="w-4 h-4" />
                   <span className="hidden lg:inline">Matricular</span>
-                  <span className="lg:hidden text-xs">Añadir</span>
+                  <span className="lg:hidden text-xs">AÃ±adir</span>
                 </Button>
               </div>
             )}
@@ -226,11 +226,11 @@ export default function StudentsPage() {
           filteredStudents.map((student) => (
             <div
               key={student.id}
-              className="group relative bg-white dark:bg-[#151b2d] rounded-lg p-4 border border-slate-200 dark:border-slate-800 shadow-sm active:scale-[0.99] transition-all"
+              className="group relative bg-white dark:bg-[#151b2d] rounded-[5px] p-4 border border-slate-200 dark:border-slate-800 shadow-sm active:scale-[0.99] transition-all"
             >
               <div className="flex justify-between items-start mb-2">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-sm">
+                  <div className="h-10 w-auto rounded-full bg-[#C6E7FC] flex items-center justify-center text-[#0099FE] font-semibold text-sm">
                     {student.last_name.charAt(0)}
                     {student.first_name.charAt(0)}
                   </div>
@@ -238,16 +238,21 @@ export default function StudentsPage() {
                     className="cursor-pointer"
                     onClick={() => navigate(`/dashboard/students/${student.id}`)}
                   >
-                    <h3 className="font-semibold text-slate-900 dark:text-white leading-tight hover:text-primary transition-colors">
-                      {student.last_name}, {student.first_name}
-                    </h3>
+                    <div className="flex flex-col">
+                      <h3 className="font-semibold text-slate-900 dark:text-white leading-tight uppercase tracking-tight">
+                        {student.last_name}
+                      </h3>
+                      <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                        {student.first_name}
+                      </p>
+                    </div>
                     {student.neighborhood && (
-                      <p className="text-[10px] text-primary font-semibold tracking-tight flex items-center gap-1">
+                      <p className="text-[10px] text-primary font-semibold tracking-tight flex items-center gap-1 mt-1">
                         <MapPin className="w-2.5 h-2.5" />
                         {student.neighborhood}
                       </p>
                     )}
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    <p className="text-[10px] text-slate-400 font-semibold mt-0.5 uppercase tracking-wider">
                       Acudiente: No registrado
                     </p>
                   </div>
@@ -286,27 +291,28 @@ export default function StudentsPage() {
               </div>
 
               {/* Acciones */}
-              <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50 flex flex-wrap items-center justify-end gap-2">
+              <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-nowrap items-center justify-end w-full gap-1 overflow-x-auto">
                 <button
                   onClick={() => navigate(`/dashboard/students/${student.id}/observations`, { state: { student } })}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-primary hover:bg-primary/10 transition-colors shadow-sm border border-primary/20"
+                  className="flex flex-1 min-w-0 items-center gap-2 px-2 py-2 rounded-[5px] text-xs font-semibold text-primary bg-primary/5 hover:bg-primary/10 transition-all border border-primary/20"
                 >
                   <FileSignature className="w-4 h-4" />
-                  Observador
+                  Anotación
                 </button>
                 {userRole !== "teacher" && (
                   <>
                     <button
                       onClick={() => navigate(`/dashboard/students/${student.id}/edit`)}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      className="flex flex-1 min-w-0 items-center gap-2 px-2 py-2 rounded-[5px] text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 transition-all"
                     >
                       <Edit className="w-4 h-4" />
                       Editar
                     </button>
                     <button
                       onClick={() => handleDelete(student.id)}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                      className="flex flex-1 min-w-0 items-center gap-2 px-2 py-2 rounded-[5px] text-xs font-semibold text-red-500 bg-white dark:bg-slate-900 border border-red-100 dark:border-red-900/30 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
                     >
+                      <Trash2 className="w-4 h-4" />
                       Eliminar
                     </button>
                   </>
