@@ -65,6 +65,9 @@ export default function DashboardLayout() {
     if (section === 'schedules' && action === 'edit') return 'Editar hora de clase'
     if (section === 'observations' && sub === 'new') return 'Nueva anotación'
     if (section === 'observations' && sub && sub !== 'new') return 'Descargos'
+    if (section === 'isa') return 'ISA'
+    if (section === 'documents' && sub === 'lists') return 'Listas escolares'
+    if (section === 'documents' && sub === 'reports') return 'Informes'
 
     if (!section || section === 'dashboard') return 'Inicio'
 

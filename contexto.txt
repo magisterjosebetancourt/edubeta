@@ -131,3 +131,13 @@ EduBeta es una plataforma de gestión académica integral diseñada para institu
   - Uso obligatorio de .trim() en campos de texto.
   - Validación específica de campos obligatorios con retroalimentación vía toast.error.
   - Prevención de envíos de formularios con datos nulos o vacíos.
+
+### Módulo ISA (Informe de Seguimiento Académico)
+- Permite calificar indicadores I1, I2 e I3.
+- Implementa el patrón de Selectores Jerárquicos para Coordinador y Admin.
+- Solo los registros con selecciones activas se guardan en la base de datos.
+
+
+- DiseÃ±o EstÃ¡ndar de PDF (EduBeta): Sync con Skill.md (Encabezado 14pt/11pt/9pt, Tablas 8pt Grid, Pie 7pt).
+
+- Botones de formulario: Primario (Azul, Mayúsculas, Sombra XL), Secundario (Blanco, Borde, Icono X).

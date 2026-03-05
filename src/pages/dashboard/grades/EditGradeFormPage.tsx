@@ -7,18 +7,22 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Save, X } from 'lucide-react'
+import { Save, X, User } from 'lucide-react'
 import { db } from '@/lib/firebase/config'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
+import { useTeachers } from '@/lib/hooks/useFirebaseData'
 
 export default function EditGradeFormPage() {
   const navigate = useNavigate()
   const { id } = useParams<{ id: string }>()
   const queryClient = useQueryClient()
   const [name, setName] = useState('')
+  const [directorId, setDirectorId] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [exiting, setExiting] = useState(false)
+
+  const { data: teachers = [] } = useTeachers()
 
   useEffect(() => {
     if (!id) return
@@ -30,7 +34,9 @@ export default function EditGradeFormPage() {
           navigate('/dashboard/grades', { replace: true })
           return
         }
-        setName(snap.data().name || '')
+        const data = snap.data()
+        setName(data.name || '')
+        setDirectorId(data.director_id || '')
       } catch (error: any) {
         toast.error('Error al cargar el grupo', { description: error.message })
       } finally {
@@ -54,12 +60,15 @@ export default function EditGradeFormPage() {
     }
     setSaving(true)
     try {
-      await updateDoc(doc(db, 'grades', id!), { name: name.trim() })
+      await updateDoc(doc(db, 'grades', id!), { 
+        name: name.trim(),
+        director_id: directorId || null
+      })
       
       // Update local cache
       queryClient.setQueryData(['grades'], (old: any) => {
         if (!old) return old
-        const newList = old.map((g: any) => g.id === id ? { ...g, name: name.trim() } : g)
+        const newList = old.map((g: any) => g.id === id ? { ...g, name: name.trim(), director_id: directorId || null } : g)
         return newList.sort((a: any, b: any) => a.name.localeCompare(b.name, "es"))
       })
 
@@ -90,6 +99,25 @@ export default function EditGradeFormPage() {
             className="h-12 text-sm bg-slate-100 dark:bg-[#1e2536]
               border dark:border-slate-800 focus:ring-2 focus:ring-primary/50"
           />
+        </div>
+
+        {/* Director de Grupo */}
+        <div className="space-y-2">
+          <Label>Director de Grupo</Label>
+          <div className="relative">
+            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <select
+              value={directorId}
+              onChange={e => setDirectorId(e.target.value)}
+              className="w-full bg-slate-100 dark:bg-[#1e2536] border dark:border-slate-800 rounded-lg py-3 px-4 pl-11 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary/50 appearance-none transition-all"
+            >
+              <option value="">Sin asignar por defecto</option>
+              {teachers.map((t: any) => (
+                <option key={t.id} value={t.id}>{t.full_name}</option>
+              ))}
+            </select>
+          </div>
+          <p className="text-[10px] text-slate-400">Solo aparecen docentes y coordinadores registrados.</p>
         </div>
 
         {/* Acciones */}

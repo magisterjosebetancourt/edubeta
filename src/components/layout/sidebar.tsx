@@ -15,7 +15,9 @@ import {
   MapPin,
   CheckCircle2,
   ShieldAlert,
-  ClipboardList
+  ClipboardList,
+  FileBarChart2,
+  FolderOpen
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -49,6 +51,19 @@ const sidebarItems = [
       { title: 'Faltas', href: '/dashboard/infractions', icon: ShieldAlert },
       { title: 'Configuración', href: '/dashboard/settings', icon: Settings },
     ]
+  },
+  {
+    category: "Herramientas",
+    items: [
+      { title: 'ISA', href: '/dashboard/isa', icon: FileBarChart2 },
+    ]
+  },
+  {
+    category: "Documentos",
+    items: [
+      { title: 'Listas', href: '/dashboard/documents/lists', icon: FolderOpen },
+      { title: 'Informes', href: '/dashboard/documents/reports', icon: FolderOpen },
+    ]
   }
 ]
 
@@ -80,6 +95,24 @@ export function SidebarContent({ className, onLinkClick }: { className?: string,
           return false
         }
       }
+
+      // ISA solo para admin, coordinator, teacher
+      if (item.title === 'ISA') {
+        const role = userProfile?.role?.toLowerCase() || ''
+        return ['admin', 'coordinator', 'teacher'].includes(role)
+      }
+
+      // Documentos - Informes solo para admin y coordinator
+      if (item.title === 'Informes') {
+        const role = userProfile?.role?.toLowerCase() || ''
+        return ['admin', 'coordinator'].includes(role)
+      }
+
+      if (item.title === 'Listas') {
+        const role = userProfile?.role?.toLowerCase() || ''
+        return ['admin', 'coordinator', 'teacher'].includes(role)
+      }
+
       return true
     })
   })).filter(group => group.items.length > 0)

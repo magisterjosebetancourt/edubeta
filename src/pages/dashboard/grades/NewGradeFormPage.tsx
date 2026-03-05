@@ -5,9 +5,10 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Save, X } from 'lucide-react'
+import { Save, X, User } from 'lucide-react'
 import { db } from '@/lib/firebase/config'
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
+import { useTeachers } from '@/lib/hooks/useFirebaseData'
 
 const LEVELS = [
   { id: 'preescolar', name: 'Preescolar', grades: ['Transición'] },
@@ -39,8 +40,11 @@ export default function NewGradeFormPage() {
   const [selectedLevel, setSelectedLevel] = useState('')
   const [selectedGradeName, setSelectedGradeName] = useState('')
   const [groupSuffix, setGroupSuffix] = useState('')
+  const [directorId, setDirectorId] = useState('')
   const [saving, setSaving] = useState(false)
   const [exiting, setExiting] = useState(false)
+
+  const { data: teachers = [] } = useTeachers()
 
   /** Activa la animación de salida y luego navega atrás (sin reload de página) */
   const handleCancel = () => {
@@ -67,6 +71,7 @@ export default function NewGradeFormPage() {
     try {
       const docRef = await addDoc(collection(db, 'grades'), {
         name: finalName,
+        director_id: directorId || null,
         state: true,
         created_at: serverTimestamp(),
       })
@@ -139,6 +144,25 @@ export default function NewGradeFormPage() {
             Resultado: <span className="font-semibold text-slate-600 dark:text-slate-300">601</span> (Sexto + 01)
             o <span className="font-semibold text-slate-600 dark:text-slate-300">Transición A</span>.
           </p>
+        </div>
+
+        {/* Director de Grupo */}
+        <div className="space-y-2">
+          <Label>Director de Grupo</Label>
+          <div className="relative">
+            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <select
+              value={directorId}
+              onChange={e => setDirectorId(e.target.value)}
+              className={`${fieldClass} pl-11`}
+            >
+              <option value="">Sin asignar por defecto</option>
+              {teachers.map((t: any) => (
+                <option key={t.id} value={t.id}>{t.full_name}</option>
+              ))}
+            </select>
+          </div>
+          <p className="text-[10px] text-slate-400">Solo aparecen docentes y coordinadores registrados.</p>
         </div>
 
         {/* Acciones */}

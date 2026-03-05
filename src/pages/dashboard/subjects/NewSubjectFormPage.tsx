@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FormView } from '@/components/ui/FormView'
 import { useQueryClient } from '@tanstack/react-query'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
@@ -68,14 +67,16 @@ export default function NewSubjectFormPage() {
           />
         </div>
         <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
-          <Button type="button" variant="ghost" onClick={handleCancel} disabled={saving}
-            className="w-full sm:w-auto rounded-lg h-auto py-3.5 px-6 font-semibold text-sm text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
-            <X className="w-4 h-4 mr-1.5" />Cancelar
-          </Button>
-          <Button type="submit" disabled={saving}
-            className="w-full sm:flex-1 bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 gap-2 shadow-xl shadow-primary/20 font-semibold text-sm transition-all active:scale-[0.98]">
-            <Save className="w-4 h-4" />{saving ? 'Creando...' : 'Crear asignatura'}
-          </Button>
+          <button type="button" onClick={handleCancel} disabled={saving}
+            className="w-full sm:w-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl py-4 flex items-center justify-center gap-3 font-semibold text-sm shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-all h-[60px] px-8">
+            <X className="w-5 h-5 text-slate-400" />
+            Cancelar
+          </button>
+          <button type="submit" disabled={saving}
+            className="w-full sm:flex-1 bg-primary hover:bg-primary/90 disabled:opacity-50 text-white rounded-2xl py-4 flex items-center justify-center gap-3 font-bold text-sm tracking-widest shadow-xl shadow-primary/30 active:scale-[0.98] transition-all h-[60px] uppercase px-8">
+            <Save className="w-5 h-5 text-white" />
+            {saving ? 'CREANDO...' : 'CREAR ASIGNATURA'}
+          </button>
         </div>
       </form>
     </FormView>

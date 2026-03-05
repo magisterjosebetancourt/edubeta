@@ -56,3 +56,28 @@ export function useAssignments() {
     },
   });
 }
+
+export function useTeachers() {
+  return useQuery({
+    queryKey: ['teachers'],
+    queryFn: async () => {
+      const snap = await getDocs(collection(db, 'profiles'));
+      return snap.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as any))
+        .filter(p => ['teacher', 'coordinator'].includes(p.role?.toLowerCase()))
+        .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
+    },
+  });
+}
+
+export function usePeriods() {
+  return useQuery({
+    queryKey: ['periods'],
+    queryFn: async () => {
+      const snap = await getDocs(collection(db, 'academic_periods'));
+      return snap.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as any))
+        .sort((a, b) => a.period_number - b.period_number);
+    },
+  });
+}

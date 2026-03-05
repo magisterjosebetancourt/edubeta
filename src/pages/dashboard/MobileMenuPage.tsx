@@ -18,7 +18,9 @@ import {
   User as UserIcon,
   CheckCircle2,
   ShieldAlert,
-  ClipboardList
+  ClipboardList,
+  FileBarChart2,
+  FolderOpen
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -85,8 +87,16 @@ export default function MobileMenuPage() {
                 { title: 'Observador', href: '/dashboard/observations', icon: ClipboardList, color: 'text-cyan-500', bg: 'bg-cyan-50 dark:bg-cyan-900/20' },
                 { title: 'Historial', href: '/dashboard/history', icon: PieChart, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
                 { title: 'Faltas', href: '/dashboard/infractions', icon: ShieldAlert, color: 'text-rose-600', bg: 'bg-rose-50 dark:bg-rose-900/20' },
+                { title: 'ISA', href: '/dashboard/isa', icon: FileBarChart2, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
                 { title: 'Horario', href: '/dashboard/schedules', icon: CalendarDays, color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
                 { title: 'Configuración', href: '/dashboard/settings', icon: Settings, color: 'text-slate-500', bg: 'bg-slate-50 dark:bg-slate-900/20' },
+            ]
+        },
+        {
+            category: "Documentos",
+            items: [
+                { title: 'Listas', href: '/dashboard/documents/lists', icon: FolderOpen, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+                { title: 'Informes', href: '/dashboard/documents/reports', icon: FolderOpen, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/20' },
             ]
         }
     ]
@@ -99,6 +109,24 @@ export default function MobileMenuPage() {
                     return false
                 }
             }
+
+            // ISA solo para admin, coordinator, teacher
+            if (item.title === 'ISA') {
+                const role = userProfile?.role?.toLowerCase() || ''
+                return ['admin', 'coordinator', 'teacher'].includes(role)
+            }
+
+            // Documentos - Informes solo para admin y coordinator
+            if (item.title === 'Informes') {
+                const role = userProfile?.role?.toLowerCase() || ''
+                return ['admin', 'coordinator'].includes(role)
+            }
+
+            if (item.title === 'Listas') {
+                const role = userProfile?.role?.toLowerCase() || ''
+                return ['admin', 'coordinator', 'teacher'].includes(role)
+            }
+
             return true
         })
     })).filter(group => group.items.length > 0)
@@ -113,7 +141,7 @@ export default function MobileMenuPage() {
                  </div>
                  <div className="min-w-0">
                      <h1 className="text-xl font-bold text-slate-900 dark:text-white truncate">Hola, {userProfile?.full_name.split(' ')[0]}</h1>
-                     <p className="text-[10px] font-black tracking-widest text-primary">
+                     <p className="text-[10px] font-black tracking-widest text-primary uppercase">
                         {userProfile?.role === 'admin' ? 'Administrador' : userProfile?.role === 'coordinator' ? 'Coordinador' : 'Docente'}
                      </p>
                  </div>

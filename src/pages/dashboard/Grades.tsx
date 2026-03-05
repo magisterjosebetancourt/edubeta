@@ -6,7 +6,7 @@ import {
   deleteDoc, 
   doc
 } from 'firebase/firestore'
-import { useGrades, useStudents } from '@/lib/hooks/useFirebaseData'
+import { useGrades, useStudents, useTeachers } from '@/lib/hooks/useFirebaseData'
 import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -19,6 +19,7 @@ type Grade = {
   state?: boolean;
   created_at?: any;
   studentCount?: number;
+  director_id?: string | null;
 };
 
 // Estructura Ley 115 de 1994 (Colombia)
@@ -36,6 +37,7 @@ export default function GradesPage() {
   
   const { data: gradesData, isLoading: loadingGrades } = useGrades()
   const { data: studentsData, isLoading: loadingStudents } = useStudents()
+  const { data: teachersData } = useTeachers()
   const queryClient = useQueryClient()
 
   useEffect(() => {
@@ -209,6 +211,11 @@ export default function GradesPage() {
                                 {group.studentCount ?? 0} {(group.studentCount ?? 0) === 1 ? 'estudiante' : 'estudiantes'}
                               </span>
                             </div>
+                            {group.director_id && (
+                              <p className="text-[10px] text-slate-400 mt-0.5 italic">
+                                Dir: <span className="text-slate-500 font-semibold">{teachersData?.find((t: any) => t.id === group.director_id)?.full_name || 'Cargando...'}</span>
+                              </p>
+                            )}
                             <span
                               className="text-[10px] text-slate-500 font-medium cursor-pointer hover:underline"
                               onClick={() => navigate(`/dashboard/grades/${group.id}/students`)}
