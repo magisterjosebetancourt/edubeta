@@ -45,7 +45,7 @@ export default function StudentDefenseForm() {
     return (
       <div className="p-8 text-center max-w-2xl mx-auto space-y-4">
         <AlertCircle className="w-12 h-12 text-slate-400 mx-auto" />
-        <h2 className="text-xl font-bold">Anotación no encontrada</h2>
+        <h2 className="text-xl font-semibold">Anotación no encontrada</h2>
         <Button onClick={() => navigate(-1)} variant="outline">Volver</Button>
       </div>
     );

@@ -22,7 +22,7 @@ export function LoadingSpinner({
         <Loader2 className="h-14 w-14 animate-spin text-primary absolute stroke-[2.5]" />
       </div>
       <div className="flex flex-col gap-1.5 items-center">
-        <p className="text-sm font-bold text-slate-800 dark:text-slate-100 tracking-wide">
+        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 tracking-wide">
           {message}
         </p>
         {!fullScreen && (

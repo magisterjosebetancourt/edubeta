@@ -129,7 +129,7 @@ export default function DashboardPage() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center h-full pt-20 text-slate-400 font-bold uppercase tracking-widest text-xs">Cargando dashboard...</div>
+    return <div className="flex items-center justify-center h-full pt-20 text-slate-400 font-semibold uppercase tracking-widest text-xs">Cargando dashboard...</div>
   }
 
   return (
@@ -137,11 +137,11 @@ export default function DashboardPage() {
       {/* Header local - Solo visible en desktop */}
       <header className="hidden lg:flex h-16 bg-white dark:bg-[#1a182e] border-b border-slate-200 dark:border-slate-800 items-center justify-between px-4 lg:px-8 shrink-0 sticky top-0 z-30">
         <div className="flex items-center gap-4">
-          <h2 className="text-lg font-bold text-slate-800 dark:text-white uppercase tracking-tight">Panel Principal</h2>
+          <h2 className="text-lg font-semibold text-slate-800 dark:text-white uppercase tracking-tight">Panel Principal</h2>
         </div>
         <div className="flex items-center gap-4">
            <div className="text-right">
-              <p className="text-xs font-bold text-slate-900 dark:text-white leading-none">{userProfile?.full_name}</p>
+              <p className="text-xs font-semibold text-slate-900 dark:text-white leading-none">{userProfile?.full_name}</p>
               <p className="text-[10px] font-medium text-primary uppercase tracking-tighter">{userProfile?.role}</p>
            </div>
            <Link to="/dashboard/profile" className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden transition-all hover:ring-2 hover:ring-primary/20 group">
@@ -167,7 +167,7 @@ export default function DashboardPage() {
                 <p className="text-indigo-100 text-sm font-medium mb-1 opacity-80 uppercase tracking-wider">
                   {userProfile?.role === 'admin' ? 'Total Estudiantes' : 'Mis Estudiantes'}
                 </p>
-                <h3 className="text-4xl font-bold tracking-tight">{stats.students}</h3>
+                <h3 className="text-4xl font-semibold tracking-tight">{stats.students}</h3>
               </div>
               <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
                 <Users className="text-white w-6 h-6" />
@@ -180,7 +180,7 @@ export default function DashboardPage() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1 uppercase tracking-wider">Asistencia Hoy</p>
-                <h3 className="text-4xl font-bold text-slate-800 dark:text-white">{stats.attendance}%</h3>
+                <h3 className="text-4xl font-semibold text-slate-800 dark:text-white">{stats.attendance}%</h3>
               </div>
               <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
                 <PieChart className="text-green-600 dark:text-green-400 w-6 h-6" />
@@ -200,7 +200,7 @@ export default function DashboardPage() {
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1 uppercase tracking-wider">Docentes</p>
-                  <h3 className="text-4xl font-bold text-slate-800 dark:text-white">{stats.teachers}</h3>
+                  <h3 className="text-4xl font-semibold text-slate-800 dark:text-white">{stats.teachers}</h3>
                 </div>
                 <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
                   <UserCheck className="text-primary dark:text-blue-400 w-6 h-6" />
@@ -214,7 +214,7 @@ export default function DashboardPage() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1 uppercase tracking-wider">Grados/Grupos</p>
-                <h3 className="text-4xl font-bold text-slate-800 dark:text-white">{stats.grades}</h3>
+                <h3 className="text-4xl font-semibold text-slate-800 dark:text-white">{stats.grades}</h3>
               </div>
               <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center text-green-600 dark:text-green-400">
                 <School className="w-6 h-6" />
@@ -227,7 +227,7 @@ export default function DashboardPage() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1 uppercase tracking-wider">Asignaturas</p>
-                <h3 className="text-4xl font-bold text-slate-800 dark:text-white">{stats.subjects}</h3>
+                <h3 className="text-4xl font-semibold text-slate-800 dark:text-white">{stats.subjects}</h3>
               </div>
               <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center text-amber-600 dark:text-amber-400">
                 <BookOpen className="w-6 h-6" />
@@ -254,7 +254,7 @@ export default function DashboardPage() {
                     <CheckCircle2 className="w-5 h-5 text-primary" />
                   </div>
                   <div className="text-left">
-                    <p className="text-xs font-bold text-slate-400 uppercase leading-none mb-1">Mis Tareas</p>
+                    <p className="text-xs font-semibold text-slate-400 uppercase leading-none mb-1">Mis Tareas</p>
                     <h5 className="font-black text-slate-800 dark:text-white text-lg">
                       {todos.length} Tareas
                     </h5>
@@ -265,7 +265,7 @@ export default function DashboardPage() {
               
               {openTasks && (
                 <div className="px-4 pb-4 animate-in slide-in-from-top-2 duration-300">
-                  <div className="pt-2 border-t border-slate-50 dark:border-slate-800/50 flex items-center justify-between text-[11px] font-bold uppercase tracking-wider pb-4">
+                  <div className="pt-2 border-t border-slate-50 dark:border-slate-800/50 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider pb-4">
                     <div className="flex flex-col items-center gap-1 flex-1 text-center">
                       <span className="text-slate-400">Pends</span>
                       <span className="text-lg text-slate-600 dark:text-slate-300">{todos.filter(t => t.status === 'pendiente').length}</span>
@@ -305,7 +305,7 @@ export default function DashboardPage() {
                         <LayoutGrid className="w-5 h-5 text-primary" />
                       </div>
                       <div className="text-left">
-                        <p className="text-xs font-bold text-slate-400 uppercase leading-none mb-1">Carga Salones</p>
+                        <p className="text-xs font-semibold text-slate-400 uppercase leading-none mb-1">Carga Salones</p>
                         <h5 className="font-black text-slate-800 dark:text-white text-lg">
                           {Array.from(new Set(assignments.map(a => a.grade_id))).length} Grupos
                         </h5>
@@ -321,7 +321,7 @@ export default function DashboardPage() {
                           .filter(Boolean)
                           .sort((a, b) => (gradeMap.get(a) || '').localeCompare(gradeMap.get(b) || ''))
                           .map((gradeId, idx) => (
-                            <div key={idx} className="px-3 py-2 bg-slate-50 dark:bg-slate-900/50 rounded-lg text-[10px] font-bold text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                            <div key={idx} className="px-3 py-2 bg-slate-50 dark:bg-slate-900/50 rounded-lg text-[10px] font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-2">
                               <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                               {gradeMap.get(gradeId) || 'N/A'}
                             </div>
@@ -342,7 +342,7 @@ export default function DashboardPage() {
                         <BookOpen className="w-5 h-5 text-orange-500" />
                       </div>
                       <div className="text-left">
-                        <p className="text-xs font-bold text-slate-400 uppercase leading-none mb-1">Asignaturas</p>
+                        <p className="text-xs font-semibold text-slate-400 uppercase leading-none mb-1">Asignaturas</p>
                         <h5 className="font-black text-slate-800 dark:text-white text-lg">
                           {Array.from(new Set(assignments.map(a => a.subject_id))).length} Asignaturas
                         </h5>
@@ -358,7 +358,7 @@ export default function DashboardPage() {
                           .filter(Boolean)
                           .sort()
                           .map((subjectName, idx) => (
-                            <div key={idx} className="px-3 py-2 bg-orange-50/50 dark:bg-orange-900/10 rounded-lg text-[9px] font-bold text-orange-700 dark:text-orange-400 flex items-center justify-between">
+                            <div key={idx} className="px-3 py-2 bg-orange-50/50 dark:bg-orange-900/10 rounded-lg text-[9px] font-semibold text-orange-700 dark:text-orange-400 flex items-center justify-between">
                               <span>{subjectName}</span>
                               <span className="text-[8px] bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded-md border border-orange-100 dark:border-orange-800/50">
                                 {assignments.filter(a => a.subjects?.name === subjectName).length} Grupos

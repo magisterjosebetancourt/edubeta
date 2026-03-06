@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Trash2, Mail, Plus, Pencil, Copy, CheckCircle2, UserCheck, UserMinus } from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 type Teacher = {
   id: string;
@@ -91,7 +92,7 @@ export default function TeachersPage() {
   };
 
   if (loading && teachers.length === 0 && invites.length === 0)
-    return <div className="p-8 text-center text-slate-500 text-xs tracking-widest animate-pulse">Cargando gestión docente...</div>;
+    return <LoadingSpinner message="Cargando gestión docente..." />;
 
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen pb-24">
@@ -102,10 +103,10 @@ export default function TeachersPage() {
           </p>
           <Button
             onClick={() => navigate("/dashboard/teachers/new")}
-            className="bg-primary hover:bg-primary/90 text-white rounded-[5px] h-auto py-3 px-6 gap-2 shadow-xl shadow-primary/20 font-bold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 uppercase"
+            className="bg-primary hover:bg-primary/90 text-white rounded-[5px] h-auto py-3 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 uppercase"
           >
             <Plus className="w-5 h-5 stroke-[3]" />
-            Nueva invitaciÃ³n
+            Nueva invitación
           </Button>
         </div>
       </div>
@@ -128,7 +129,7 @@ export default function TeachersPage() {
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <button
                       onClick={() => copyToClipboard(invite.token)}
-                      className="flex items-center gap-1.5 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-[5px] text-xs font-mono font-bold text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-primary transition-colors shadow-sm"
+                      className="flex items-center gap-1.5 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-[5px] text-xs font-mono font-semibold text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-primary transition-colors shadow-sm"
                     >
                       {invite.token}
                       <Copy className="w-3 h-3" />
@@ -161,9 +162,13 @@ export default function TeachersPage() {
                 <div key={teacher.id} className="flex flex-col bg-slate-50 dark:bg-slate-800/30 rounded-[5px] border border-slate-100 dark:border-slate-800/50 overflow-hidden mb-3 last:mb-0">
                   <div className="flex items-center justify-between p-4">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-10 w-auto min-w-[40px] px-2 rounded-full bg-[#C6E7FC] flex items-center justify-center text-[#0099FE] font-semibold text-sm flex-shrink-0">
-                        {teacher.full_name?.charAt(0) || "?"}
-                      </div>
+                    <div className="h-10 w-10 rounded-full bg-[#C6E7FC] overflow-hidden flex items-center justify-center text-[#0099FE] font-semibold text-sm flex-shrink-0 border border-primary/10">
+                      {teacher.avatar_url ? (
+                        <img src={teacher.avatar_url} alt={teacher.full_name || ""} className="w-full h-full object-cover" />
+                      ) : (
+                        teacher.full_name?.charAt(0) || "?"
+                      )}
+                    </div>
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate uppercase tracking-tight">{teacher.full_name || "Sin nombre"}</p>
                         <p className="text-xs text-slate-500 truncate flex items-center gap-1.5">
@@ -173,7 +178,7 @@ export default function TeachersPage() {
                     </div>
                     <div className="flex flex-col items-end gap-1.5">
                       {teacher.role === 'coordinator' && (
-                        <span className="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400 px-2 py-0.5 rounded-[5px] text-[10px] font-bold tracking-wider uppercase">
+                        <span className="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400 px-2 py-0.5 rounded-[5px] text-[10px] font-semibold tracking-wider uppercase">
                           Coordinador
                         </span>
                       )}

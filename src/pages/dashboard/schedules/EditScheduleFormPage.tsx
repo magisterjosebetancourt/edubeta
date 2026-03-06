@@ -174,7 +174,7 @@ export default function EditScheduleFormPage() {
              <CalendarDays className="w-5 h-5 text-primary" />
            </div>
            <div>
-             <h2 className="text-lg font-bold text-slate-800 dark:text-white">Editar hora de clase</h2>
+             <h2 className="text-lg font-semibold text-slate-800 dark:text-white">Editar hora de clase</h2>
              <p className="text-xs text-slate-500 font-medium">Modifica la programación del docente.</p>
            </div>
         </div>

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Users, FileText, Printer, Layers, CheckSquare, Square, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -41,6 +42,10 @@ export default function ListsPage() {
   const { data: assignmentsData = [] } = useAssignments();
 
   const isAdminOrCoord = ['admin', 'coordinator'].includes(profile?.role?.toLowerCase() || '');
+
+  if (gradesData.length === 0 && studentsData.length === 0) {
+    return <LoadingSpinner message="Cargando datos escolares..." />;
+  }
 
   useEffect(() => {
     const fetchInstitution = async () => {
@@ -210,7 +215,7 @@ export default function ListsPage() {
               {isAdminOrCoord && (
                 <>
                   <div className="space-y-2">
-                    <Label className="text-xs ml-1 font-bold text-slate-400 uppercase tracking-widest">Nivel Educativo</Label>
+                    <Label className="text-xs ml-1 font-semibold text-slate-400 uppercase tracking-widest">Nivel Educativo</Label>
                     <div className="relative">
                       <Layers className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <select 
@@ -229,7 +234,7 @@ export default function ListsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-xs ml-1 font-bold text-slate-400 uppercase tracking-widest">Grado Escolar</Label>
+                    <Label className="text-xs ml-1 font-semibold text-slate-400 uppercase tracking-widest">Grado Escolar</Label>
                     <div className="relative">
                       <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <select 
@@ -260,7 +265,7 @@ export default function ListsPage() {
                       <Users className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                         Selección de Grupos
                       </p>
                       <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
@@ -271,14 +276,14 @@ export default function ListsPage() {
                   <div className="flex items-center gap-2 w-full sm:w-auto">
                     <button 
                       onClick={selectAll}
-                      className="text-[10px] h-9 px-4 rounded-xl font-bold uppercase tracking-tight flex-1 sm:flex-none border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 shadow-sm hover:bg-slate-50 transition-all"
+                      className="text-[10px] h-9 px-4 rounded-xl font-semibold uppercase tracking-tight flex-1 sm:flex-none border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 shadow-sm hover:bg-slate-50 transition-all"
                     >
                       Todos
                     </button>
                     <button 
                       onClick={clearSelection}
                       disabled={selectedGroupIds.length === 0}
-                      className="text-[10px] h-9 px-4 rounded-xl font-bold uppercase tracking-tight flex-1 sm:flex-none border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 shadow-sm hover:bg-slate-50 disabled:opacity-50 transition-all"
+                      className="text-[10px] h-9 px-4 rounded-xl font-semibold uppercase tracking-tight flex-1 sm:flex-none border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 shadow-sm hover:bg-slate-50 disabled:opacity-50 transition-all"
                     >
                       Limpiar
                     </button>
@@ -338,7 +343,7 @@ export default function ListsPage() {
           <button 
             onClick={generatePDF}
             disabled={selectedGroupIds.length === 0}
-            className="w-full sm:flex-1 bg-primary hover:bg-primary/90 disabled:opacity-50 text-white rounded-2xl py-4 flex items-center justify-center gap-3 font-bold text-sm tracking-widest shadow-xl shadow-primary/30 active:scale-[0.98] transition-all h-[60px] uppercase px-8"
+            className="w-full sm:flex-1 bg-primary hover:bg-primary/90 disabled:opacity-50 text-white rounded-2xl py-4 flex items-center justify-center gap-3 font-semibold text-sm tracking-widest shadow-xl shadow-primary/30 active:scale-[0.98] transition-all h-[60px] uppercase px-8"
           >
             <Printer className="w-5 h-5 text-white" />
             GENERAR PDF SELECCIÓN

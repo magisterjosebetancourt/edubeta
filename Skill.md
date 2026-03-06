@@ -7,6 +7,16 @@
   - **AcciÃ³n Principal (Guardar/Registrar)**: `bg-primary text-white rounded-2xl h-[60px] font-bold uppercase shadow-xl shadow-primary/30`. Siempre con icono.
   - **AcciÃ³n Secundaria (Cancelar)**: `bg-white border border-slate-200 text-slate-600 rounded-2xl h-[60px] font-semibold shadow-sm`. Siempre con icono `X`.
 
+## EstÃ¡ndares de UI/UX
+- **Indicadores de Carga**: Siempre usar el componente `<LoadingSpinner />` en lugar de textos planos como "Cargando...". Este componente incluye el logotipo institucional animado y un mensaje descriptivo.
+
+## Reglas de Identidad Visual
+- **Avatares de Usuarios**: 
+  - **Prioridad**: Siempre mostrar la foto de perfil (`avatar_url`) si está disponible.
+  - **Fallback**: Si no hay foto, mostrar la inicial del nombre.
+  - **Estilo**: Círculo perfecto (`rounded-full`), borde sutil (`border-primary/10`), ajuste de imagen `object-cover`.
+  - **Colores Fallback**: Fondo `#C6E7FC`, Texto `#0099FE` (Bold).
+
 ## EstÃ¡ndares de Documentos PDF
 - **TipografÃ­a**: Usar `helvetica`.
 - **Encabezado Institucional**:

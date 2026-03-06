@@ -6,13 +6,16 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { User, Mail, Shield, Save, Loader2, Image as ImageIcon } from 'lucide-react'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { toast } from 'sonner'
+import { useUserProfile } from '@/lib/context/UserProfileContext'
 
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
+  const { refreshProfile } = useUserProfile()
   
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
@@ -68,6 +71,7 @@ export default function ProfilePage() {
         // Auto-save profile with new avatar (Base64)
         await updateUserProfile({ avatar_url: base64String })
         setProfile((prev: any) => ({ ...prev, avatar_url: base64String }))
+        await refreshProfile()
         toast.success('Avatar actualizado (Base64)')
         setUploading(false)
       }
@@ -92,6 +96,7 @@ export default function ProfilePage() {
     try {
       setSaving(true)
       await updateUserProfile({ full_name: fullName }) // Avatar is already saved on upload
+      await refreshProfile()
       toast.success('Perfil actualizado correctamente')
     } catch (error: any) {
       toast.error('Error al guardar perfil', { description: error.message })
@@ -101,7 +106,7 @@ export default function ProfilePage() {
   }
 
 
-  if (loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin" /></div>
+  if (loading) return <LoadingSpinner message="Cargando perfil..." />;
 
   return (
     <div className="space-y-6 p-6 max-w-2xl mx-auto h-full overflow-y-auto pb-24">
@@ -220,9 +225,9 @@ export default function ProfilePage() {
           <Button 
             onClick={handleSave} 
             disabled={saving}
-            className="w-full rounded-lg shadow-2xl"
+            className="w-full bg-primary hover:bg-primary/90 text-white rounded-[5px] h-auto py-3.5 gap-2 shadow-xl shadow-primary/20 font-semibold text-sm transition-all active:scale-[0.98]"
           >
-            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Guardar Cambios
           </Button>
         </div>

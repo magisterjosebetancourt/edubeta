@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
 import { Button } from '../../components/ui/button';
@@ -21,7 +21,7 @@ export default function SettingsPage() {
     setSaving(true);
     setTimeout(() => {
       setSaving(false);
-      toast.success('Configuración guardada correctamente');
+      toast.success('Configuraci�n guardada correctamente');
     }, 500);
   };
 
@@ -33,7 +33,7 @@ export default function SettingsPage() {
           BETASOFT
         </p>
         <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-          Configuración
+          Configuraci�n
         </h1>
       </div>
       <div className="px-1 py-4 border-b border-slate-100 dark:border-slate-800">
@@ -56,7 +56,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-100 dark:border-slate-800">
               <div className="space-y-0.5">
                 <Label className="text-base font-semibold">Modo Oscuro</Label>
-                <p className="text-sm text-slate-500 underline decoration-primary/20">Configuración visual de la interfaz.</p>
+                <p className="text-sm text-slate-500 underline decoration-primary/20">Configuraci�n visual de la interfaz.</p>
               </div>
               <Switch 
                 checked={theme === 'dark'}
@@ -81,7 +81,7 @@ export default function SettingsPage() {
                 onClick={() => setLanguage('es')}
                 className="flex-1 rounded-lg h-11"
               >
-                Español
+                Espa�ol
               </Button>
               <Button 
                 variant={language === 'en' ? 'default' : 'outline'}

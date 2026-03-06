@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useNavigate, useParams } from 'react-router-dom'
 import { FormView } from '@/components/ui/FormView'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
-import { CheckCircle, XCircle, Clock, Search, FileText, Loader2, X } from 'lucide-react'
+import { CheckCircle, XCircle, Clock, Search, FileText, X } from 'lucide-react'
 import { db } from '@/lib/firebase/config'
 import {
   collection, getDocs, getDoc, setDoc, updateDoc, doc, query, where, writeBatch, serverTimestamp
@@ -146,18 +147,13 @@ export default function TakingAttendancePage() {
     `${s.last_name}, ${s.first_name}`.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-[300px] gap-2 text-slate-400">
-      <Loader2 className="w-5 h-5 animate-spin text-primary" />
-      <span className="text-sm font-medium">Cargando lista de clase...</span>
-    </div>
-  )
+  if (loading) return <LoadingSpinner message="Cargando lista de clase..." />;
 
   return (
     <FormView exiting={exiting}>
       {/* Session info banner */}
       <div className="-mx-4 sm:-mx-6 -mt-4 sm:-mt-6 px-4 sm:px-6 py-4 bg-primary/5 dark:bg-primary/10 border-b border-primary/10 mb-5">
-        <h3 className="font-bold text-slate-900 dark:text-white">{subjectName}</h3>
+        <h3 className="font-semibold text-slate-900 dark:text-white">{subjectName}</h3>
         <p className="text-[11px] text-primary font-semibold tracking-widest mt-0.5">
           {gradeName} · {dateLabel}
         </p>
@@ -253,7 +249,7 @@ export default function TakingAttendancePage() {
           <X className="w-4 h-4 mr-1.5" />Cancelar
         </Button>
         <Button type="button" onClick={handleFinish}
-          className="flex-1 bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 gap-2 shadow-xl shadow-primary/20 font-bold text-sm tracking-wide transition-all active:scale-[0.98]">
+          className="flex-1 bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 gap-2 shadow-xl shadow-primary/20 font-semibold text-sm tracking-wide transition-all active:scale-[0.98]">
           <CheckCircle className="w-4 h-4" />Finalizar asistencia
         </Button>
       </div>

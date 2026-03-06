@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { FormView } from '@/components/ui/FormView'
 import { Button } from '@/components/ui/button'
 import { CsvUploader } from '@/components/students/CsvUploader'
@@ -33,7 +34,7 @@ export default function ImportStudentsPage() {
     setTimeout(() => navigate('/dashboard/students', { replace: true }), 200)
   }
 
-  if (loading) return <div className="p-8 text-center text-sm text-slate-500">Cargando grados...</div>
+  if (loading) return <LoadingSpinner message="Cargando grados..." />;
 
   return (
     <FormView exiting={exiting}>

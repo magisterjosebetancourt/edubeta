@@ -131,7 +131,7 @@ export default function ObservadorList() {
       {/* Intro Text & Action Bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
         <div>
-          <h2 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+          <h2 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
             <ClipboardList className="w-5 h-5 text-primary" />
             Control de Observaciones
           </h2>
@@ -236,7 +236,7 @@ export default function ObservadorList() {
                     {obs.type}
                   </Badge>
                   {obs.law1620Category !== 'No Aplica' && (
-                    <Badge variant="destructive" className="font-bold text-[9px] uppercase tracking-wide bg-red-50 text-red-600 border border-red-200 dark:bg-red-900/20 dark:border-red-900/30 dark:text-red-400">
+                    <Badge variant="destructive" className="font-semibold text-[9px] uppercase tracking-wide bg-red-50 text-red-600 border border-red-200 dark:bg-red-900/20 dark:border-red-900/30 dark:text-red-400">
                       {obs.law1620Category}
                     </Badge>
                   )}
@@ -317,7 +317,7 @@ export default function ObservadorList() {
                           {obs.type}
                         </Badge>
                         {obs.law1620Category !== 'No Aplica' && (
-                          <div className="flex items-center gap-1 text-[10px] uppercase font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/10 px-1.5 py-0.5 rounded border border-red-100 dark:border-red-900/30">
+                          <div className="flex items-center gap-1 text-[10px] uppercase font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/10 px-1.5 py-0.5 rounded border border-red-100 dark:border-red-900/30">
                             <ShieldAlert className="w-3 h-3" />
                             {obs.law1620Category}
                           </div>

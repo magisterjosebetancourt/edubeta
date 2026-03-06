@@ -65,10 +65,10 @@ export default function LoginPage() {
             <GraduationCap className="w-8 h-8" />
           </div>
 
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">
             EduBeta
           </h1>
-          <p className="text-[10px] font-bold text-blue-600 tracking-widest">
+          <p className="text-[10px] font-semibold text-blue-600 tracking-widest">
             Por Betasoft
           </p>
 
@@ -181,7 +181,7 @@ export default function LoginPage() {
         <div className="mt-8 pt-6 border-t border-slate-100 text-center space-y-6">
           <p className="text-xs text-slate-500 font-medium">
             ¿No tienes una cuenta? <br className="sm:hidden" />
-            <a href="#" className="text-blue-600 font-bold hover:underline">
+            <a href="#" className="text-blue-600 font-semibold hover:underline">
               Contacta al Administrador
             </a>
             <br />
@@ -189,7 +189,7 @@ export default function LoginPage() {
             <br />
             <Link
               to="/registro-docente"
-              className="text-blue-600 font-bold hover:underline"
+              className="text-blue-600 font-semibold hover:underline"
             >
               Registrar con Código PIN
             </Link>

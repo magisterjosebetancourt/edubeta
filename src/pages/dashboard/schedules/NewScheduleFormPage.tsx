@@ -172,7 +172,7 @@ export default function NewScheduleFormPage() {
              <CalendarDays className="w-5 h-5 text-primary" />
            </div>
            <div>
-             <h2 className="text-lg font-bold text-slate-800 dark:text-white">Nueva hora de clase</h2>
+             <h2 className="text-lg font-semibold text-slate-800 dark:text-white">Nueva hora de clase</h2>
              <p className="text-xs text-slate-500 font-medium">Programa el horario del docente en la semana.</p>
            </div>
         </div>

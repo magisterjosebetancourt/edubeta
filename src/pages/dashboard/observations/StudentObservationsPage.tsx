@@ -4,7 +4,8 @@ import { useStudents, useGrades } from '@/lib/hooks/useFirebaseData';
 import { useObservationsList } from '@/lib/hooks/useObservador';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Filter, User, Loader2 } from 'lucide-react';
+import { Filter, User } from 'lucide-react';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export default function StudentObservationsPage() {
   const { id } = useParams<{ id: string }>();
@@ -36,12 +37,7 @@ export default function StudentObservationsPage() {
 
   // Se muestra un loader a pantalla completa SOLO si no hay datos del State router ni de la BD en caché
   if (!studentDataFromState && (loadingStudents || loadingGrades)) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3 text-slate-500">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-        <span className="font-medium text-sm">Cargando perfil...</span>
-      </div>
-    );
+    return <LoadingSpinner message="Cargando perfil..." />;
   }
 
   if (!student) {
@@ -55,12 +51,12 @@ export default function StudentObservationsPage() {
       <div className="bg-primary pt-12 pb-6 px-4 sm:px-6 rounded-b-3xl shadow-lg relative">
         <div className="max-w-3xl mx-auto flex items-center gap-4">
           {/* Avatar */}
-          <div className="w-20 h-20 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center text-white text-2xl font-bold shadow-inner shrink-0 leading-none">
+          <div className="w-20 h-20 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center text-white text-2xl font-semibold shadow-inner shrink-0 leading-none">
             {student.last_name?.charAt(0)}{student.first_name?.charAt(0)}
           </div>
           
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-white truncate leading-tight">
+            <h1 className="text-xl sm:text-2xl font-semibold text-white truncate leading-tight">
               {student.first_name} {student.last_name}
             </h1>
             <p className="text-primary-foreground/80 text-sm font-medium mt-0.5">
@@ -83,7 +79,7 @@ export default function StudentObservationsPage() {
       <div className="max-w-3xl mx-auto px-4 mt-6">
         
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-slate-800 dark:text-white">Observaciones</h2>
+          <h2 className="text-lg font-semibold text-slate-800 dark:text-white">Observaciones</h2>
           
           <div className="relative">
             <Filter className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -104,10 +100,7 @@ export default function StudentObservationsPage() {
         {/* CARDS LIST */}
         <div className="space-y-4">
           {loadingObs ? (
-            <div className="flex flex-col items-center justify-center py-10 gap-3 text-slate-500">
-              <Loader2 className="w-5 h-5 animate-spin text-primary" />
-              <span className="font-medium text-sm">Cargando anotaciones...</span>
-            </div>
+            <LoadingSpinner message="Cargando anotaciones..." />
           ) : filteredObservations.length === 0 ? (
             <div className="bg-white dark:bg-slate-900 rounded-xl p-8 text-center border shadow-sm">
               <p className="text-slate-500 text-sm font-medium">No se encontraron anotaciones de este tipo.</p>
@@ -116,7 +109,7 @@ export default function StudentObservationsPage() {
             filteredObservations.map((obs) => (
               <div key={obs.id} className="bg-white dark:bg-[#151b2d] rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col gap-3">
                 <div className="flex justify-between items-start">
-                  <span className={`px-2.5 py-1 rounded-md text-[10px] sm:text-xs font-bold uppercase tracking-wider ${getTypeColor(obs.type)}`}>
+                  <span className={`px-2.5 py-1 rounded-md text-[10px] sm:text-xs font-semibold uppercase tracking-wider ${getTypeColor(obs.type)}`}>
                     {obs.type}
                   </span>
                   <span className="text-xs text-slate-400 font-medium">
@@ -125,7 +118,7 @@ export default function StudentObservationsPage() {
                 </div>
                 
                 <div>
-                  <h3 className="font-bold text-slate-900 dark:text-white text-base">
+                  <h3 className="font-semibold text-slate-900 dark:text-white text-base">
                     {obs.law1620Category && obs.law1620Category !== 'No Aplica' ? `Reporte ${obs.law1620Category}` : `Anotación ${obs.type}`}
                   </h3>
                   <p className="text-slate-600 dark:text-slate-400 text-sm mt-1 leading-relaxed">
@@ -144,7 +137,7 @@ export default function StudentObservationsPage() {
                   </div>
                   
                   {obs.status && (
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
                       ESTADO: {obs.status}
                     </span>
                   )}

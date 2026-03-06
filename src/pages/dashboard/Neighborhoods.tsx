@@ -5,6 +5,7 @@ import { collection, getDocs, updateDoc, deleteDoc, doc, query, orderBy } from '
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { Trash2, Plus, MapPin, Pencil } from 'lucide-react'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 type Neighborhood = { id: string; name: string; state?: boolean }
 
@@ -42,7 +43,7 @@ export default function NeighborhoodsPage() {
     setNeighborhoods(prev => prev.filter(n => n.id !== id))
   }
 
-  if (loading) return <div className="p-8 text-center">Cargando barrios...</div>
+  if (loading) return <LoadingSpinner message="Cargando barrios..." />;
 
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen pb-24 text-slate-800 dark:text-slate-100">

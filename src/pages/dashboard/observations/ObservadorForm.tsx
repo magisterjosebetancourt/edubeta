@@ -370,21 +370,21 @@ export default function ObservadorForm() {
                       <div className="flex items-start space-x-3">
                         <RadioGroupItem value="Tipo I" id="t1" className="mt-1" />
                         <label htmlFor="t1" className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-tight">
-                          <span className="font-bold block mb-1">Situación Tipo I</span>
+                          <span className="font-semibold block mb-1">Situación Tipo I</span>
                           Conflictos manejables intraescolarmente. No generan daño al cuerpo o a la salud.
                         </label>
                       </div>
                       <div className="flex items-start space-x-3">
                         <RadioGroupItem value="Tipo II" id="t2" className="mt-1" />
                         <label htmlFor="t2" className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-tight">
-                          <span className="font-bold block mb-1">Situación Tipo II</span>
+                          <span className="font-semibold block mb-1">Situación Tipo II</span>
                           Agresión escolar, acoso (bullying) o ciberacoso. Daño físico o psicológico que no requiere atención médica.
                         </label>
                       </div>
                       <div className="flex items-start space-x-3">
                         <RadioGroupItem value="Tipo III" id="t3" className="mt-1" />
                         <label htmlFor="t3" className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-tight">
-                          <span className="font-bold block text-red-600 dark:text-red-400 mb-1">Situación Tipo III (Delito)</span>
+                          <span className="font-semibold block text-red-600 dark:text-red-400 mb-1">Situación Tipo III (Delito)</span>
                           Presuntos delitos contra la libertad, integridad o formación sexual. Requiere denuncia a ICBF / Policía de Infancia.
                         </label>
                       </div>
@@ -528,7 +528,7 @@ export default function ObservadorForm() {
         <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 p-4 rounded-xl flex items-start gap-3">
           <ShieldAlert className="w-5 h-5 text-primary shrink-0 mt-0.5" />
           <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-            <strong>Debido proceso:</strong> Al guardar esta anotación, el estudiante será notificado en su plataforma para presentar sus <span className="font-bold">descargos</span>. Posteriormente, se enviará una notificación a la cuenta del acudiente.
+            <strong>Debido proceso:</strong> Al guardar esta anotación, el estudiante será notificado en su plataforma para presentar sus <span className="font-semibold">descargos</span>. Posteriormente, se enviará una notificación a la cuenta del acudiente.
           </div>
         </div>
 

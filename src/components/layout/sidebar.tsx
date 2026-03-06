@@ -17,44 +17,40 @@ import {
   ShieldAlert,
   ClipboardList,
   FileBarChart2,
-  FolderOpen
+  FolderOpen,
+  CalendarDays
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 
 const sidebarItems = [
   {
-    category: "Principal",
+    category: "EduBeta",
     items: [
       { title: 'Inicio', href: '/dashboard', icon: LayoutDashboard },
-      { title: 'Tareas', href: '/dashboard/todos', icon: CheckCircle2 },
-      { title: 'Caracterización', href: '/dashboard/institution', icon: Building },
     ]
   },
   {
     category: "Gestión Académica",
     items: [
+      { title: 'Falta', href: '/dashboard/infractions', icon: ShieldAlert },
       { title: 'Estudiantes', href: '/dashboard/students', icon: Users },
       { title: 'Docentes', href: '/dashboard/teachers', icon: GraduationCap },
-      { title: 'Grados y Grupos', href: '/dashboard/grades', icon: School },
-      { title: 'Asignaturas', href: '/dashboard/subjects', icon: BookOpen },
+      { title: 'Grado', href: '/dashboard/grades', icon: School },
+      { title: 'Asignatura', href: '/dashboard/subjects', icon: BookOpen },
       { title: 'Barrios', href: '/dashboard/neighborhoods', icon: MapPin },
       { title: 'Asignación Académica', href: '/dashboard/assignments', icon: BookOpen },
-    ]
-  },
-  {
-    category: "Reportes",
-    items: [
-      { title: 'Asistencia', href: '/dashboard/attendance', icon: PieChart },
-      { title: 'Observador', href: '/dashboard/observations', icon: ClipboardList },
-      { title: 'Historial', href: '/dashboard/history', icon: PieChart }, 
-      { title: 'Faltas', href: '/dashboard/infractions', icon: ShieldAlert },
-      { title: 'Configuración', href: '/dashboard/settings', icon: Settings },
+      { title: 'Historial', href: '/dashboard/history', icon: PieChart },
+      { title: 'Historial ISA', href: '/dashboard/isa/history', icon: FileBarChart2 },
     ]
   },
   {
     category: "Herramientas",
     items: [
+      { title: 'Tareas', href: '/dashboard/todos', icon: CheckCircle2 },
+      { title: 'Asistencia', href: '/dashboard/attendance', icon: PieChart },
+      { title: 'Observador', href: '/dashboard/observations', icon: ClipboardList },
+      { title: 'Horario', href: '/dashboard/schedules', icon: CalendarDays },
       { title: 'ISA', href: '/dashboard/isa', icon: FileBarChart2 },
     ]
   },
@@ -63,6 +59,18 @@ const sidebarItems = [
     items: [
       { title: 'Listas', href: '/dashboard/documents/lists', icon: FolderOpen },
       { title: 'Informes', href: '/dashboard/documents/reports', icon: FolderOpen },
+    ]
+  },
+  {
+    category: "Aplicación",
+    items: [
+      { title: 'Configuración', href: '/dashboard/settings', icon: Settings },
+    ]
+  },
+  {
+    category: "Cliente",
+    items: [
+      { title: 'Caracterización', href: '/dashboard/institution', icon: Building },
     ]
   }
 ]
@@ -89,28 +97,33 @@ export function SidebarContent({ className, onLinkClick }: { className?: string,
   const filteredItems = sidebarItems.map(group => ({
     ...group,
     items: group.items.filter(item => {
-      // Si es docente o coordinador, ocultar Caracterización y Configuración
-      if (userProfile?.role !== 'admin') {
-        if (['Caracterización', 'Configuración', 'Docentes', 'Grados y Grupos', 'Asignación Académica', 'Asignaturas', 'Barrios'].includes(item.title)) {
-          return false
-        }
-      }
+      const role = userProfile?.role?.toLowerCase() || ''
 
-      // ISA solo para admin, coordinator, teacher
-      if (item.title === 'ISA') {
-        const role = userProfile?.role?.toLowerCase() || ''
-        return ['admin', 'coordinator', 'teacher'].includes(role)
-      }
+      // EduBeta: Todos
+      if (group.category === 'EduBeta') return true
 
-      // Documentos - Informes solo para admin y coordinator
-      if (item.title === 'Informes') {
-        const role = userProfile?.role?.toLowerCase() || ''
+      // Gestión Académica: Admin y Coordinadores
+      if (group.category === 'Gestión Académica') {
         return ['admin', 'coordinator'].includes(role)
       }
 
-      if (item.title === 'Listas') {
-        const role = userProfile?.role?.toLowerCase() || ''
+      // Herramientas: Admin, Coordinadores y Docentes
+      if (group.category === 'Herramientas') {
         return ['admin', 'coordinator', 'teacher'].includes(role)
+      }
+
+      // Aplicación: Todos
+      if (group.category === 'Aplicación') return true
+
+      // Cliente: Admin
+      if (group.category === 'Cliente') {
+        return role === 'admin'
+      }
+
+      // Documentos (Mantener lógica previa o ajustar si se desea)
+      if (group.category === 'Documentos') {
+        if (item.title === 'Informes') return ['admin', 'coordinator'].includes(role)
+        if (item.title === 'Listas') return ['admin', 'coordinator', 'teacher'].includes(role)
       }
 
       return true
@@ -125,7 +138,7 @@ export function SidebarContent({ className, onLinkClick }: { className?: string,
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
             <Building className="text-white w-6 h-6" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight font-display">EduBeta</h1>
+          <h1 className="text-xl font-semibold tracking-tight font-display">EduBeta</h1>
         </div>
       </div>
 
@@ -168,7 +181,7 @@ export function SidebarContent({ className, onLinkClick }: { className?: string,
       {/* User Profile */}
       <div className="p-4 border-t border-white/10 shrink-0">
         <div className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-white/5 cursor-pointer transition-colors group">
-          <div className="w-10 h-10 rounded-full bg-slate-700 border-2 border-primary overflow-hidden flex items-center justify-center text-white font-bold text-xs ring-2 ring-primary/20">
+          <div className="w-10 h-10 rounded-full bg-slate-700 border-2 border-primary overflow-hidden flex items-center justify-center text-white font-semibold text-xs ring-2 ring-primary/20">
             {userProfile?.avatar_url ? (
               <img src={userProfile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
@@ -177,7 +190,7 @@ export function SidebarContent({ className, onLinkClick }: { className?: string,
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate">{userProfile?.full_name || 'Cargando...'}</p>
-            <p className="text-[10px] text-slate-400 truncate uppercase tracking-widest font-bold">
+            <p className="text-[10px] text-slate-400 truncate uppercase tracking-widest font-semibold">
               {userProfile?.role === 'admin' ? 'Administrador' : userProfile?.role === 'coordinator' ? 'Coordinador' : 'Docente'}
             </p>
           </div>

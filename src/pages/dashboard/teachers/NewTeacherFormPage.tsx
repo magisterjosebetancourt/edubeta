@@ -76,7 +76,7 @@ export default function NewTeacherFormPage() {
             <h3 className="text-6xl font-black text-slate-900 dark:text-white tracking-tighter">
               {generatedToken}
             </h3>
-            <div className="inline-flex items-center gap-1.5 text-[10px] text-slate-500 font-bold">
+            <div className="inline-flex items-center gap-1.5 text-[10px] text-slate-500 font-semibold">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               Token guardado en Firebase
             </div>

@@ -25,6 +25,7 @@ import {
   TrendingUp,
   MapPin
 } from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -156,7 +157,7 @@ export default function StudentViewPage() {
   const loading = loadingInitial || loadingStudents;
 
   if (loading) {
-    return <div className="p-8 text-center">Cargando perfil del estudiante...</div>;
+    return <LoadingSpinner message="Cargando perfil del estudiante..." />;
   }
 
   if (!student) return null;
@@ -180,7 +181,7 @@ export default function StudentViewPage() {
                   {student.neighborhood}
                 </div>
               )}
-              <CardDescription className="text-center font-bold text-primary text-[10px] tracking-widest mt-2">
+              <CardDescription className="text-center font-semibold text-primary text-[10px] tracking-widest mt-2">
                 Grado: {student.grades?.name || 'No asignado'}
               </CardDescription>
             </CardHeader>
@@ -189,7 +190,7 @@ export default function StudentViewPage() {
                 {userRole !== "teacher" && (
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-500 font-medium">Estado Académico</span>
-                    <span className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-2 py-0.5 rounded-full text-[10px] font-bold">Activo</span>
+                    <span className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-2 py-0.5 rounded-full text-[10px] font-semibold">Activo</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between text-sm">
@@ -263,7 +264,7 @@ export default function StudentViewPage() {
                     {attendance.map((record) => (
                       <tr key={record.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                         <td className="px-6 py-4">
-                          <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
                             {format(new Date(record.date + 'T00:00:00'), 'PPP', { locale: es })}
                           </span>
                         </td>

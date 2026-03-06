@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useParams } from "react-router-dom";
 import { useStudents, useGrades } from "@/lib/hooks/useFirebaseData";
 import { useUserProfile } from "@/lib/context/UserProfileContext";
@@ -71,12 +72,7 @@ export default function GroupStudentsListPage() {
     });
   }, [students, searchTerm, filterBy]);
 
-  if (loading)
-    return (
-      <div className="p-8 text-center text-sm text-slate-500">
-        Cargando estudiantes del grupo...
-      </div>
-    );
+  if (loading) return <LoadingSpinner message="Cargando estudiantes del grupo..." />;
 
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen text-slate-800 dark:text-slate-100 pb-24">

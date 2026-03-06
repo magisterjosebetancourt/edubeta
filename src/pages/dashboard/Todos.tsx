@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
-  Plus, Trash2, CheckCircle2, Clock, AlertCircle, Calendar, Edit2, Loader2
+  Plus, Trash2, CheckCircle2, Clock, AlertCircle, Calendar, Edit2
 } from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -89,12 +90,7 @@ export default function TodosPage() {
     return matchesPriority && matchesSearch;
   });
 
-  if (loading && todos.length === 0) return (
-    <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-500 gap-3">
-      <Loader2 className="w-6 h-6 animate-spin text-primary" />
-      <span className="font-bold text-xs tracking-widest">Cargando tus tareas...</span>
-    </div>
-  );
+  if (loading && todos.length === 0) return <LoadingSpinner message="Cargando tus tareas..." />;
 
   const filterOptions = [
     { id: 'Todas', label: 'Todas' }, { id: 'P1', label: 'Urgente' },
@@ -108,7 +104,7 @@ export default function TodosPage() {
         <div className="flex items-center gap-8 px-2 overflow-x-auto no-scrollbar">
           {filterOptions.map(opt => (
             <button key={opt.id} onClick={() => setActiveFilter(opt.id as TodoFilter)}
-              className={cn("pb-4 text-sm font-bold transition-all relative whitespace-nowrap",
+              className={cn("pb-4 text-sm font-semibold transition-all relative whitespace-nowrap",
                 activeFilter === opt.id ? "text-primary" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
               )}>
               {opt.label}
@@ -120,11 +116,11 @@ export default function TodosPage() {
 
       <div className="p-4 lg:p-8 space-y-6">
         <div className="flex items-center justify-between px-1">
-          <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
+          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
             {filteredTodos.length} {filteredTodos.length === 1 ? 'tarea' : 'tareas'}
           </p>
           <Button onClick={() => navigate('/dashboard/todos/new')}
-            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3 px-5 gap-2 shadow-xl shadow-primary/20 font-bold text-xs tracking-wide transition-all active:scale-95">
+            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3 px-5 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-wide transition-all active:scale-95">
             <Plus className="w-4 h-4 stroke-[3]" />Nueva tarea
           </Button>
         </div>
@@ -142,7 +138,7 @@ export default function TodosPage() {
               <div className="w-20 h-20 bg-slate-50 dark:bg-slate-900/60 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle2 className="w-10 h-10 text-slate-300/50" />
               </div>
-              <h4 className="font-bold text-slate-800 dark:text-white text-lg">No hay tareas</h4>
+              <h4 className="font-semibold text-slate-800 dark:text-white text-lg">No hay tareas</h4>
               <p className="text-xs text-slate-500 mt-2 max-w-[240px] mx-auto leading-relaxed">
                 Organiza tu jornada educativa creando una nueva tarea.
               </p>
@@ -188,12 +184,12 @@ export default function TodosPage() {
                       </p>
                     </div>
                     <div className="pt-4 mt-auto border-t border-slate-50 dark:border-slate-800/50 flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-slate-500 font-bold text-xs">
+                      <div className="flex items-center gap-2 text-slate-500 font-semibold text-xs">
                         <Calendar className="w-4 h-4 text-slate-400" />
                         <span>{dateLabel}</span>
                       </div>
                       <button onClick={() => handleToggleStatus(todo)}
-                        className={cn("flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-bold text-xs active:scale-95",
+                        className={cn("flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-semibold text-xs active:scale-95",
                           todo.status === 'cumplida' ? "bg-green-50 text-green-600 dark:bg-green-900/20 shadow-inner" :
                           todo.status === 'activa' ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20" :
                           "bg-slate-50 text-slate-500 dark:bg-slate-800/50")}>

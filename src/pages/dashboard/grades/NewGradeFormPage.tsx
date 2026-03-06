@@ -9,6 +9,7 @@ import { Save, X, User } from 'lucide-react'
 import { db } from '@/lib/firebase/config'
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
 import { useTeachers } from '@/lib/hooks/useFirebaseData'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 const LEVELS = [
   { id: 'preescolar', name: 'Preescolar', grades: ['Transición'] },
@@ -44,7 +45,9 @@ export default function NewGradeFormPage() {
   const [saving, setSaving] = useState(false)
   const [exiting, setExiting] = useState(false)
 
-  const { data: teachers = [] } = useTeachers()
+  const { data: teachers = [], isLoading: loadingTeachers } = useTeachers()
+
+  if (loadingTeachers) return <LoadingSpinner message="Cargando docentes..." />;
 
   /** Activa la animación de salida y luego navega atrás (sin reload de página) */
   const handleCancel = () => {
@@ -184,7 +187,7 @@ export default function NewGradeFormPage() {
             type="submit"
             disabled={saving}
             className="w-full sm:flex-1 bg-primary hover:bg-primary/90 text-white
-              rounded-lg h-auto py-3.5 gap-2 shadow-xl shadow-primary/20
+              rounded-[5px] h-auto py-3.5 gap-2 shadow-xl shadow-primary/20
               font-semibold text-sm transition-all active:scale-[0.98]"
           >
             <Save className="w-4 h-4" />

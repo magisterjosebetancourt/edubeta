@@ -12,6 +12,7 @@ import {
   serverTimestamp,
   writeBatch
 } from 'firebase/firestore'
+import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -28,6 +29,7 @@ import {
   CheckCircle2,
   X
 } from 'lucide-react'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { toast } from 'sonner'
 import { differenceInWeeks, parseISO } from 'date-fns'
 
@@ -49,6 +51,7 @@ export default function InstitutionalInfo() {
   const [slogan, setSlogan] = useState('')
   const [academicYear, setAcademicYear] = useState(new Date().getFullYear().toString())
   const [logoUrl, setLogoUrl] = useState('')
+  const [isaEnabled, setIsaEnabled] = useState(true)
 
   // Periodos
   const [periods, setPeriods] = useState<Period[]>([])
@@ -71,6 +74,7 @@ export default function InstitutionalInfo() {
         setSlogan(s.slogan || '')
         setAcademicYear(s.academic_year || '')
         setLogoUrl(s.logo_url || '')
+        setIsaEnabled(s.isa_enabled !== false)
       }
 
       // 2. Fetch Academic Periods
@@ -165,6 +169,7 @@ export default function InstitutionalInfo() {
         slogan: slogan,
         academic_year: academicYear,
         logo_url: logoUrl,
+        isa_enabled: isaEnabled,
         updated_at: serverTimestamp()
       }, { merge: true })
 
@@ -197,7 +202,7 @@ export default function InstitutionalInfo() {
     navigate(-1)
   }
 
-  if (loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-primary" /></div>
+  if (loading) return <LoadingSpinner message="Cargando información institucional..." />
 
   return (
     <div className="space-y-6 p-6 pb-24 lg:pb-6 max-w-5xl mx-auto h-full overflow-y-auto">
@@ -295,9 +300,39 @@ export default function InstitutionalInfo() {
                     />
                     <div className="space-y-1">
                       <p className="text-xs text-slate-500 font-medium">Recomendado: Imagen cuadrada o rectangular con fondo transparente.</p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Máximo 1MB (JPG, PNG)</p>
+                      <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Máximo 1MB (JPG, PNG)</p>
                     </div>
                   </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-primary/20 bg-primary/5">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-primary" />
+                Módulos y Funcionalidades
+              </CardTitle>
+              <CardDescription>Control de acceso global para herramientas especiales.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-[5px] border border-primary/10 shadow-sm">
+                <div className="space-y-0.5">
+                  <Label className="text-base font-semibold text-slate-800 dark:text-white">Módulo ISA</Label>
+                  <p className="text-xs text-slate-500">Habilitar la captura de pre-informes cualitativos para docentes.</p>
+                </div>
+                <div 
+                  onClick={() => setIsaEnabled(!isaEnabled)}
+                  className={cn(
+                    "w-12 h-6 rounded-full p-1 cursor-pointer transition-colors duration-200 ease-in-out",
+                    isaEnabled ? "bg-primary" : "bg-slate-300 dark:bg-slate-700"
+                  )}
+                >
+                  <div className={cn(
+                    "bg-white w-4 h-4 rounded-full shadow-sm transform transition-transform duration-200 ease-in-out",
+                    isaEnabled ? "translate-x-6" : "translate-x-0"
+                  )} />
                 </div>
               </div>
             </CardContent>
@@ -318,7 +353,7 @@ export default function InstitutionalInfo() {
                 {periods.map((period, index) => (
                   <div key={index} className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-100 dark:border-slate-800 space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-primary tracking-wider">Periodo {period.period_number}</span>
+                      <span className="text-sm font-semibold text-primary tracking-wider">Periodo {period.period_number}</span>
                       <span className="text-xs font-medium text-slate-500 bg-white dark:bg-slate-800 px-2 py-1 rounded-md border">
                         {calculateWeeks(period.start_date, period.end_date)} semanas
                       </span>
@@ -357,11 +392,11 @@ export default function InstitutionalInfo() {
                     <p className="text-5xl font-black text-primary">{totalWeeks}</p>
                     <div className="mt-3 flex items-center justify-center gap-1.5">
                       {totalWeeks >= 40 ? (
-                        <span className="flex items-center gap-1 text-[10px] font-bold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-full">
+                        <span className="flex items-center gap-1 text-[10px] font-semibold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-0.5 rounded-full">
                           <CheckCircle2 className="w-3 h-3" /> CUMPLE LEY 115
                         </span>
                       ) : (
-                        <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] font-semibold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">
                           META: 40 SEMANAS
                         </span>
                       )}
@@ -375,7 +410,7 @@ export default function InstitutionalInfo() {
                   <p className="text-xs text-slate-500 leading-relaxed italic">
                     "Los establecimientos educativos incorporarán en el Proyecto Educativo Institucional (PEI) la organización de las actividades escolares... que garanticen cuarenta (40) semanas lectivas."
                     <br />
-                    <span className="font-bold not-italic font-mono mt-2 block">— Decreto 1075 de 2015</span>
+                    <span className="font-semibold not-italic font-mono mt-2 block">— Decreto 1075 de 2015</span>
                   </p>
                 </CardContent>
               </Card>

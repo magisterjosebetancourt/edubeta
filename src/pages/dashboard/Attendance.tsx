@@ -9,9 +9,10 @@ import { useUserProfile } from '@/lib/context/UserProfileContext'
 import { useGrades, useSubjects, useStudents } from '@/lib/hooks/useFirebaseData'
 import { cn } from '@/lib/utils'
 import {
-  Clock, CheckCircle, Loader2, FileText, CalendarDays, BookOpen, Plus,
+  Clock, CheckCircle, FileText, CalendarDays, BookOpen, Plus,
   ArrowRight, User, History, TrendingUp, Users, XCircle, Pencil
 } from 'lucide-react'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -172,7 +173,7 @@ export default function AttendancePage() {
     }
   }
 
-  if (loading) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin" /></div>
+  if (loading) return <LoadingSpinner message="Cargando asistencia..." />
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-background-dark pb-24 lg:pb-0">

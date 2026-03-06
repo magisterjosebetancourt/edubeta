@@ -17,7 +17,6 @@ import {
   School,
   FileText,
   ChevronRight,
-  Loader2,
   XCircle,
   RefreshCcw,
   MessageSquare,
@@ -28,8 +27,10 @@ import {
   Clock,
   AlertCircle,
   Search,
-  Filter
+  Filter,
+  Loader2
 } from 'lucide-react'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { cn } from '@/lib/utils'
 import { useUserProfile } from '@/lib/context/UserProfileContext'
 import { useGrades, useSubjects, useStudents } from '@/lib/hooks/useFirebaseData'
@@ -461,9 +462,9 @@ export default function AttendanceHistoryPage() {
 
   const getStatusBadge = (status: string) => {
     switch(status) {
-      case 'present': return <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px] font-bold"><CheckCircle2 className="w-3 h-3" /> Presente</div>;
-      case 'late': return <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 text-[10px] font-bold"><Clock className="w-3 h-3" /> Tarde</div>;
-      case 'absent': return <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[10px] font-bold"><XCircle className="w-3 h-3" /> Ausente</div>;
+      case 'present': return <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px] font-semibold"><CheckCircle2 className="w-3 h-3" /> Presente</div>;
+      case 'late': return <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 text-[10px] font-semibold"><Clock className="w-3 h-3" /> Tarde</div>;
+      case 'absent': return <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-[10px] font-semibold"><XCircle className="w-3 h-3" /> Ausente</div>;
       default: return null;
     }
   }
@@ -491,7 +492,7 @@ export default function AttendanceHistoryPage() {
             <select 
               value={filterGradeId}
               onChange={(e) => setFilterGradeId(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] font-bold focus:outline-none appearance-none transition-all"
+              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] font-semibold focus:outline-none appearance-none transition-all"
             >
               <option value="">Grados</option>
               {grades.map(g => (
@@ -504,7 +505,7 @@ export default function AttendanceHistoryPage() {
             <select 
               value={filterSubjectId}
               onChange={(e) => setFilterSubjectId(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] font-bold focus:outline-none appearance-none transition-all"
+              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] font-semibold focus:outline-none appearance-none transition-all"
             >
               <option value="">Materias</option>
               {subjects.map(s => (
@@ -517,7 +518,7 @@ export default function AttendanceHistoryPage() {
             <select 
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] font-bold focus:outline-none appearance-none transition-all"
+              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] font-semibold focus:outline-none appearance-none transition-all"
             >
               <option value="all">Estados</option>
               <option value="absent">Inasistencias</option>
@@ -531,7 +532,7 @@ export default function AttendanceHistoryPage() {
               <select 
                 value={filterProcessed}
                 onChange={(e) => setFilterProcessed(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] font-bold focus:outline-none appearance-none transition-all"
+                className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] font-semibold focus:outline-none appearance-none transition-all"
               >
                 <option value="all">Gestión</option>
                 <option value="false">Pendientes</option>
@@ -569,14 +570,14 @@ export default function AttendanceHistoryPage() {
             className="w-full md:w-auto px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <RefreshCcw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
-            <span className="text-[11px] font-bold">Actualizar</span>
+            <span className="text-[11px] font-semibold">Actualizar</span>
           </button>
         </div>
       </div>
 
       {/* Results Title */}
       <div className="px-5 py-2 flex items-center justify-between">
-         <span className="text-[10px] font-bold text-slate-400 tracking-widest">
+         <span className="text-[10px] font-semibold text-slate-400 tracking-widest">
             {filteredRecords.length} Registros encontrados
          </span>
       </div>
@@ -584,15 +585,12 @@ export default function AttendanceHistoryPage() {
       {/* Main Content */}
       <div className="px-4 space-y-3 pb-24">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3 opacity-50">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <p className="text-sm font-medium">Buscando en los archivos...</p>
-          </div>
+          <LoadingSpinner message="Buscando en los archivos..." />
         ) : filteredRecords.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4 bg-white dark:bg-slate-800 border rounded-lg border-dashed">
             <AlertCircle className="w-10 h-10 text-slate-300" />
             <div className="text-center">
-              <p className="text-slate-900 dark:text-white font-bold">No se encontraron registros</p>
+              <p className="text-slate-900 dark:text-white font-semibold">No se encontraron registros</p>
               <p className="text-xs text-slate-500 mt-1">Intenta ajustando los filtros de búsqueda</p>
             </div>
           </div>
@@ -605,7 +603,7 @@ export default function AttendanceHistoryPage() {
               >
                 {record.justified && (
                   <div className="absolute top-0 right-0">
-                    <div className="bg-green-500 text-white text-[9px] font-bold px-3 py-1 rounded-bl-xl tracking-widest shadow-sm">
+                    <div className="bg-green-500 text-white text-[9px] font-semibold px-3 py-1 rounded-bl-xl tracking-widest shadow-sm">
                        Justificada
                     </div>
                   </div>
@@ -622,20 +620,20 @@ export default function AttendanceHistoryPage() {
                   {/* Middle: Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <span className="text-[10px] font-bold text-slate-400 tracking-tighter">
+                      <span className="text-[10px] font-semibold text-slate-400 tracking-tighter">
                         {format(new Date(record.date + 'T00:00:00'), 'EEEE, d MMM yyyy')}
                       </span>
                       <ChevronRight className="w-3 h-3 text-slate-300" />
-                      <span className="text-[10px] font-bold text-primary">
+                      <span className="text-[10px] font-semibold text-primary">
                         {grades.find(g => g.id === record.student.grade_id)?.name}
                       </span>
                       <ChevronRight className="w-3 h-3 text-slate-300" />
-                      <span className="text-[10px] font-bold text-indigo-500 flex items-center gap-1">
+                      <span className="text-[10px] font-semibold text-indigo-500 flex items-center gap-1">
                         <BookOpen className="w-2.5 h-2.5" />
                         {record.subject?.name}
                       </span>
                     </div>
-                    <h3 className="font-bold text-slate-900 dark:text-white truncate">
+                    <h3 className="font-semibold text-slate-900 dark:text-white truncate">
                       {record.student.first_name}, {record.student.last_name}
                     </h3>
                     <p className="text-[9px] text-slate-400 mt-0.5 flex items-center gap-1">
@@ -672,7 +670,7 @@ export default function AttendanceHistoryPage() {
                          <button
                            onClick={(e) => { e.stopPropagation(); handleToggleJustification(record.id, record.justified); }}
                            className={cn(
-                             "flex items-center gap-1 px-3 h-9 rounded-lg text-[10px] font-bold transition-all border",
+                             "flex items-center gap-1 px-3 h-9 rounded-lg text-[10px] font-semibold transition-all border",
                              record.justified 
                                ? "bg-blue-50 border-blue-100 text-blue-600 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400"
                                : "bg-white border-slate-200 text-slate-400 dark:bg-slate-900 dark:border-slate-800"
@@ -687,7 +685,7 @@ export default function AttendanceHistoryPage() {
                         <button
                           onClick={(e) => { e.stopPropagation(); handleToggleProcessed(record.id, record.processed); }}
                           className={cn(
-                            "flex items-center gap-1 px-3 h-9 rounded-lg text-[10px] font-bold transition-all border shadow-sm",
+                            "flex items-center gap-1 px-3 h-9 rounded-lg text-[10px] font-semibold transition-all border shadow-sm",
                             record.processed
                               ? "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-400"
                               : "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/10 dark:text-orange-300 animate-pulse"

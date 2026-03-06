@@ -139,7 +139,7 @@ export default function EditGradeFormPage() {
             type="submit"
             disabled={saving}
             className="w-full sm:flex-1 bg-primary hover:bg-primary/90 text-white
-              rounded-lg h-auto py-3.5 gap-2 shadow-xl shadow-primary/20
+              rounded-[5px] h-auto py-3.5 gap-2 shadow-xl shadow-primary/20
               font-semibold text-sm transition-all active:scale-[0.98]"
           >
             <Save className="w-4 h-4" />

@@ -145,22 +145,29 @@ export function CsvUploader({
 
     setLoading(true)
     try {
-      const batch = writeBatch(db);
+      const CHUNK_SIZE = 500;
+      const chunks = [];
       
-      preview.forEach(row => {
-        const grade = initialGrades.find(g => (g.name || '').toLowerCase() === row.grado.trim().toLowerCase())
-        const studentRef = doc(collection(db, "students"));
-        batch.set(studentRef, {
-          first_name: row.nombres,
-          last_name: row.apellidos,
-          neighborhood: row.barrio || null,
-          grade_id: grade?.id,
-          state: true,
-          created_at: serverTimestamp()
-        });
-      });
+      for (let i = 0; i < preview.length; i += CHUNK_SIZE) {
+        chunks.push(preview.slice(i, i + CHUNK_SIZE));
+      }
 
-      await batch.commit();
+      for (const chunk of chunks) {
+        const batch = writeBatch(db);
+        chunk.forEach(row => {
+          const grade = initialGrades.find(g => (g.name || '').toLowerCase() === row.grado.trim().toLowerCase())
+          const studentRef = doc(collection(db, "students"));
+          batch.set(studentRef, {
+            first_name: row.nombres,
+            last_name: row.apellidos,
+            neighborhood: row.barrio || null,
+            grade_id: grade?.id,
+            state: true,
+            created_at: serverTimestamp()
+          });
+        });
+        await batch.commit();
+      }
 
       toast.success(`${preview.length} estudiantes importados correctamente`)
       setFile(null)
@@ -168,7 +175,7 @@ export function CsvUploader({
       setPreview([])
       onComplete()
     } catch (err: any) {
-      console.error("CSV Upload Error:", err);
+      console.error("CSV Import Error:", err);
       toast.error('Error en la importación', { description: err.message })
     } finally {
       setLoading(false)

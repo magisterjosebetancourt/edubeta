@@ -8,7 +8,8 @@ import { useUserProfile } from "@/lib/context/UserProfileContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { ShieldAlert, Plus, Trash2, Edit2, Loader2, Search, Lock, BookOpen } from "lucide-react";
+import { ShieldAlert, Plus, Trash2, Edit2, Search, Lock, BookOpen } from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -84,12 +85,7 @@ export default function InfractionsPage() {
   const filteredSystem = SYSTEM_INFRACTIONS.filter(inf => activeTab === "todas" || inf.type === activeTab);
   const isAdmin = userRole === "admin";
 
-  if (loading) return (
-    <div style={{ fontFamily: "'Outfit', sans-serif" }} className="flex flex-col items-center justify-center min-h-[400px] gap-3 text-slate-500">
-      <Loader2 className="w-6 h-6 animate-spin text-primary" />
-      <span className="text-xs font-semibold tracking-widest">Cargando faltas...</span>
-    </div>
-  );
+  if (loading) return <LoadingSpinner message="Cargando faltas..." />;
 
   return (
     <div style={{ fontFamily: "'Outfit', sans-serif" }} className="bg-[#f8faff] dark:bg-[#0f1117] min-h-screen pb-24 transition-colors duration-300">

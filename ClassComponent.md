@@ -10,6 +10,13 @@ Este archivo contiene las reglas base y clases de Tailwind CSS para los componen
 rounded-[5px]
 ```
 
+### Tipografía (Typography)
+**Regla OBLIGATORIA para pesos de fuente:**
+- **NO usar** `font-bold`.
+- **SI usar** `font-semibold` para enfatizar textos importantes.
+- Mantener `font-black` solo para títulos de nivel superior (h1) o identificadores muy críticos donde ya se esté usando.
+```
+
 ### Contenedor de Vista Principal
 **Clase para el wrapper de pÃ¡gina:**
 ```text
@@ -38,10 +45,13 @@ className="col-span-2 w-full bg-slate-100 dark:bg-[#1e2536] border dark:border-s
 
 ## Botones y Acciones
 
-### Contenedores de Acciones
-**Grupo de botones de acciÃ³n horizontal:**
-```text
-className="grid grid-cols-2 md:flex gap-2 col-span-2 md:col-span-1"
+className="flex flex-col gap-2 w-full"
+```
+
+### Botones de Acción Formulario (Orden Vertical)
+**Regla OBLIGATORIA**: Los botones se apilan verticalmente **SIN contenedor de fondo ni sombras en el wrapper**.
+1. **Primario (Arriba)**: Acción principal (Guardar/Crear).
+2. **Secundario (Abajo)**: Cancelar.
 ```
 
 ### Botones de AcciÃ³n Horizontal
@@ -55,12 +65,16 @@ className="rounded-lg h-auto py-3 gap-2 border-slate-200 dark:border-slate-800 b
 className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3 gap-2 shadow-lg shadow-primary/20"
 ```
 
-### Avatares y CÃ­rculos de Identidad
-**Avatar circular con colores corporativos:**
-- **Fondo**: `#C6E7FC`
-- **Texto**: `#0099FE` (Azul Intenso)
-```text
-className="h-10 w-auto rounded-full bg-[#C6E7FC] flex items-center justify-center text-[#0099FE] font-semibold text-sm"
+### Avatares (Jerarquía Imagen > Iniciales)
+**Regla OBLIGATORIA**: Los avatares deben mostrar la foto de perfil si existe.
+```tsx
+<div className="h-10 w-10 rounded-full bg-[#C6E7FC] overflow-hidden flex items-center justify-center text-[#0099FE] font-bold text-sm shrink-0 border border-primary/10">
+  {user.avatar_url ? (
+    <img src={user.avatar_url} alt={user.full_name} className="w-full h-full object-cover" />
+  ) : (
+    user.full_name?.charAt(0) || "?"
+  )}
+</div>
 ```
 
 ## Componentes de Estudiantes (Cards)
@@ -100,6 +114,14 @@ className="flex flex-1 min-w-0 items-center justify-center gap-2 px-2 py-2 round
 1. **Borde suave**: Definido por `border` con colores sutiles (`slate-200`, `primary/20`, etc.).
 2. **Icono**: Siempre presente a la izquierda del texto.
 3. **Texto**: Siempre presente (en Sentence Case o Uppercase segÃºn el contexto).
+
+## Componentes de Feedback
+
+### Indicador de Carga (Spinner)
+**Regla OBLIGATORIA**: Todos los estados de carga asÃ­ncrona deben usar el componente `<LoadingSpinner />` con un mensaje descriptivo.
+```tsx
+<LoadingSpinner message="Cargando datos..." />
+```
 
 ---
 > [!NOTE]

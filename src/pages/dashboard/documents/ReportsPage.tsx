@@ -12,6 +12,7 @@ import {
   X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -32,6 +33,10 @@ export default function ReportsPage() {
 
   const { data: gradesData = [] } = useGrades();
   const { data: studentsData = [] } = useStudents();
+
+  if (gradesData.length === 0 && studentsData.length === 0) {
+    return <LoadingSpinner message="Preparando generador de informes..." />;
+  }
 
   useEffect(() => {
     const fetchInstitution = async () => {
@@ -280,12 +285,12 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        {/* Botones de AcciÃ³n */}
-        <div className="space-y-3 pt-2">
+        {/* Botones de Acción - Orden Vertical Limpio y Sin Fondo de Contenedor */}
+        <div className="flex flex-col gap-4 mt-10 pb-12 max-w-md mx-auto w-full">
             <button 
                 onClick={handleGenerate}
                 disabled={generating}
-                className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 text-white rounded-2xl py-4 flex items-center justify-center gap-3 font-bold text-sm tracking-widest shadow-xl shadow-primary/30 active:scale-[0.98] transition-all h-[60px] uppercase"
+                className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 text-white rounded-[5px] h-14 flex items-center justify-center gap-3 font-semibold text-[11px] tracking-widest shadow-lg shadow-primary/25 active:scale-[0.98] transition-all uppercase"
             >
                 <Printer className="w-5 h-5 text-white" />
                 {generating ? 'GENERANDO...' : 'GENERAR INFORME'}
@@ -293,7 +298,7 @@ export default function ReportsPage() {
             
             <button 
                 onClick={handleCancel}
-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl py-4 flex items-center justify-center gap-3 font-semibold text-sm shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-all h-[60px]"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 rounded-[5px] h-14 flex items-center justify-center gap-3 font-semibold text-[11px] tracking-widest shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-all uppercase"
             >
                 <X className="w-5 h-5 text-slate-400" />
                 Cancelar

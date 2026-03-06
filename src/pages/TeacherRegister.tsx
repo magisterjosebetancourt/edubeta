@@ -100,7 +100,7 @@ export default function TeacherRegister() {
                     <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-800 rounded-full flex items-center justify-center text-green-600 dark:text-green-300">
                         <CheckCircle className="w-8 h-8" />
                     </div>
-                    <h2 className="text-2xl font-bold text-green-800 dark:text-green-300">¡Registro Exitoso!</h2>
+                    <h2 className="text-2xl font-semibold text-green-800 dark:text-green-300">¡Registro Exitoso!</h2>
                     <p className="text-green-700 dark:text-green-400">
                         Tu cuenta de docente ha sido creada. Redirigiendo al inicio de sesión...
                     </p>
@@ -120,7 +120,7 @@ export default function TeacherRegister() {
            <div className="mx-auto w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-2">
                <GraduationCap className="w-6 h-6" />
            </div>
-           <CardTitle className="text-2xl font-bold">Registro Docente</CardTitle>
+           <CardTitle className="text-2xl font-semibold">Registro Docente</CardTitle>
            <CardDescription>
                Ingresa tu código de invitación para crear tu cuenta.
            </CardDescription>

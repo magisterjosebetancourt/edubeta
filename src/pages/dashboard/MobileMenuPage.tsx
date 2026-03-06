@@ -25,6 +25,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { toast } from 'sonner'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 export default function MobileMenuPage() {
     const navigate = useNavigate()
@@ -67,16 +68,23 @@ export default function MobileMenuPage() {
 
     const menuItems = [
         {
-            category: "Gestión Académica",
+            category: "EduBeta",
             items: [
                 { title: 'Inicio', href: '/dashboard', icon: LayoutDashboard, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+            ]
+        },
+        {
+            category: "Gestión Académica",
+            items: [
+                { title: 'Falta', href: '/dashboard/infractions', icon: ShieldAlert, color: 'text-rose-600', bg: 'bg-rose-50 dark:bg-rose-900/20' },
                 { title: 'Estudiantes', href: '/dashboard/students', icon: Users, color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
                 { title: 'Docentes', href: '/dashboard/teachers', icon: GraduationCap, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/20' },
-                { title: 'Grados', href: '/dashboard/grades', icon: School, color: 'text-green-500', bg: 'bg-green-50 dark:bg-green-900/20' },
-                { title: 'Asignaturas', href: '/dashboard/subjects', icon: BookOpen, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+                { title: 'Grado', href: '/dashboard/grades', icon: School, color: 'text-green-500', bg: 'bg-green-50 dark:bg-green-900/20' },
+                { title: 'Asignatura', href: '/dashboard/subjects', icon: BookOpen, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/20' },
                 { title: 'Barrios', href: '/dashboard/neighborhoods', icon: MapPin, color: 'text-teal-500', bg: 'bg-teal-50 dark:bg-teal-900/20' },
                 { title: 'Asignación Académica', href: '/dashboard/assignments', icon: BookOpen, color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-900/20' },
-                { title: 'Caracterización', href: '/dashboard/institution', icon: Building, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-900/20' },
+                { title: 'Historial', href: '/dashboard/history', icon: PieChart, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+                { title: 'Historial ISA', href: '/dashboard/isa/history', icon: FileBarChart2, color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
             ]
         },
         {
@@ -85,11 +93,8 @@ export default function MobileMenuPage() {
                 { title: 'Tareas', href: '/dashboard/todos', icon: CheckCircle2, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-900/20' },
                 { title: 'Asistencia', href: '/dashboard/attendance', icon: PieChart, color: 'text-pink-500', bg: 'bg-pink-50 dark:bg-pink-900/20' },
                 { title: 'Observador', href: '/dashboard/observations', icon: ClipboardList, color: 'text-cyan-500', bg: 'bg-cyan-50 dark:bg-cyan-900/20' },
-                { title: 'Historial', href: '/dashboard/history', icon: PieChart, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
-                { title: 'Faltas', href: '/dashboard/infractions', icon: ShieldAlert, color: 'text-rose-600', bg: 'bg-rose-50 dark:bg-rose-900/20' },
-                { title: 'ISA', href: '/dashboard/isa', icon: FileBarChart2, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
                 { title: 'Horario', href: '/dashboard/schedules', icon: CalendarDays, color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
-                { title: 'Configuración', href: '/dashboard/settings', icon: Settings, color: 'text-slate-500', bg: 'bg-slate-50 dark:bg-slate-900/20' },
+                { title: 'ISA', href: '/dashboard/isa', icon: FileBarChart2, color: 'text-indigo-600', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
             ]
         },
         {
@@ -98,40 +103,58 @@ export default function MobileMenuPage() {
                 { title: 'Listas', href: '/dashboard/documents/lists', icon: FolderOpen, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
                 { title: 'Informes', href: '/dashboard/documents/reports', icon: FolderOpen, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/20' },
             ]
+        },
+        {
+            category: "Aplicación",
+            items: [
+                { title: 'Configuración', href: '/dashboard/settings', icon: Settings, color: 'text-slate-500', bg: 'bg-slate-50 dark:bg-slate-900/20' },
+            ]
+        },
+        {
+            category: "Cliente",
+            items: [
+                { title: 'Caracterización', href: '/dashboard/institution', icon: Building, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-900/20' },
+            ]
         }
     ]
 
     const filteredMenu = menuItems.map(group => ({
         ...group,
         items: group.items.filter(item => {
-            if (userProfile?.role !== 'admin') {
-                if (['Caracterización', 'Configuración', 'Docentes', 'Grados', 'Asignación Académica', 'Asignaturas', 'Barrios', 'Estudiantes'].includes(item.title)) {
-                    return false
-                }
-            }
+            const role = userProfile?.role?.toLowerCase() || ''
 
-            // ISA solo para admin, coordinator, teacher
-            if (item.title === 'ISA') {
-                const role = userProfile?.role?.toLowerCase() || ''
-                return ['admin', 'coordinator', 'teacher'].includes(role)
-            }
+            // EduBeta: Todos
+            if (group.category === 'EduBeta') return true
 
-            // Documentos - Informes solo para admin y coordinator
-            if (item.title === 'Informes') {
-                const role = userProfile?.role?.toLowerCase() || ''
+            // Gestión Académica: Admin y Coordinadores
+            if (group.category === 'Gestión Académica') {
                 return ['admin', 'coordinator'].includes(role)
             }
 
-            if (item.title === 'Listas') {
-                const role = userProfile?.role?.toLowerCase() || ''
+            // Herramientas: Admin, Coordinadores y Docentes
+            if (group.category === 'Herramientas') {
                 return ['admin', 'coordinator', 'teacher'].includes(role)
+            }
+
+            // Aplicación: Todos
+            if (group.category === 'Aplicación') return true
+
+            // Cliente: Admin
+            if (group.category === 'Cliente') {
+                return role === 'admin'
+            }
+
+            // Documentos
+            if (group.category === 'Documentos') {
+                if (item.title === 'Informes') return ['admin', 'coordinator'].includes(role)
+                if (item.title === 'Listas') return ['admin', 'coordinator', 'teacher'].includes(role)
             }
 
             return true
         })
     })).filter(group => group.items.length > 0)
 
-    if (loading) return <div className="p-10 text-center">Cargando menú...</div>
+    if (loading) return <LoadingSpinner message="Cargando menú..." />
 
     return (
         <div className="p-6 space-y-8 pb-32 min-h-screen bg-slate-50 dark:bg-[#0f1117]">
@@ -140,7 +163,7 @@ export default function MobileMenuPage() {
                     <UserIcon className="text-white w-8 h-8" />
                  </div>
                  <div className="min-w-0">
-                     <h1 className="text-xl font-bold text-slate-900 dark:text-white truncate">Hola, {userProfile?.full_name.split(' ')[0]}</h1>
+                     <h1 className="text-xl font-semibold text-slate-900 dark:text-white truncate">Hola, {userProfile?.full_name.split(' ')[0]}</h1>
                      <p className="text-[10px] font-black tracking-widest text-primary uppercase">
                         {userProfile?.role === 'admin' ? 'Administrador' : userProfile?.role === 'coordinator' ? 'Coordinador' : 'Docente'}
                      </p>
@@ -149,7 +172,7 @@ export default function MobileMenuPage() {
 
             {filteredMenu.map((group, idx) => (
                 <div key={idx} className="space-y-4">
-                    <h2 className="text-xs font-bold tracking-wider text-slate-400 ml-1">{group.category}</h2>
+                    <h2 className="text-xs font-semibold tracking-wider text-slate-400 ml-1">{group.category}</h2>
                     <div className="grid grid-cols-2 gap-4">
                         {group.items.map((item, i) => {
                             const Icon = item.icon
@@ -160,7 +183,7 @@ export default function MobileMenuPage() {
                                             <div className={`p-3 rounded-lg ${item.bg} ${item.color}`}>
                                                 <Icon className="w-6 h-6" />
                                             </div>
-                                            <span className="font-bold text-slate-700 dark:text-slate-200 text-xs tracking-tight leading-tight">{item.title}</span>
+                                            <span className="font-semibold text-slate-700 dark:text-slate-200 text-xs tracking-tight leading-tight">{item.title}</span>
                                         </CardContent>
                                     </Card>
                                 </Link>
@@ -173,7 +196,7 @@ export default function MobileMenuPage() {
             <div className="pt-4">
                 <Button 
                     variant="outline" 
-                    className="w-full h-14 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 gap-2 rounded-lg font-bold tracking-widest text-xs"
+                    className="w-full h-14 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 gap-2 rounded-lg font-semibold tracking-widest text-xs"
                     onClick={handleSignOut}
                 >
                     <LogOut className="w-5 h-5" />
@@ -184,7 +207,7 @@ export default function MobileMenuPage() {
                         <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
                             <School className="w-3 h-3 text-primary" />
                         </div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">EduBeta v2.1.5 Beta</span>
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">EduBeta v2.1.5 Beta</span>
                     </div>
                 </div>
             </div>

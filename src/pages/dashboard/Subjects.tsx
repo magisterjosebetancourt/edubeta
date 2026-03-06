@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { BookOpen, Plus, Pencil, Trash2, CheckCircle2, XCircle } from 'lucide-react'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 type Subject = {
   id: string;
@@ -60,7 +61,7 @@ export default function SubjectsPage() {
     }
   }
 
-  if (loading) return <div className="p-8 text-center">Cargando asignaturas...</div>
+  if (loading) return <LoadingSpinner message="Cargando asignaturas..." />
 
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen pb-24">
@@ -71,7 +72,7 @@ export default function SubjectsPage() {
           </p>
           <Button
             onClick={() => navigate('/dashboard/subjects/new')}
-            className="bg-primary hover:bg-primary/90 text-white rounded-[5px] h-auto py-3 px-6 gap-2 shadow-xl shadow-primary/20 font-bold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 uppercase"
+            className="bg-primary hover:bg-primary/90 text-white rounded-[5px] h-auto py-3 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 uppercase"
           >
             <Plus className="w-5 h-5 stroke-[3]" />
             Nueva Asignatura
@@ -96,7 +97,7 @@ export default function SubjectsPage() {
                     <BookOpen className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white uppercase tracking-tight">{subject.name}</h3>
+                    <h3 className="font-semibold text-slate-900 dark:text-white uppercase tracking-tight">{subject.name}</h3>
                     <div
                       onClick={() => handleToggleState(subject)}
                       className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wider cursor-pointer transition-colors ${

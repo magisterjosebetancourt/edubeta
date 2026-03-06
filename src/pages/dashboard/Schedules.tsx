@@ -6,7 +6,8 @@ import { collection, query, where, getDocs, deleteDoc, doc } from "firebase/fire
 import { db } from "@/lib/firebase/config";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, CalendarDays, Plus, Clock, Users, BookOpen, AlertCircle, Edit, Trash2, CalendarCheck } from "lucide-react";
+import { CalendarDays, Plus, Clock, Users, BookOpen, AlertCircle, Edit, Trash2, CalendarCheck } from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -76,12 +77,7 @@ export default function SchedulesPage() {
   };
 
   if (loadingSchedules || loadingTeachers) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] gap-3 text-slate-500">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-        <span className="text-xs font-semibold tracking-widest">Cargando horario...</span>
-      </div>
-    );
+    return <LoadingSpinner message="Cargando horario..." />;
   }
 
   return (
@@ -91,7 +87,7 @@ export default function SchedulesPage() {
         {/* Header / Actions */}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
               <CalendarDays className="w-6 h-6 text-primary" />
               Horario de Clases
             </h1>
@@ -162,7 +158,7 @@ export default function SchedulesPage() {
                           </span>
                         </div>
                         <div>
-                          <p className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5 text-sm">
+                          <p className="font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-1.5 text-sm">
                             <BookOpen className="w-3.5 h-3.5 text-slate-400" />
                             {cls.subject_name}
                           </p>
@@ -215,7 +211,7 @@ export default function SchedulesPage() {
                              <div className="absolute top-0 bottom-0 left-0 w-0.5 bg-primary/50 group-hover:bg-primary transition-colors rounded-l-lg" />
                              <div className="pl-1">
                                 <div className="flex justify-between items-center mb-1">
-                                  <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200">Hora {cls.time_item}</span>
+                                  <span className="text-[10px] font-semibold text-slate-800 dark:text-slate-200">Hora {cls.time_item}</span>
                                   {cls.weight === 2 && (
                                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500" title="Bloque (2 horas)" />
                                   )}

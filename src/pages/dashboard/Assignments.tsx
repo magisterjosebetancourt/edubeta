@@ -7,11 +7,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Trash2, Plus, BookOpen, GraduationCap, ChevronDown, Edit } from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
-type Teacher = { id: string; full_name: string };
+type Teacher = { id: string; full_name: string; avatar_url?: string };
 type Assignment = {
   id: string; teacher_id: string; grade_id: string; subject_id: string; state?: boolean;
-  teacher?: { full_name: string }; grade?: { name: string }; subject?: { name: string };
+  teacher?: { full_name: string; avatar_url?: string }; grade?: { name: string }; subject?: { name: string };
 };
 
 export default function AssignmentsPage() {
@@ -41,10 +42,19 @@ export default function AssignmentsPage() {
         const g = gradeMap.get(data.grade_id) as any;
         const s = subjectMap.get(data.subject_id) as any;
         return { id: d.id, teacher_id: data.teacher_id, grade_id: data.grade_id, subject_id: data.subject_id, state: data.state,
-          teacher: { full_name: t?.full_name || 'Desconocido' }, grade: { name: g?.name || 'Desconocido' }, subject: { name: s?.name || 'Desconocido' } } as Assignment;
+          teacher: { 
+            full_name: t?.full_name || 'Desconocido',
+            avatar_url: t?.avatar_url
+          }, 
+          grade: { name: g?.name || 'Desconocido' }, 
+          subject: { name: s?.name || 'Desconocido' } } as Assignment;
       });
       setAssignments(enriched);
-      setTeachers(teachSnap.docs.map(d => ({ id: d.id, full_name: (d.data() as any).full_name })));
+      setTeachers(teachSnap.docs.map(d => ({ 
+        id: d.id, 
+        full_name: (d.data() as any).full_name,
+        avatar_url: (d.data() as any).avatar_url
+      })));
     } catch (error: any) {
       toast.error("Error al cargar datos", { description: error.message });
     } finally {
@@ -77,7 +87,7 @@ export default function AssignmentsPage() {
     return acc;
   }, {} as Record<string, Assignment[]>);
 
-  if (loading) return <div className="p-8 text-center">Cargando asignaciones académicas...</div>;
+  if (loading) return <LoadingSpinner message="Cargando asignaciones académicas..." />;
 
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen pb-24">
@@ -87,7 +97,7 @@ export default function AssignmentsPage() {
             Define la carga académica vinculando docentes con grados y materias.
           </p>
           <Button onClick={() => navigate('/dashboard/assignments/new')}
-            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95">
+            className="bg-primary hover:bg-primary/90 text-white rounded-[5px] h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95">
             <Plus className="w-5 h-5 stroke-[3]" />Nueva Asignación
           </Button>
         </div>
@@ -98,7 +108,7 @@ export default function AssignmentsPage() {
             <div className="w-16 h-16 bg-slate-50 dark:bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4">
               <BookOpen className="w-8 h-8 text-slate-300" />
             </div>
-            <h4 className="font-bold text-slate-900 dark:text-white">No hay docentes registrados</h4>
+            <h4 className="font-semibold text-slate-900 dark:text-white">No hay docentes registrados</h4>
             <p className="text-xs text-slate-500 mt-1 max-w-[200px] mx-auto leading-relaxed">
               Registra docentes antes de realizar asignaciones.
             </p>
@@ -108,12 +118,16 @@ export default function AssignmentsPage() {
             const teacherAssignments = assignmentsByTeacher[teacher.id] || [];
             const isExpanded = expandedTeachers.has(teacher.id);
             return (
-              <div key={teacher.id} className="bg-white dark:bg-[#151b2d] rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+              <div key={teacher.id} className="bg-white dark:bg-[#151b2d] rounded-[5px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all">
                 <button onClick={() => toggleTeacher(teacher.id)}
                   className="w-full flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                   <div className="flex items-center gap-3 text-left">
-                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
-                      {teacher.full_name?.charAt(0) || "?"}
+                    <div className="h-10 w-10 rounded-full bg-[#C6E7FC] overflow-hidden flex items-center justify-center text-[#0099FE] font-semibold text-sm shrink-0 border border-primary/10">
+                      {teacher.avatar_url ? (
+                        <img src={teacher.avatar_url} alt={teacher.full_name} className="w-full h-full object-cover" />
+                      ) : (
+                        teacher.full_name?.charAt(0) || "?"
+                      )}
                     </div>
                     <div>
                       <h3 className="font-semibold text-slate-900 dark:text-white">{teacher.full_name || "Sin Nombre"}</h3>
@@ -138,26 +152,26 @@ export default function AssignmentsPage() {
                               <GraduationCap className="w-4 h-4" />
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{assign.subject?.name}</p>
-                              <p className="text-xs text-slate-500 dark:text-slate-400">{assign.grade?.name}</p>
+                              <p className="font-semibold text-slate-900 dark:text-white leading-tight uppercase tracking-tight text-sm truncate">{assign.subject?.name}</p>
+                              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{assign.grade?.name}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1 flex-shrink-0">
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
                             <div onClick={e => { e.stopPropagation(); handleToggleState(assign); }}
-                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wider cursor-pointer transition-colors ${
+                              className={`inline-flex items-center px-3 py-1 rounded-[5px] text-[10px] font-semibold tracking-wider cursor-pointer transition-all border ${
                                 assign.state !== false
-                                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200"
-                                  : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200"
+                                  ? "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800 hover:bg-green-100"
+                                  : "bg-slate-50 text-slate-500 border-slate-100 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800 hover:bg-slate-100"
                               }`}>
                               {assign.state !== false ? "Activo" : "Inactivo"}
                             </div>
                             <button onClick={e => { e.stopPropagation(); navigate(`/dashboard/assignments/${assign.id}/edit`); }}
-                              className="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded transition-all">
-                              <Edit className="w-4 h-4" />
+                              className="p-2 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[5px] hover:bg-slate-50 transition-all flex items-center justify-center">
+                              <Edit className="w-3.5 h-3.5" />
                             </button>
                             <button onClick={e => { e.stopPropagation(); handleDelete(assign.id); }}
-                              className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-all">
-                              <Trash2 className="w-4 h-4" />
+                              className="p-2 text-red-500 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-[5px] hover:bg-red-100 dark:hover:bg-red-900/40 transition-all flex items-center justify-center">
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </div>

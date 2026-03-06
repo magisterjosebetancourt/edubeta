@@ -65,6 +65,7 @@ export default function DashboardLayout() {
     if (section === 'schedules' && action === 'edit') return 'Editar hora de clase'
     if (section === 'observations' && sub === 'new') return 'Nueva anotación'
     if (section === 'observations' && sub && sub !== 'new') return 'Descargos'
+    if (section === 'isa' && sub === 'history') return 'Historial ISA'
     if (section === 'isa') return 'ISA'
     if (section === 'documents' && sub === 'lists') return 'Listas escolares'
     if (section === 'documents' && sub === 'reports') return 'Informes'
@@ -137,7 +138,7 @@ export default function DashboardLayout() {
                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary leading-none mb-1">
                  Betasoft
                </span>
-               <h1 className="text-xl font-bold text-slate-800 dark:text-white truncate max-w-[180px] leading-tight tracking-tight">
+               <h1 className="text-xl font-semibold text-slate-800 dark:text-white truncate max-w-[180px] leading-tight tracking-tight">
                  {getMobileTitle()}
                </h1>
              </div>
@@ -147,7 +148,7 @@ export default function DashboardLayout() {
               <div className="flex items-center gap-2">
                  <div className="text-right hidden sm:block">
                    <p className="text-[11px] font-black text-slate-900 dark:text-white leading-none mb-0.5">{userProfile?.full_name.split(' ')[0]}</p>
-                   <p className="text-[8px] font-bold text-primary uppercase tracking-widest">{userProfile?.role}</p>
+                   <p className="text-[8px] font-semibold text-primary uppercase tracking-widest">{userProfile?.role}</p>
                  </div>
                  
                  {/* Premium Avatar Container */}

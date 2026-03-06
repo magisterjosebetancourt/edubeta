@@ -106,9 +106,9 @@ export default function AssignmentFormPage() {
           created_at: serverTimestamp(),
         })
         toast.success('Asignación creada')
+        // Optimización: No salir del formulario, solo resetear el grupo
+        setSelectedGradeId('')
       }
-      setExiting(true)
-      setTimeout(() => navigate('/dashboard/assignments', { replace: true }), 220)
     } catch (error: any) {
       toast.error('Error al guardar', { description: error.message })
     } finally {
@@ -171,11 +171,11 @@ export default function AssignmentFormPage() {
 
         <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
           <Button type="button" variant="ghost" onClick={handleCancel} disabled={saving}
-            className="w-full sm:w-auto rounded-lg h-auto py-3.5 px-6 font-semibold text-sm text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+            className="w-full sm:w-auto rounded-[5px] h-auto py-3.5 px-6 font-semibold text-sm text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
             <X className="w-4 h-4 mr-1.5" />Cancelar
           </Button>
           <Button type="submit" disabled={saving}
-            className="w-full sm:flex-1 bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 gap-2 shadow-xl shadow-primary/20 font-semibold text-sm transition-all active:scale-[0.98]">
+            className="w-full sm:flex-1 bg-primary hover:bg-primary/90 text-white rounded-[5px] h-auto py-3.5 gap-2 shadow-xl shadow-primary/20 font-semibold text-sm transition-all active:scale-[0.98]">
             <Save className="w-4 h-4" />{saving ? 'Guardando...' : (isEdit ? 'Guardar cambios' : 'Crear asignación')}
           </Button>
         </div>

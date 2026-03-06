@@ -46,6 +46,7 @@ import ObservadorForm from '@/pages/dashboard/observations/ObservadorForm';
 import StudentDefenseForm from '@/pages/dashboard/observations/StudentDefenseForm';
 import StudentObservationsPage from '@/pages/dashboard/observations/StudentObservationsPage';
 import IsaPage from '@/pages/dashboard/IsaPage';
+import IsaHistoryPage from '@/pages/dashboard/IsaHistoryPage';
 import ListsPage from '@/pages/dashboard/documents/ListsPage';
 import ReportsPage from '@/pages/dashboard/documents/ReportsPage';
 import { Toaster } from "@/components/ui/sonner";
@@ -118,6 +119,7 @@ function App() {
           <Route path="observations/:id" element={<StudentDefenseForm />} />
           <Route path="students/:id/observations" element={<StudentObservationsPage />} />
           <Route path="isa" element={<IsaPage />} />
+          <Route path="isa/history" element={<IsaHistoryPage />} />
           <Route path="documents/lists" element={<ListsPage />} />
           <Route path="documents/reports" element={<ReportsPage />} />
         </Route>

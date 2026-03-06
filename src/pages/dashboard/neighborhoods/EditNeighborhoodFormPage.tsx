@@ -5,7 +5,7 @@ import { FormView } from '@/components/ui/FormView'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Save, X } from 'lucide-react'
+import { Save, X, Loader2 } from 'lucide-react'
 import { db } from '@/lib/firebase/config'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 
@@ -70,8 +70,9 @@ export default function EditNeighborhoodFormPage() {
             <X className="w-4 h-4 mr-1.5" />Cancelar
           </Button>
           <Button type="submit" disabled={saving}
-            className="w-full sm:flex-1 bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 gap-2 shadow-xl shadow-primary/20 font-semibold text-sm transition-all active:scale-[0.98]">
-            <Save className="w-4 h-4" />{saving ? 'Guardando...' : 'Guardar cambios'}
+            className="w-full sm:flex-1 bg-primary hover:bg-primary/90 text-white rounded-[5px] h-auto py-3.5 gap-2 shadow-xl shadow-primary/20 font-semibold text-sm transition-all active:scale-[0.98]">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {saving ? 'Guardando...' : 'Guardar cambios'}
           </Button>
         </div>
       </form>

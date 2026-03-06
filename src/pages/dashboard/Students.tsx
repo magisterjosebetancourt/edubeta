@@ -16,6 +16,7 @@ import { useStudents, useGrades } from '@/lib/hooks/useFirebaseData';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Search, Edit, MapPin, UserPlus, FileUp, FileSignature, Trash2 } from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 type Grade = { id: string; name: string };
 
@@ -157,7 +158,7 @@ export default function StudentsPage() {
     });
   }, [students, searchTerm, filterGradeId]);
 
-  if (loading) return <div className="p-8 text-center">Cargando estudiantes...</div>;
+  if (loading) return <LoadingSpinner message="Cargando estudiantes..." />;
 
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen text-slate-800 dark:text-slate-100 pb-24">

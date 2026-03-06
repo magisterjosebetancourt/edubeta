@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { Trash2, Plus, School, Layers, Pencil, Users, UserCheck, UserMinus } from 'lucide-react'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 type Grade = {
   id: string;
@@ -107,11 +108,11 @@ export default function GradesPage() {
     }
   };
 
-  if (loading) return <div className="p-8 text-center">Cargando grupos escolares...</div>
+  if (loading) return <LoadingSpinner message="Cargando grupos escolares..." />
 
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen pb-24">
-      <div className="p-4 lg:p-8 space-y-6">
+      <div className="p-4 lg:px-8 lg:pt-8 lg:pb-2s">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-1">
           <div>
             <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -120,7 +121,7 @@ export default function GradesPage() {
           </div>
           <Button
             onClick={() => navigate('/dashboard/grades/new')}
-            className="bg-primary hover:bg-primary/90 text-white rounded-[5px] h-auto py-3 px-6 gap-2 shadow-xl shadow-primary/20 font-bold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 uppercase"
+            className="bg-primary hover:bg-primary/90 text-white rounded-[5px] h-auto py-3 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 uppercase"
           >
             <Plus className="w-5 h-5 stroke-[3]" />
             Nuevo Grupo
@@ -128,9 +129,9 @@ export default function GradesPage() {
         </div>
       </div>
 
-      <main className="p-4 space-y-6">
+      <main className="p-4 pt-0">
         <Card className="border-none shadow-none bg-transparent">
-          <CardHeader className="px-0 pt-0">
+          <CardHeader className="px-0 py-0 mb-2">
             <CardTitle>Grupos Activos por Nivel</CardTitle>
             <CardDescription>Resumen de la organización escolar actual.</CardDescription>
           </CardHeader>
@@ -190,7 +191,7 @@ export default function GradesPage() {
                               </span>
                               <div className="flex items-center gap-2">
                                 <span
-                                  className="text-base font-bold text-slate-800 dark:text-white cursor-pointer hover:text-primary transition-colors uppercase tracking-tight"
+                                  className="text-base font-semibold text-slate-800 dark:text-white cursor-pointer hover:text-primary transition-colors uppercase tracking-tight"
                                   onClick={() => navigate(`/dashboard/grades/${group.id}/students`)}
                                 >
                                   {group.name}
