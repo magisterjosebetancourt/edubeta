@@ -8,7 +8,7 @@ import { FormView } from '@/components/ui/FormView';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { X, Users, Loader2, Save, ShieldAlert } from 'lucide-react';
+import { Users, Loader2, Save, ShieldAlert } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -69,11 +69,18 @@ export default function IsaPage() {
   const [isCargando, setIsCargando] = useState(false);
 
   // Fetching existing records
-  const { data: existingRecords = [], isLoading: isLoadingExisting } = useISARecords(
+  const { data: existingRecords = [], isLoading: isLoadingExisting, error: fetchError } = useISARecords(
     selectedGradeId,
     selectedSubjectId,
     selectedPeriodId
   );
+
+  // Mostrar error de carga si ocurre (útil para detectar falta de índices en Firestore)
+  useEffect(() => {
+    if (fetchError) {
+      toast.error('Error al cargar datos previos', { description: (fetchError as any).message });
+    }
+  }, [fetchError]);
 
   const isAdminOrCoord = profile?.role === 'admin' || profile?.role === 'coordinator';
 
@@ -120,27 +127,41 @@ export default function IsaPage() {
     const groupStudents = allStudents.filter((s: any) => String(s.grade_id) === String(selectedGradeId));
     groupStudents.sort((a: any, b: any) => (a.last_name || '').localeCompare(b.last_name || '', 'es'));
     
+    // Limpiar selecciones actuales para evitar ver datos del grupo anterior
+    setSelections({});
     setLoadedStudents(groupStudents);
     
-    // Merge existing records into selections
-    const newSelections: Record<string, { i1: boolean; i2: boolean; i3: boolean }> = {};
-    groupStudents.forEach((s: any) => {
-      const existing = (existingRecords as any[]).find((r: any) => r.student_id === s.id);
-      newSelections[s.id] = existing 
-        ? { i1: !!existing.i1, i2: !!existing.i2, i3: !!existing.i3 }
-        : { i1: false, i2: false, i3: false };
-    });
-    setSelections(newSelections);
-    
+    // El useEffect se encargará de sincronizar las selecciones una vez cargados los estudiantes
     setTimeout(() => {
       setIsCargando(false);
       if (groupStudents.length === 0) {
         toast.info('No se encontraron estudiantes');
       } else {
-        toast.success(`Cargados ${groupStudents.length} estudiantes ${existingRecords.length > 0 ? '(con datos previos)' : '(sin reportes previos)'}`);
+        toast.success(`Cargados ${groupStudents.length} estudiantes`);
       }
-    }, 400);
+    }, 300);
   };
+
+  // Sincronización reactiva de indicadores desde la base de datos
+  useEffect(() => {
+    // Solo sincronizar si NO está cargando datos de la DB y hay estudiantes en la lista
+    if (!isLoadingExisting && loadedStudents.length > 0) {
+      const newSelections: Record<string, { i1: boolean; i2: boolean; i3: boolean }> = {};
+      
+      loadedStudents.forEach((s: any) => {
+        // Match string-safe IDs
+        const existing = (existingRecords as any[]).find((r: any) => 
+          String(r.student_id) === String(s.id)
+        );
+        
+        newSelections[s.id] = existing 
+          ? { i1: !!existing.i1, i2: !!existing.i2, i3: !!existing.i3 }
+          : { i1: false, i2: false, i3: false };
+      });
+      
+      setSelections(newSelections);
+    }
+  }, [existingRecords, loadedStudents, isLoadingExisting]);
 
   const toggleIndicator = (studentId: string, indicator: 'i1' | 'i2' | 'i3') => {
     setSelections(prev => ({
@@ -154,42 +175,56 @@ export default function IsaPage() {
 
   const handleSave = async () => {
     const recordsToSave: CreateISARecordParams[] = [];
+    const idsToDelete: string[] = [];
     const today = new Date().toISOString().split('T')[0];
 
     Object.entries(selections).forEach(([studentId, indicators]) => {
-      const student = loadedStudents.find(s => s.id === studentId);
+      const student = loadedStudents.find(s => String(s.id) === String(studentId));
+      const hasIndicators = indicators.i1 || indicators.i2 || indicators.i3;
+      const existing = (existingRecords as any[]).find((r: any) => String(r.student_id) === String(studentId));
+
       if (student) {
-        recordsToSave.push({
-          student_id: studentId,
-          student_full_name: `${student.last_name} ${student.first_name}`,
-          student_last_name: student.last_name || '',
-          student_first_name: student.first_name || '',
-          student_avatar_url: student.avatar_url || '',
-          grade_id: selectedGradeId,
-          subject_id: selectedSubjectId, 
-          period_id: selectedPeriodId,   
-          teacher_id: profile?.uid || '',
-          date: today,
-          ...indicators
-        });
+        if (hasIndicators) {
+          // Buscamos el nombre de la asignatura en la lista global para asegurar que siempre esté disponible
+          const subject = subjects.find((s: any) => s.id === selectedSubjectId);
+          
+          recordsToSave.push({
+            student_id: studentId,
+            student_full_name: `${student.last_name} ${student.first_name}`,
+            student_last_name: student.last_name || '',
+            student_first_name: student.first_name || '',
+            student_avatar_url: student.avatar_url || '',
+            grade_id: selectedGradeId,
+            subject_id: selectedSubjectId, 
+            subject_name: subject?.name || 'Asignatura',
+            period_id: selectedPeriodId,   
+            teacher_id: profile?.uid || '',
+            teacher_name: profile?.full_name || 'Docente',
+            date: today,
+            ...indicators
+          });
+        } else if (existing) {
+          // Si tenía registro pero ya no tiene indicadores, lo eliminamos
+          idsToDelete.push(existing.id);
+        }
       }
     });
 
-    if (recordsToSave.length === 0) {
-      toast.warning('No hay datos para guardar');
+    if (recordsToSave.length === 0 && idsToDelete.length === 0) {
+      toast.warning('No hay cambios para guardar');
       return;
     }
 
     try {
-      await saveIsa.mutateAsync(recordsToSave);
-      setExiting(true);
-      setTimeout(() => navigate('/dashboard'), 220);
-    } catch (error) {}
-  };
-
-  const handleCancel = () => {
-    setExiting(true);
-    setTimeout(() => navigate(-1), 220);
+      await saveIsa.mutateAsync({ records: recordsToSave, idsToDelete });
+      // Limpiamos la lista para forzar una nueva carga si el usuario quiere seguir
+      setLoadedStudents([]);
+      // Mantenemos la asignatura y el periodo, limpiamos solo el grupo
+      setSelectedGradeId('');
+      toast.info('Reporte guardado. Seleccione otro grupo para continuar.');
+    } catch (error) {
+      console.error("Error al guardar ISA:", error);
+    }
   };
 
   if (isaEnabled === false && !isAdminOrCoord) {
@@ -353,7 +388,7 @@ export default function IsaPage() {
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1">
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-3">
                   {(['i1', 'i2', 'i3'] as const).map((ind) => {
                     const isSelected = selections[student.id]?.[ind];
                     return (
@@ -361,13 +396,13 @@ export default function IsaPage() {
                         key={ind}
                         onClick={() => toggleIndicator(student.id, ind)}
                         className={cn(
-                          "flex-1 py-1 rounded-[5px] text-[9px] font-black uppercase tracking-tighter transition-all border",
+                          "flex-1 py-1.5 rounded-[5px] text-[11px] font-black uppercase tracking-tighter transition-all border",
                           isSelected 
-                            ? "bg-primary text-white border-primary shadow-sm scale-[1.02] z-10" 
-                            : "bg-slate-50 dark:bg-slate-900 text-slate-400 dark:text-slate-500 border-slate-100 dark:border-slate-800 hover:border-primary/40"
+                            ? "bg-red-50 text-red-400 border-red-400 shadow-md scale-[1.05] z-10" 
+                            : "bg-slate-50 dark:bg-slate-900 text-slate-400 dark:text-slate-500 border-slate-100 dark:border-slate-800 hover:border-red-400/40"
                         )}
                       >
-                        {ind}
+                        {ind.toUpperCase()}
                       </button>
                     );
                   })}
@@ -377,25 +412,35 @@ export default function IsaPage() {
           </div>
         )}
 
-        {/* Action Buttons - Pure Stacking without any container box */}
-        <div className="flex flex-col gap-4 mt-10 pb-12 w-full max-w-md mx-auto px-4">
+        {!loadedStudents.length && !isCargando && (
+          <div className="flex-1 flex flex-col items-center justify-center p-12 text-center bg-slate-50/50 dark:bg-slate-900/20 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800">
+            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6 text-primary animate-pulse">
+              <Users className="w-10 h-10" />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Seguimiento Académico (ISA)</h3>
+            <p className="text-slate-500 dark:text-slate-400 max-w-sm text-sm">
+              Seleccione un grupo, asignatura y periodo para comenzar el reporte de indicadores.
+            </p>
+          </div>
+        )}
+
+        {/* Floating Save Button */}
+        {loadedStudents.length > 0 && (
+          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 w-full max-w-md px-4">
             <Button 
               onClick={handleSave}
-              disabled={saveIsa.isPending || loadedStudents.length === 0}
-              className="w-full bg-primary hover:bg-primary/90 text-white rounded-[5px] h-14 shadow-lg shadow-primary/25 font-semibold text-[11px] tracking-widest uppercase transition-all active:scale-[0.98]"
+              disabled={saveIsa.isPending}
+              className="w-full bg-primary hover:bg-primary/90 text-white rounded-2xl h-[60px] font-semibold uppercase shadow-2xl shadow-primary/30 gap-3 border-none flex items-center justify-center"
             >
-              {saveIsa.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-5 h-5 mr-3" />}
-              Guardar Reporte
+              {saveIsa.isPending ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Save className="w-5 h-5" />
+              )}
+              {saveIsa.isPending ? 'Guardando...' : 'Guardar Reporte'}
             </Button>
-            <Button 
-              variant="outline" 
-              onClick={handleCancel}
-              className="w-full rounded-[5px] h-14 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#1e2536] text-slate-700 dark:text-slate-200 font-semibold text-[11px] tracking-widest uppercase shadow-sm transition-all active:scale-[0.98]"
-            >
-              <X className="w-5 h-5 mr-3 text-slate-400" />
-              Cancelar
-            </Button>
-        </div>
+          </div>
+        )}
       </div>
     </FormView>
   );

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGrades, usePeriods } from '@/lib/hooks/useFirebaseData';
 import { getISAHistory } from '@/lib/firebase/isa';
@@ -19,6 +19,8 @@ export default function IsaHistoryPage() {
 
   const { data: grades = [] } = useGrades();
   const { data: periods = [] } = usePeriods();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedSession, setSelectedSession] = useState<any | null>(null);
 
   const { data: history = [], isLoading } = useQuery({
     queryKey: ['isa_history', selectedPeriodId, selectedGradeId],
@@ -28,36 +30,75 @@ export default function IsaHistoryPage() {
     })
   });
 
+  // Lógica de Agregación para la Vista de Auditoría
+  const aggregatedSessions = useMemo(() => {
+    const groups: Record<string, any> = {};
+    
+    history.forEach((record: any) => {
+      // Clave única por sesión: Grupo + Asignatura + Docente + Periodo
+      const key = `${record.grade_id}_${record.subject_id}_${record.teacher_id}_${record.period_id}`;
+      
+      if (!groups[key]) {
+        groups[key] = {
+          id: key,
+          grade_id: record.grade_id,
+          subject_id: record.subject_id,
+          subject_name: record.subject_name || 'Asignatura',
+          teacher_id: record.teacher_id,
+          teacher_name: record.teacher_name || 'Docente',
+          period_id: record.period_id,
+          grade_name: grades.find((g: any) => g.id === record.grade_id)?.name || 'Grupo',
+          student_count: 0,
+          last_update: record.updated_at || record.created_at,
+          records: []
+        };
+      }
+      
+      groups[key].student_count++;
+      groups[key].records.push(record);
+    });
+
+    return Object.values(groups).sort((a: any, b: any) => {
+      const timeA = a.last_update?.seconds || 0;
+      const timeB = b.last_update?.seconds || 0;
+      return timeB - timeA;
+    });
+  }, [history, grades]);
+
+  // Filtrado por buscador (Docente o Asignatura)
+  const filteredSessions = useMemo(() => {
+    if (!searchTerm.trim()) return aggregatedSessions;
+    const term = searchTerm.toLowerCase();
+    return aggregatedSessions.filter((s: any) => 
+      s.teacher_name.toLowerCase().includes(term) || 
+      s.subject_name.toLowerCase().includes(term) ||
+      s.grade_name.toLowerCase().includes(term)
+    );
+  }, [aggregatedSessions, searchTerm]);
+
   const clearFilters = () => {
     setSelectedPeriodId('all');
     setSelectedGradeId('all');
+    setSearchTerm('');
   };
 
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen text-slate-800 dark:text-slate-100 pb-24 p-4 lg:p-8">
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex flex-col gap-0.5">
-            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-              Consulta y revisión de reportes históricos de seguimiento académico.
-            </p>
-          </div>
+        {/* Header - Sin título por solicitud */}
+        <div className="flex flex-col md:flex-row md:items-center justify-end gap-4">
           <Button onClick={() => navigate('/dashboard/isa')} className="bg-primary hover:bg-primary/90 text-white rounded-[5px] h-9 px-4 gap-2 shadow-lg shadow-primary/10 font-semibold text-[10px] tracking-widest uppercase">
             <FileText className="w-4 h-4" />
             Nuevo Pre-informe
           </Button>
         </div>
-        </div>
 
         {/* Filters Card */}
         <Card className="border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-[#1e1e2d] rounded-[5px]">
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-3 px-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-primary" />
-                <CardTitle className="text-sm font-semibold uppercase tracking-wider">Filtros de Búsqueda</CardTitle>
               </div>
               {(selectedPeriodId !== 'all' || selectedGradeId !== 'all') && (
                 <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 text-[11px] font-semibold text-amber-600 hover:text-amber-700 hover:bg-amber-50 gap-1 uppercase">
@@ -102,10 +143,28 @@ export default function IsaHistoryPage() {
                 </div>
               </div>
 
-              <div className="flex items-end">
+              <div className="space-y-1.5 lg:col-span-2">
+                <Label className="text-[11px] font-semibold uppercase text-slate-400 tracking-wider">Buscar por Docente o Asignatura</Label>
+                <div className="relative">
+                  <input 
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Ej: Matemáticas, Juan Perez..."
+                    className="w-full h-10 pl-10 pr-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none font-medium"
+                  />
+                  <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                </div>
+              </div>
+
+              <div className="flex items-end lg:col-span-3">
                 <div className="w-full p-3 bg-primary/5 rounded-[5px] border border-primary/10 flex items-center justify-between">
-                  <span className="text-xs font-semibold text-primary">{history.length} reportes encontrados</span>
-                  <Search className="w-4 h-4 text-primary opacity-50" />
+                  <span className="text-xs font-semibold text-primary">{filteredSessions.length} sesiones de reporte encontradas ({history.length} estudiantes)</span>
+                  <div className="flex gap-2">
+                    <div className="flex items-center gap-1 text-[10px] text-slate-500 font-bold uppercase">
+                      <span className="w-2 h-2 rounded-full bg-green-500"></span> Completo
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -117,78 +176,143 @@ export default function IsaHistoryPage() {
           <div className="py-20 text-center">
             <LoadingSpinner message="Buscando en el historial..." />
           </div>
-        ) : history.length === 0 ? (
+        ) : filteredSessions.length === 0 ? (
           <Card className="border-dashed border-2 p-12 text-center bg-slate-50/50 dark:bg-slate-900/10">
             <div className="flex flex-col items-center gap-2 opacity-40">
               <Search className="w-10 h-10" />
-              <p className="text-sm font-medium">No se encontraron registros con los filtros seleccionados</p>
+              <p className="text-sm font-medium">No se encontraron sesiones de reporte con estos criterios</p>
             </div>
           </Card>
         ) : (
-          <div className="grid gap-4">
-            {[...history]
-              .sort((a: any, b: any) => (a.student_last_name || '').localeCompare(b.student_last_name || '', 'es'))
-              .map((record: any) => (
-              <Card key={record.id} className="group hover:border-primary/30 transition-all shadow-sm bg-white dark:bg-[#1e1e2d] border-slate-200 dark:border-slate-800 overflow-hidden rounded-[5px]">
-                <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    {/* Premium Avatar Fallback */}
-                    <div className="w-12 h-12 rounded-full bg-[#C6E7FC] overflow-hidden flex items-center justify-center text-[#0099FE] font-semibold text-sm shrink-0 border border-primary/10">
-                      {record.student_avatar_url ? (
-                        <img src={record.student_avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="uppercase">{(record.student_first_name || record.student_full_name || '?')[0]}</span>
-                      )}
-                    </div>
-                    
-                    <div className="flex flex-col">
-                      <h4 className="font-semibold text-slate-900 dark:text-white leading-tight uppercase text-sm tracking-tight">
-                        {record.student_last_name}
-                      </h4>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                        {record.student_first_name}
-                      </p>
-                      
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 opacity-80">
-                        <span className="text-[9px] font-semibold text-primary flex items-center gap-1">
-                          <Users className="w-3 h-3" /> {grades.find((g: any) => g.id === record.grade_id)?.name || 'Grupo'}
-                        </span>
-                        <span className="text-[9px] font-semibold text-slate-400 flex items-center gap-1">
-                          <Calendar className="w-3 h-3" /> P{periods.find((p: any) => p.id === record.period_id)?.period_number || '?'}
-                        </span>
-                        <span className="text-[9px] font-medium text-slate-400">
-                          {record.created_at?.toDate ? format(record.created_at.toDate(), "d MMM yy", { locale: es }) : record.date}
-                        </span>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredSessions.map((session: any) => (
+              <Card 
+                key={session.id} 
+                onClick={() => setSelectedSession(session)}
+                className="group hover:border-primary/40 cursor-pointer transition-all shadow-sm bg-white dark:bg-[#1e1e2d] border-slate-200 dark:border-slate-800 overflow-hidden rounded-[5px] flex flex-col"
+              >
+                <div className="p-4 flex-1">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                        <Users className="w-5 h-5" />
                       </div>
+                      <div>
+                        <h4 className="font-semibold text-slate-900 dark:text-white uppercase text-xs tracking-wider">
+                          {session.grade_name}
+                        </h4>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded border border-amber-100 dark:border-amber-900">
+                            {session.subject_name}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                       <span className="text-[10px] font-black text-slate-400">P{periods.find((p: any) => p.id === session.period_id)?.period_number || '?'}</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 self-end sm:self-center">
-                    <div className="flex gap-1 mr-2">
-                      {['I1', 'I2', 'I3'].map(ind => (
-                        <div 
-                          key={ind} 
-                          className={cn(
-                            "w-7 h-7 rounded-[5px] flex items-center justify-center text-[9px] font-black border transition-all",
-                            record[ind.toLowerCase()] 
-                              ? "bg-primary text-white border-primary shadow-sm" 
-                              : "bg-slate-50 dark:bg-slate-900 text-slate-300 dark:text-slate-600 border-slate-100 dark:border-slate-800"
-                          )}
-                        >
-                          {ind}
-                        </div>
-                      ))}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                       <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-[10px]">
+                         {session.teacher_name[0]}
+                       </div>
+                       <p className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                         {session.teacher_name}
+                       </p>
                     </div>
-                    <Button variant="ghost" size="sm" className="h-9 w-9 p-0 rounded-full hover:bg-primary/10 hover:text-primary transition-all">
-                      <ChevronRight className="w-5 h-5" />
-                    </Button>
+
+                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                       <div className="flex items-center gap-1.5">
+                         <div className="text-xs font-semibold text-primary">{session.student_count}</div>
+                         <div className="text-[10px] text-slate-400 font-medium">Estudiantes reportados</div>
+                       </div>
+                       <Button variant="ghost" className="h-7 px-2 text-[10px] font-semibold uppercase gap-1 text-primary hover:bg-primary/5 rounded-[5px]">
+                         Ver detalle <ChevronRight className="w-3 h-3" />
+                       </Button>
+                    </div>
                   </div>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-900/50 px-4 py-2 flex items-center justify-between border-t border-slate-100 dark:border-slate-800">
+                  <span className="text-[9px] text-slate-400 font-medium">Último cambio</span>
+                  <span className="text-[9px] text-slate-500 font-semibold uppercase">
+                    {session.last_update?.toDate ? format(session.last_update.toDate(), "d MMM HH:mm", { locale: es }) : 'Reciente'}
+                  </span>
                 </div>
               </Card>
             ))}
           </div>
         )}
       </div>
+
+      {/* Modal / Overlay de Detalle de Sesión */}
+      {selectedSession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border-primary/20 bg-white dark:bg-[#151b2d] rounded-[5px]">
+            <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-primary/10 rounded-full text-primary">
+                    <Users className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-semibold uppercase tracking-tight">{selectedSession.grade_name}</CardTitle>
+                    <p className="text-xs text-slate-500 font-medium">{selectedSession.subject_name} • {selectedSession.teacher_name}</p>
+                  </div>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setSelectedSession(null)}
+                  className="rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="overflow-y-auto flex-1 p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {selectedSession.records
+                  .sort((a: any, b: any) => (a.student_last_name || '').localeCompare(b.student_last_name || '', 'es'))
+                  .map((record: any) => (
+                  <div key={record.id} className="p-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-[5px] flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-[#C6E7FC] flex items-center justify-center text-[#0099FE] font-semibold text-[10px] shrink-0">
+                        {record.student_last_name[0]}{record.student_first_name[0]}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-semibold text-slate-900 dark:text-white truncate uppercase">{record.student_last_name}</p>
+                        <p className="text-[10px] text-slate-500 truncate">{record.student_first_name}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1 shrink-0 ml-2">
+                       {['I1', 'I2', 'I3'].map(ind => (
+                         <div 
+                           key={ind} 
+                           className={cn(
+                             "w-6 h-6 rounded-[3px] flex items-center justify-center text-[8px] font-black border",
+                             record[ind.toLowerCase()] 
+                               ? "bg-red-50 text-red-400 border-red-200" 
+                               : "bg-white dark:bg-slate-800 text-slate-200 dark:text-slate-700 border-slate-100 dark:border-slate-800"
+                           )}
+                         >
+                           {ind}
+                         </div>
+                       ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 flex justify-end">
+               <Button onClick={() => setSelectedSession(null)} className="rounded-[5px] px-6 font-semibold uppercase text-[10px] tracking-widest">
+                 Cerrar Detalle
+               </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

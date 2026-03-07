@@ -31,7 +31,9 @@ export interface ISARecord {
   student_avatar_url?: string;
   grade_id: string;
   teacher_id: string;
+  teacher_name?: string;
   subject_id: string; 
+  subject_name?: string;
   period_id: string;  
   date: string; // ISO format YYYY-MM-DD
   i1: boolean;

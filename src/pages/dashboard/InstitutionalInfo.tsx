@@ -420,7 +420,7 @@ export default function InstitutionalInfo() {
       </Tabs>
 
       {/* Floating Save Button */}
-      <div className="fixed bottom-20 lg:bottom-8 left-0 right-0 z-50 px-6">
+      <div className="fixed bottom-20 lg:bottom-8 left-0 right-0 z-50 px-6 border-t">
         <div className="max-w-5xl mx-auto flex gap-3">
           <Button
             type="button"
