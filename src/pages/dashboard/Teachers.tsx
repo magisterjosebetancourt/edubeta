@@ -98,12 +98,12 @@ export default function TeachersPage() {
     <div className="bg-background-light dark:bg-background-dark min-h-screen pb-24">
       <div className="p-4 lg:p-8 space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-1">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-6">
             Gestiona invitaciones y docentes activos de la institución.
           </p>
           <Button
             onClick={() => navigate("/dashboard/teachers/new")}
-            className="bg-primary hover:bg-primary/90 text-white rounded-[5px] h-auto py-3 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 uppercase"
+            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
           >
             <Plus className="w-5 h-5 stroke-[3]" />
             Nueva invitación

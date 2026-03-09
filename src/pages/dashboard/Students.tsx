@@ -163,7 +163,7 @@ export default function StudentsPage() {
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen text-slate-800 dark:text-slate-100 pb-24">
       <div className="p-4 space-y-4">
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <p className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-6">
           Listado de alumnos matriculados.
         </p>
 
@@ -174,7 +174,7 @@ export default function StudentsPage() {
             <input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-100 dark:bg-[#1e2536] border rounded-[5px] py-3 pl-10 pr-4 text-sm text-slate-900 dark:text-white placeholder-slate-500 focus:ring-2 focus:ring-primary/50 transition-all outline-none"
+              className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-primary/50"
               placeholder="Buscar por apellido o nombre..."
               type="text"
             />
@@ -184,7 +184,7 @@ export default function StudentsPage() {
             <select
               value={filterGradeId}
               onChange={(e) => setFilterGradeId(e.target.value)}
-              className="col-span-2 w-full bg-slate-100 dark:bg-[#1e2536] border dark:border-slate-800 rounded-[5px] py-3 px-4 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary/50 transition-all outline-none appearance-none"
+              className="pl-9 h-10 w-full sm:w-auto min-w-[150px] bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none"
             >
               <option value="">Grados</option>
               {grades.map((g) => (
@@ -197,19 +197,19 @@ export default function StudentsPage() {
                 <Button
                   onClick={() => navigate("/dashboard/students/import")}
                   variant="outline"
-                  className="rounded-[5px] h-auto py-3 gap-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#1e2536] text-slate-700 dark:text-slate-200"
+                  className="w-full h-14 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 gap-2 rounded-lg font-semibold tracking-widest text-xs"
                 >
                   <FileUp className="w-4 h-4" />
                   <span className="hidden lg:inline">Carga Masiva</span>
-                  <span className="lg:hidden">CSV</span>
+                  <span className="lg:hidden text-xs">CSV</span>
                 </Button>
                 <Button
                   onClick={() => navigate("/dashboard/students/new")}
-                  className="bg-primary hover:bg-primary/90 text-white rounded-[5px] h-auto py-3 gap-2 shadow-lg shadow-primary/20"
+                  className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
                 >
                   <UserPlus className="w-4 h-4" />
                   <span className="hidden lg:inline">Matricular</span>
-                  <span className="lg:hidden text-xs">AÃ±adir</span>
+                  <span className="lg:hidden text-xs">Añadir</span>
                 </Button>
               </div>
             )}

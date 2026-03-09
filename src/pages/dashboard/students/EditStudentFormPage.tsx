@@ -28,7 +28,7 @@ type Grade = { id: string; name: string }
 type Neighborhood = { id: string; name: string }
 
 const selectClass =
-  'w-full bg-slate-100 dark:bg-[#1e2536] border dark:border-slate-800 rounded-lg py-3 px-4 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary/50 appearance-none disabled:opacity-50 transition-all'
+  'pl-9 h-10 w-full sm:w-auto min-w-[150px] bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none disabled:opacity-50 transition-all'
 
 export default function EditStudentFormPage() {
   const navigate = useNavigate()
@@ -175,7 +175,7 @@ export default function EditStudentFormPage() {
               value={firstName}
               onChange={e => setFirstName(e.target.value)}
               required
-              className="h-12 text-sm bg-slate-100 dark:bg-[#1e2536] border dark:border-slate-800 focus:ring-2 focus:ring-primary/50"
+              className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
         </div>

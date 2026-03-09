@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FormView } from '@/components/ui/FormView'
 import { useQueryClient } from '@tanstack/react-query'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
@@ -52,7 +53,7 @@ export default function NewSubjectFormPage() {
   return (
     <FormView exiting={exiting}>
       <form onSubmit={handleSubmit} className="space-y-5">
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <p className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-6">
           Registra una nueva materia en el currículo institucional.
         </p>
         <div className="space-y-2">
@@ -63,20 +64,20 @@ export default function NewSubjectFormPage() {
             onChange={e => setName(e.target.value)}
             placeholder="Ej: Matemáticas, Lenguaje..."
             required
-            className="h-12 text-sm bg-slate-100 dark:bg-[#1e2536] border dark:border-slate-800 focus:ring-2 focus:ring-primary/50"
+            className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50"
           />
         </div>
         <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
-          <button type="button" onClick={handleCancel} disabled={saving}
-            className="w-full sm:w-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl py-4 flex items-center justify-center gap-3 font-semibold text-sm shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-all h-[60px] px-8">
-            <X className="w-5 h-5 text-slate-400" />
+          <Button type="button" variant="ghost" onClick={handleCancel} disabled={saving}
+            className="w-full h-14 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 gap-2 rounded-lg font-semibold tracking-widest text-xs">
+            <X className="w-5 h-5" />
             Cancelar
-          </button>
-          <button type="submit" disabled={saving}
-            className="w-full sm:flex-1 bg-primary hover:bg-primary/90 disabled:opacity-50 text-white rounded-[5px] py-4 flex items-center justify-center gap-3 font-semibold text-sm tracking-widest shadow-xl shadow-primary/30 active:scale-[0.98] transition-all h-[60px] uppercase px-8">
-            <Save className="w-5 h-5 text-white" />
+          </Button>
+          <Button type="submit" disabled={saving}
+            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0">
+            <Save className="w-5 h-5" />
             {saving ? 'CREANDO...' : 'CREAR ASIGNATURA'}
-          </button>
+          </Button>
         </div>
       </form>
     </FormView>

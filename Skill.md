@@ -2,10 +2,12 @@
 
 ## Normas de UI y UX
 - **Formularios**: Usar el componente `FormView` para todas las pÃ¡ginas principales del dashboard.
-- **Inputs y Selects**: Aplicar `fieldClass` estÃ¡ndar: `w-full bg-slate-100 dark:bg-[#1e2536] border dark:border-slate-800 rounded-lg py-3 px-4 text-sm`.
+- **Inputs y Selects**: 
+  - **Inputs**: `w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50`.
+  - **Selects**: `pl-9 h-10 w-full sm:w-auto min-w-[150px] bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none`.
 - **Botones de Formulario**: 
-  - **AcciÃ³n Principal (Guardar/Registrar)**: `bg-primary text-white rounded-2xl h-[60px] font-bold uppercase shadow-xl shadow-primary/30`. Siempre con icono.
-  - **AcciÃ³n Secundaria (Cancelar)**: `bg-white border border-slate-200 text-slate-600 rounded-2xl h-[60px] font-semibold shadow-sm`. Siempre con icono `X`.
+  - **Acción Principal (Guardar/Registrar/Nuevo)**: `bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0`. Siempre con icono a la izquierda.
+  - **Acción Secundaria (Cancelar/Eliminar)**: `w-full h-14 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 gap-2 rounded-lg font-semibold tracking-widest text-xs`. Siempre con icono.
 
 ## EstÃ¡ndares de UI/UX
 - **Indicadores de Carga**: Siempre usar el componente `<LoadingSpinner />` en lugar de textos planos como "Cargando...". Este componente incluye el logotipo institucional animado y un mensaje descriptivo.

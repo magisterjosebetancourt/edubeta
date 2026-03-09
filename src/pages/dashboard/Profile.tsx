@@ -136,7 +136,7 @@ export default function ProfilePage() {
 
                 <div className="flex-1 w-full space-y-2">
                     <Label htmlFor="avatar-upload" className="cursor-pointer">
-                        <div className="flex items-center justify-center w-full md:w-auto px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors text-sm font-medium text-slate-700 dark:text-slate-200 shadow-sm gap-2">
+                        <div className="flex items-center justify-center w-full md:w-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all text-xs font-semibold tracking-widest text-slate-700 dark:text-slate-200 shadow-sm gap-2 h-auto py-3.5 px-6">
                              <ImageIcon className="w-4 h-4" />
                              Cambiar Foto
                         </div>
@@ -171,7 +171,7 @@ export default function ProfilePage() {
                             id="email" 
                             value={email} 
                             disabled 
-                            className="pl-9 bg-slate-50 dark:bg-slate-900/50" 
+                            className="pl-9 w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] text-sm outline-none focus:ring-2 focus:ring-primary/50 opacity-70" 
                         />
                     </div>
                     <p className="text-xs text-slate-400">El correo no se puede cambiar directamente.</p>
@@ -189,7 +189,7 @@ export default function ProfilePage() {
                                 'Docente'
                             } 
                             disabled 
-                            className="pl-9 bg-slate-50 dark:bg-slate-900/50 capitalize" 
+                            className="pl-9 w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] text-sm outline-none focus:ring-2 focus:ring-primary/50 opacity-70 capitalize" 
                         />
                     </div>
                 </div>
@@ -210,7 +210,7 @@ export default function ProfilePage() {
                             id="fullName" 
                             value={fullName}
                             onChange={(e) => setFullName(e.target.value)}
-                            className="pl-9"
+                            className="pl-9 w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] text-sm outline-none focus:ring-2 focus:ring-primary/50"
                             placeholder="Ej. GÓMEZ, Roberto"
                         />
                     </div>
@@ -225,7 +225,7 @@ export default function ProfilePage() {
           <Button 
             onClick={handleSave} 
             disabled={saving}
-            className="w-full bg-primary hover:bg-primary/90 text-white rounded-[5px] h-auto py-3.5 gap-2 shadow-xl shadow-primary/20 font-semibold text-sm transition-all active:scale-[0.98]"
+            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Guardar Cambios

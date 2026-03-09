@@ -87,7 +87,10 @@ export default function IsaHistoryPage() {
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header - Sin título por solicitud */}
         <div className="flex flex-col md:flex-row md:items-center justify-end gap-4">
-          <Button onClick={() => navigate('/dashboard/isa')} className="bg-primary hover:bg-primary/90 text-white rounded-[5px] h-9 px-4 gap-2 shadow-lg shadow-primary/10 font-semibold text-[10px] tracking-widest uppercase">
+          <Button 
+            onClick={() => navigate('/dashboard/isa')} 
+            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
+          >
             <FileText className="w-4 h-4" />
             Nuevo Pre-informe
           </Button>
@@ -115,7 +118,7 @@ export default function IsaHistoryPage() {
                   <select 
                     value={selectedPeriodId}
                     onChange={(e) => setSelectedPeriodId(e.target.value)}
-                    className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none font-medium appearance-none"
+                    className="pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all font-medium"
                   >
                     <option value="all">Todos los periodos</option>
                     {periods.map((p: any) => (
@@ -132,7 +135,7 @@ export default function IsaHistoryPage() {
                   <select 
                     value={selectedGradeId}
                     onChange={(e) => setSelectedGradeId(e.target.value)}
-                    className="w-full h-10 px-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none font-medium appearance-none"
+                    className="pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all font-medium"
                   >
                     <option value="all">Todos los grupos</option>
                     {grades.map((g: any) => (
@@ -151,7 +154,7 @@ export default function IsaHistoryPage() {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Ej: Matemáticas, Juan Perez..."
-                    className="w-full h-10 pl-10 pr-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg text-sm outline-none font-medium"
+                    className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 font-medium"
                   />
                   <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
                 </div>
@@ -228,7 +231,10 @@ export default function IsaHistoryPage() {
                          <div className="text-xs font-semibold text-primary">{session.student_count}</div>
                          <div className="text-[10px] text-slate-400 font-medium">Estudiantes reportados</div>
                        </div>
-                       <Button variant="ghost" className="h-7 px-2 text-[10px] font-semibold uppercase gap-1 text-primary hover:bg-primary/5 rounded-[5px]">
+                       <Button 
+                         variant="ghost" 
+                         className="h-7 px-2 text-[10px] font-semibold uppercase gap-1 text-primary hover:bg-primary/5 rounded-[5px]"
+                       >
                          Ver detalle <ChevronRight className="w-3 h-3" />
                        </Button>
                     </div>
@@ -306,7 +312,11 @@ export default function IsaHistoryPage() {
               </div>
             </CardContent>
             <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 flex justify-end">
-               <Button onClick={() => setSelectedSession(null)} className="rounded-[5px] px-6 font-semibold uppercase text-[10px] tracking-widest">
+               <Button 
+                 onClick={() => setSelectedSession(null)} 
+                 className="w-full h-14 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 gap-2 rounded-lg font-semibold tracking-widest text-xs"
+               >
+                 <X className="w-4 h-4" />
                  Cerrar Detalle
                </Button>
             </div>

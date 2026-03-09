@@ -254,12 +254,12 @@ export default function IsaPage() {
   if (loadingGrades || isaEnabled === null) return <LoadingSpinner message="Validando configuración de ISA..." />;
 
   return (
-    <FormView exiting={exiting}>
+    <FormView>
       <div className="space-y-4">
         {/* Header con estilo premium - Solo descripción según feedback */}
         <div className="flex flex-col gap-0.5 px-1">
-          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-            Seguimiento cualitativo del desempeño académico por periodo académico. Seleccione los criterios para cargar la lista.
+          <p className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-6">
+            Seguimiento cualitativo del desempeño académico por periodo. Seleccione los criterios para cargar la lista.
           </p>
         </div>
 
@@ -287,7 +287,7 @@ export default function IsaPage() {
                     <select 
                       value={selectedLevelId}
                       onChange={(e) => { setSelectedLevelId(e.target.value); setSelectedGradeName(''); setSelectedGradeId(''); setLoadedStudents([]); }}
-                      className="w-full h-9 px-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-[5px] text-xs outline-none focus:ring-1 focus:ring-primary/20 transition-all font-medium"
+                      className="pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all font-medium"
                     >
                       <option value="">Nivel...</option>
                       {LEVELS.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
@@ -299,7 +299,7 @@ export default function IsaPage() {
                     <select 
                       value={selectedGradeName}
                       onChange={(e) => { setSelectedGradeName(e.target.value); setSelectedGradeId(''); setLoadedStudents([]); }}
-                      className="w-full h-9 px-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-[5px] text-xs outline-none disabled:opacity-50 font-medium"
+                      className="pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all disabled:opacity-50 font-medium"
                       disabled={!selectedLevelId}
                     >
                       <option value="">Grado...</option>
@@ -315,7 +315,7 @@ export default function IsaPage() {
                 <select 
                   value={selectedGradeId}
                   onChange={(e) => { setSelectedGradeId(e.target.value); setLoadedStudents([]); setSelectedSubjectId(''); }}
-                  className="w-full h-9 px-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-[5px] text-xs outline-none font-medium"
+                  className="pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all font-medium"
                   disabled={availableGrades.length === 0}
                 >
                   <option value="">Grupo...</option>
@@ -330,7 +330,7 @@ export default function IsaPage() {
                 <select 
                   value={selectedSubjectId}
                   onChange={(e) => { setSelectedSubjectId(e.target.value); setLoadedStudents([]); }}
-                  className="w-full h-9 px-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-[5px] text-xs outline-none font-medium"
+                  className="pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all font-medium"
                   disabled={!selectedGradeId}
                 >
                   <option value="">Asignatura...</option>
@@ -344,7 +344,7 @@ export default function IsaPage() {
                   <select 
                     value={selectedPeriodId}
                     onChange={(e) => { setSelectedPeriodId(e.target.value); setLoadedStudents([]); }}
-                    className="w-full h-9 px-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-[5px] text-xs outline-none font-medium"
+                    className="pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all font-medium"
                   >
                     {periods.map((p: any) => ( <option key={p.id} value={p.id}>Periodo {p.period_number}</option> ))}
                   </select>
@@ -355,7 +355,7 @@ export default function IsaPage() {
                 <Button 
                   onClick={handleCargarEstudiantes}
                   disabled={!selectedGradeId || !selectedSubjectId || isCargando || isLoadingExisting}
-                  className="w-full bg-primary hover:bg-primary/90 text-white rounded-[5px] h-14 shadow-lg shadow-primary/25 font-semibold text-[11px] tracking-widest uppercase transition-all active:scale-[0.98]"
+                  className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
                 >
                   {isCargando || isLoadingExisting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5" />}
                   Cargar Lista
@@ -430,7 +430,7 @@ export default function IsaPage() {
             <Button 
               onClick={handleSave}
               disabled={saveIsa.isPending}
-              className="w-full bg-primary hover:bg-primary/90 text-white rounded-2xl h-[60px] font-semibold uppercase shadow-2xl shadow-primary/30 gap-3 border-none flex items-center justify-center"
+              className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
             >
               {saveIsa.isPending ? (
                 <Loader2 className="w-5 h-5 animate-spin" />

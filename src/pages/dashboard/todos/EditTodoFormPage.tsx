@@ -74,18 +74,18 @@ export default function EditTodoFormPage() {
         <div className="space-y-2">
           <Label className="text-[10px] font-black tracking-widest text-slate-400">Título</Label>
           <Input name="title" required defaultValue={todo?.title}
-            className="h-12 rounded-lg bg-slate-100 dark:bg-[#1e2536] border-none font-semibold" />
+            className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 font-semibold" />
         </div>
         <div className="space-y-2">
           <Label className="text-[10px] font-black tracking-widest text-slate-400">Descripción</Label>
           <Input name="description" defaultValue={todo?.description} placeholder="Añade más detalles..."
-            className="h-12 rounded-lg bg-slate-100 dark:bg-[#1e2536] border-none text-sm" />
+            className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50" />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label className="text-[10px] font-black tracking-widest text-slate-400">Prioridad</Label>
             <select name="priority" defaultValue={todo?.priority || 'P3'}
-              className="w-full h-12 rounded-lg bg-slate-100 dark:bg-[#1e2536] px-4 text-xs font-semibold outline-none border-none dark:text-white">
+              className="pl-9 h-10 w-full sm:w-auto min-w-[150px] bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none">
               <option value="P1">Urgente</option>
               <option value="P2">Importante</option>
               <option value="P3">Normal</option>
@@ -96,16 +96,16 @@ export default function EditTodoFormPage() {
             <Label className="text-[10px] font-black tracking-widest text-slate-400">Fecha</Label>
             <Input name="start_date" type="date"
               defaultValue={todo?.start_date || format(new Date(), 'yyyy-MM-dd')} required
-              className="h-12 rounded-lg bg-slate-100 dark:bg-[#1e2536] border-none text-xs font-semibold" />
+              className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 font-semibold" />
           </div>
         </div>
         <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
           <Button type="button" variant="ghost" onClick={handleCancel} disabled={saving}
-            className="w-full sm:w-auto rounded-lg h-auto py-3.5 px-6 font-semibold text-sm text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+            className="w-full h-14 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 gap-2 rounded-lg font-semibold tracking-widest text-xs">
             <X className="w-4 h-4 mr-1.5" />Cancelar
           </Button>
           <Button type="submit" disabled={saving}
-            className="w-full sm:flex-1 bg-primary hover:bg-primary/90 text-white rounded-[5px] h-auto py-3.5 gap-2 shadow-xl shadow-primary/20 font-semibold text-sm transition-all active:scale-[0.98]">
+            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {saving ? 'Guardando...' : 'Guardar cambios'}
           </Button>

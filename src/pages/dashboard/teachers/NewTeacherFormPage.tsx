@@ -104,7 +104,7 @@ export default function NewTeacherFormPage() {
       ) : (
         /* ── Paso 1: Formulario ── */
         <form onSubmit={handleSubmit} className="space-y-5">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
+          <p className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-6">
             Genera un código de acceso para que el docente pueda registrarse en la plataforma.
           </p>
 
@@ -129,7 +129,7 @@ export default function NewTeacherFormPage() {
               onChange={e => setEmail(e.target.value)}
               placeholder="ejemplo@institucion.edu.co"
               required
-              className="h-12 text-sm bg-slate-100 dark:bg-[#1e2536] border dark:border-slate-800 focus:ring-2 focus:ring-primary/50"
+              className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
 
@@ -139,7 +139,7 @@ export default function NewTeacherFormPage() {
               variant="ghost"
               onClick={handleCancel}
               disabled={saving}
-              className="w-full sm:w-auto rounded-lg h-auto py-3.5 px-6 font-semibold text-sm text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+              className="w-full h-14 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 gap-2 rounded-lg font-semibold tracking-widest text-xs"
             >
               <X className="w-4 h-4 mr-1.5" />
               Cancelar
@@ -147,7 +147,7 @@ export default function NewTeacherFormPage() {
             <Button
               type="submit"
               disabled={saving}
-              className="w-full sm:flex-1 bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 gap-2 shadow-xl shadow-primary/20 font-semibold text-sm transition-all active:scale-[0.98]"
+              className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               {saving ? 'Generando...' : 'Generar código de acceso'}

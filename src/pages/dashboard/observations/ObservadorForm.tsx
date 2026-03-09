@@ -169,6 +169,10 @@ export default function ObservadorForm() {
     setIsSubmitting(true);
 
     try {
+      // Obtenemos el nombre del estudiante para denormalizarlo
+      const targetStudent = rawStudents.find((s: any) => s.id === data.studentId);
+      const studentName = targetStudent ? `${targetStudent.last_name}, ${targetStudent.first_name}` : '';
+
       // El agreements lo guardamos en array ya que el esquema lo pide así
       const agreementsArray = data.agreements.split('\n').filter((a: string) => a.trim().length > 0);
 
@@ -184,6 +188,7 @@ export default function ObservadorForm() {
 
       await createObservation.mutateAsync({
         studentId: data.studentId,
+        studentName, // Persistimos el nombre para evitar búsquedas lentas en la lista
         createdBy: profile.full_name, // Usamos name en lugar de ID (la interface de firestore.ts usa email y role pero no ID explicit). Todo: Arreglar en firestore el .id
         creatorName: profile.full_name,
         date: data.incidentDate, // Usamos la fecha de la situación elegida
@@ -240,7 +245,7 @@ export default function ObservadorForm() {
                         setSelectedGradeName('');
                         setSelectedGroupId('');
                       }}
-                      className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary/50 outline-none transition-all dark:text-white text-sm"
+                      className="pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all font-medium"
                     >
                       <option value="">Todos los niveles</option>
                       {LEVELS.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
@@ -255,7 +260,7 @@ export default function ObservadorForm() {
                         setSelectedGradeName(e.target.value);
                         setSelectedGroupId('');
                       }}
-                      className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary/50 outline-none transition-all dark:text-white text-sm"
+                      className="pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all disabled:opacity-50 font-medium"
                       disabled={!selectedLevelId}
                     >
                       <option value="">Todos los grados</option>
@@ -272,7 +277,7 @@ export default function ObservadorForm() {
                 <select 
                   value={selectedGroupId}
                   onChange={(e) => setSelectedGroupId(e.target.value)}
-                  className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary/50 outline-none transition-all dark:text-white text-sm"
+                  className="pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all font-medium"
                   disabled={loadingGrades || loadingAssignments || (isAdminOrCoord && !!selectedLevelId && !selectedGradeName)}
                 >
                   <option value="">{isAdminOrCoord ? 'Todos los grupos' : 'Seleccionar grupo'}</option>
@@ -286,7 +291,7 @@ export default function ObservadorForm() {
                 <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Estudiante implicado *</label>
                 <select 
                   {...register('studentId')}
-                  className={`w-full h-11 px-3 bg-slate-50 dark:bg-slate-900/50 border ${errors.studentId ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'} rounded-lg focus:ring-2 focus:ring-primary/50 outline-none transition-all dark:text-white text-sm`}
+                  className={`pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border ${errors.studentId ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'} rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all font-medium`}
                   disabled={loadingStudents || (!!selectedGradeName && !selectedGroupId) || students.length === 0}
                 >
                   <option value="">
@@ -308,7 +313,7 @@ export default function ObservadorForm() {
                 <input 
                   type="date"
                   {...register('incidentDate')}
-                  className={`w-full h-11 px-3 bg-slate-50 dark:bg-slate-900/50 border ${errors.incidentDate ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'} rounded-lg focus:ring-2 focus:ring-primary/50 outline-none transition-all dark:text-white text-sm`}
+                  className={`w-full h-12 rounded-lg border ${errors.incidentDate ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'} bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50`}
                 />
                 {errors.incidentDate && <p className="text-xs text-red-500 font-medium">{errors.incidentDate.message}</p>}
               </div>
@@ -446,7 +451,7 @@ export default function ObservadorForm() {
               </label>
               <select 
                 {...register('commitmentStatus')}
-                className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-primary/50 outline-none transition-all dark:text-white text-sm"
+                className="pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all font-medium"
               >
                 <option value="Iniciada">Iniciada</option>
                 <option value="En evaluación">En evaluación</option>
@@ -536,16 +541,16 @@ export default function ObservadorForm() {
           <Button 
             type="submit" 
             disabled={isSubmitting}
-            className="bg-primary hover:bg-primary/90 text-white min-w-[150px] font-semibold text-xs tracking-widest uppercase h-11 shadow-xl shadow-primary/20 active:scale-95 transition-all"
+            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
           >
             {isSubmitting ? (
-              <div className="flex-1 px-4 py-3.5 rounded-lg text-sm font-semibold text-white bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+              <div className="flex items-center justify-center gap-2">
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 Guardando...
               </div>
             ) : (
               <>
-                <Save className="w-4 h-4 mr-2" />
+                <Save className="w-4 h-4" />
                 Registrar
               </>
             )}
@@ -558,10 +563,10 @@ export default function ObservadorForm() {
               setExiting(true);
               setTimeout(() => navigate(-1), 220);
             }}
-            className="flex-1 px-4 py-3.5 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
+            className="w-full h-14 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 gap-2 rounded-lg font-semibold tracking-widest text-xs"
             disabled={isSubmitting}
           >
-            <X className="w-4 h-4 mr-1.5 opacity-70" />
+            <X className="w-4 h-4" />
             Cancelar
           </Button>
         </div>

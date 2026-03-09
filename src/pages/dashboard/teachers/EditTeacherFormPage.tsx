@@ -82,7 +82,7 @@ export default function EditTeacherFormPage() {
             onChange={e => setFullName(e.target.value)}
             placeholder="Ej. Gómez, Roberto"
             required
-            className="h-12 text-sm bg-slate-100 dark:bg-[#1e2536] border dark:border-slate-800 focus:ring-2 focus:ring-primary/50"
+            className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50"
           />
         </div>
 
@@ -91,7 +91,7 @@ export default function EditTeacherFormPage() {
           <Input
             value={email}
             disabled
-            className="h-12 text-sm bg-slate-50 dark:bg-slate-800/50 border dark:border-slate-800 opacity-70"
+            className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-4 text-sm outline-none opacity-70"
           />
         </div>
 
@@ -126,7 +126,7 @@ export default function EditTeacherFormPage() {
           <Button
             type="submit"
             disabled={saving}
-            className="w-full sm:flex-1 bg-primary hover:bg-primary/90 text-white rounded-[5px] h-auto py-3.5 gap-2 shadow-xl shadow-primary/20 font-semibold text-sm transition-all active:scale-[0.98]"
+            className="w-full sm:flex-1 bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 gap-2 shadow-xl shadow-primary/20 font-semibold text-sm transition-all active:scale-[0.98]"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {saving ? 'Guardando...' : 'Guardar cambios'}

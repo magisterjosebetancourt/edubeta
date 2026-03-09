@@ -180,10 +180,10 @@ export default function AttendancePage() {
       <div className="flex flex-col gap-4 p-5">
         <button
           onClick={() => navigate('/dashboard/attendance/new')}
-          className="flex items-center justify-center gap-2 w-full sm:w-max px-8 py-3.5 bg-primary text-white rounded-lg hover:opacity-90 transition-all shadow-xl shadow-primary/20 hover:shadow-primary/40 active:scale-95 group"
+          className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
         >
-          <Plus className="w-5 h-5 stroke-[3] group-hover:rotate-90 transition-transform duration-300" />
-          <span className="font-extrabold text-xs tracking-widest">Nueva lista de clase</span>
+          <Plus className="w-5 h-5 stroke-[3]" />
+          Nueva lista de clase
         </button>
       </div>
 

@@ -110,7 +110,7 @@ export default function InfractionsPage() {
           </p>
           {isAdmin && (
             <Button onClick={() => navigate('/dashboard/infractions/new')}
-              className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3 px-5 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-wide transition-all active:scale-95">
+              className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0">
               <Plus className="w-4 h-4 stroke-[3]" />Registrar falta
             </Button>
           )}

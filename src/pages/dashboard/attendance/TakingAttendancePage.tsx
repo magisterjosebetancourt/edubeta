@@ -178,7 +178,7 @@ export default function TakingAttendancePage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input type="text" placeholder="Buscar estudiante..." value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium focus:outline-none shadow-sm" />
+            className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-primary/50" />
         </div>
         <button onClick={handleMarkRemaining}
           className="flex items-center justify-center gap-2 px-5 py-3 bg-white dark:bg-slate-800 border-2 border-primary text-primary rounded-lg hover:bg-primary hover:text-white transition-all text-xs font-semibold">
@@ -245,11 +245,11 @@ export default function TakingAttendancePage() {
       {/* Action buttons */}
       <div className="flex flex-col-reverse sm:flex-row gap-3">
         <Button type="button" variant="ghost" onClick={handleCancel}
-          className="flex-1 rounded-lg h-auto py-3.5 font-semibold text-sm text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+          className="w-full h-14 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 gap-2 rounded-lg font-semibold tracking-widest text-xs">
           <X className="w-4 h-4 mr-1.5" />Cancelar
         </Button>
         <Button type="button" onClick={handleFinish}
-          className="flex-1 bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 gap-2 shadow-xl shadow-primary/20 font-semibold text-sm tracking-wide transition-all active:scale-[0.98]">
+          className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0">
           <CheckCircle className="w-4 h-4" />Finalizar asistencia
         </Button>
       </div>

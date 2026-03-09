@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useObservationDetail, useSaveStudentDefense } from '@/lib/hooks/useObservador';
+import { useStudents } from '@/lib/hooks/useFirebaseData';
 import { useUserProfile } from '@/lib/context/UserProfileContext';
 import SignatureCanvas from 'react-signature-canvas';
 import { 
@@ -24,6 +25,7 @@ export default function StudentDefenseForm() {
   const { profile } = useUserProfile();
   
   const { data: observation, isLoading } = useObservationDetail(id!);
+  const { data: students = [] } = useStudents();
   const saveDefense = useSaveStudentDefense();
 
   const [defenseText, setDefenseText] = useState('');
@@ -90,6 +92,12 @@ export default function StudentDefenseForm() {
   // Para propósitos de este prototipo, mostramos la UI habilitada
   const hasAlreadyDefended = !!observation.studentDefense;
 
+  // Resolución del nombre del estudiante con fallback para registros antiguos
+  const resolvedStudentName = observation.studentName || (() => {
+    const s = students.find((st: any) => st.id === observation.studentId);
+    return s ? `${s.last_name}, ${s.first_name}` : 'Cargando...';
+  })();
+
   return (
     <FormView exiting={exiting} className="max-w-4xl mx-auto space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -118,6 +126,11 @@ export default function StudentDefenseForm() {
 
                 <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                   <User className="w-4 h-4" />
+                  Estudiante: <span className="font-semibold text-slate-900 dark:text-slate-200">{resolvedStudentName}</span>
+                </div>
+
+                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                  <User className="w-4 h-4" />
                   Reportado por: <span className="font-semibold text-slate-900 dark:text-slate-200">{observation.creatorName}</span>
                 </div>
 
@@ -136,6 +149,20 @@ export default function StudentDefenseForm() {
                         <li key={i}>{agreement}</li>
                       ))}
                     </ul>
+                  </div>
+                )}
+
+                {observation.initialSignatureDataUrl && (
+                  <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
+                    <p className="text-[10px] font-semibold text-primary/80 uppercase tracking-widest">Firma de Registro (Docente/Estudiante)</p>
+                    <div className="bg-white p-2 rounded-xl border border-slate-200 max-w-[200px] shadow-sm">
+                      <img src={observation.initialSignatureDataUrl} alt="Firma de registro" className="w-full h-auto" />
+                      {observation.initialSignatureDate && (
+                        <p className="text-[9px] text-slate-400 text-center mt-1">
+                          {format(new Date(observation.initialSignatureDate), "dd/MM/yyyy HH:mm")}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -160,7 +187,7 @@ export default function StudentDefenseForm() {
 
                   <div className="space-y-2">
                     <p className="text-[10px] font-semibold text-primary/80 uppercase tracking-widest">Versión del estudiante</p>
-                    <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
+                    <div className="w-full h-auto min-h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary/50 text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
                       {observation.studentDefense}
                     </div>
                   </div>
@@ -188,7 +215,7 @@ export default function StudentDefenseForm() {
                       value={defenseText}
                       onChange={(e) => setDefenseText(e.target.value)}
                       placeholder="Escribe tu versión de lo sucedido..."
-                      className="min-h-[120px] resize-none dark:text-white"
+                      className="w-full h-auto min-h-[120px] rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 resize-none dark:text-white"
                     />
                   </div>
 
@@ -219,7 +246,7 @@ export default function StudentDefenseForm() {
                   <Button 
                     onClick={handleSubmit} 
                     disabled={isSubmitting}
-                    className="w-full bg-primary hover:bg-primary/90 text-white font-semibold text-xs tracking-widest uppercase h-12 shadow-xl shadow-primary/20 active:scale-95 transition-all"
+                    className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
                   >
                     {isSubmitting ? 'Guardando firmando...' : 'Guardar y firmar'}
                   </Button>

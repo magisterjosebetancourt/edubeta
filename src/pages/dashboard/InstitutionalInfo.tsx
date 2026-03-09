@@ -220,7 +220,7 @@ export default function InstitutionalInfo() {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Información Básica</CardTitle>
-              <CardDescription>Datos que identifican al establecimiento educativo.</CardDescription>
+              <p className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-6">Datos que identifican al establecimiento educativo.</p>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid gap-6 md:grid-cols-2">
@@ -230,7 +230,7 @@ export default function InstitutionalInfo() {
                     <Building className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input 
                       id="schoolName" 
-                      className="pl-9"
+                      className="pl-9 w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] text-sm outline-none focus:ring-2 focus:ring-primary/50"
                       value={schoolName}
                       onChange={(e) => setSchoolName(e.target.value)}
                       placeholder="Ej. Institución Educativa Distrital..." 
@@ -243,7 +243,7 @@ export default function InstitutionalInfo() {
                     <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input 
                       id="academicYear" 
-                      className="pl-9"
+                      className="pl-9 w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] text-sm outline-none focus:ring-2 focus:ring-primary/50"
                       value={academicYear}
                       onChange={(e) => setAcademicYear(e.target.value)}
                       placeholder="Ej. 2026" 
@@ -258,7 +258,7 @@ export default function InstitutionalInfo() {
                   <Type className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input 
                     id="slogan" 
-                    className="pl-9"
+                    className="pl-9 w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] text-sm outline-none focus:ring-2 focus:ring-primary/50"
                     value={slogan}
                     onChange={(e) => setSlogan(e.target.value)}
                     placeholder="Ej. Hacia la excelencia integral" 
@@ -320,7 +320,7 @@ export default function InstitutionalInfo() {
               <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-[5px] border border-primary/10 shadow-sm">
                 <div className="space-y-0.5">
                   <Label className="text-base font-semibold text-slate-800 dark:text-white">Módulo ISA</Label>
-                  <p className="text-xs text-slate-500">Habilitar la captura de pre-informes cualitativos para docentes.</p>
+                  <p className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-6">Habilitar la captura de pre-informes cualitativos para docentes.</p>
                 </div>
                 <div 
                   onClick={() => setIsaEnabled(!isaEnabled)}
@@ -364,6 +364,7 @@ export default function InstitutionalInfo() {
                         <Input 
                           type="date" 
                           value={period.start_date}
+                          className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50"
                           onChange={(e) => handlePeriodChange(index, 'start_date', e.target.value)}
                         />
                       </div>
@@ -372,6 +373,7 @@ export default function InstitutionalInfo() {
                         <Input 
                           type="date" 
                           value={period.end_date}
+                          className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50"
                           onChange={(e) => handlePeriodChange(index, 'end_date', e.target.value)}
                         />
                       </div>
@@ -427,7 +429,7 @@ export default function InstitutionalInfo() {
             variant="ghost"
             onClick={handleCancel}
             disabled={saving}
-            className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 shadow-md font-semibold transition-all"
+            className="w-full h-14 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 gap-2 rounded-lg font-semibold tracking-widest text-xs"
           >
             <X className="mr-2 h-4 w-4" />
             Cancelar
@@ -435,7 +437,7 @@ export default function InstitutionalInfo() {
           <Button 
             onClick={handleSave} 
             disabled={saving}
-            className="flex-1 rounded-lg shadow-2xl"
+            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
           >
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Guardar

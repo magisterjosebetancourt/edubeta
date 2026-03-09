@@ -91,7 +91,7 @@ export default function SchedulesPage() {
               <CalendarDays className="w-6 h-6 text-primary" />
               Horario de Clases
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            <p className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-6">
               Visualiza y gestiona el horario académico.
             </p>
           </div>
@@ -101,7 +101,7 @@ export default function SchedulesPage() {
               <select
                 value={selectedTeacherId}
                 onChange={(e) => setSelectedTeacherId(e.target.value)}
-                className="w-full bg-white dark:bg-[#1e2536] border border-slate-200 dark:border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none shadow-sm"
+                className="pl-9 h-10 w-full sm:w-auto min-w-[150px] bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none"
               >
                 <option value="">Selecciona un docente...</option>
                 {teachers.map((t) => (
@@ -114,7 +114,7 @@ export default function SchedulesPage() {
           {activeTeacherId && (
             <Button
               onClick={() => navigate(`/dashboard/schedules/new${userRole !== 'teacher' ? `?teacher_id=${activeTeacherId}` : ''}`)}
-              className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-2.5 px-4 gap-2 shadow-lg shadow-primary/20 font-semibold text-xs tracking-wide transition-all active:scale-95"
+              className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
             >
               <Plus className="w-4 h-4 stroke-[3]" /> Nueva hora de clase
             </Button>

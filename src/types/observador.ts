@@ -5,6 +5,7 @@ export type ObservationStatus = 'Abierto' | 'En proceso' | 'Cerrado';
 export interface StudentObservation {
   id: string;                      // ID del documento en Firestore
   studentId: string;               // Referencia al ID del estudiante
+  studentName?: string;            // Nombre denormalizado del estudiante
   createdBy: string;               // ID del docente, coordinador o admin que lo creó
   creatorName: string;             // Nombre parcial denormalizado para UI rápida
   date: string;                    // Fecha en formato ISO (o serializado para UI)

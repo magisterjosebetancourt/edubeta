@@ -79,12 +79,14 @@ export default function ObservadorList() {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter((obs: any) => {
         const s = getStudent(obs.studentId);
-        const name = s ? `${s.firstName} ${s.lastName}`.toLowerCase() : '';
+        const nameFromDB = s ? `${s.first_name} ${s.last_name}`.toLowerCase() : '';
+        const persistedName = obs.studentName ? obs.studentName.toLowerCase() : '';
         return (
           obs.type.toLowerCase().includes(term) ||
           obs.law1620Category.toLowerCase().includes(term) ||
           obs.creatorName.toLowerCase().includes(term) ||
-          name.includes(term)
+          nameFromDB.includes(term) ||
+          persistedName.includes(term)
         );
       });
     }
@@ -112,10 +114,14 @@ export default function ObservadorList() {
     );
   }
 
-  const getStudentName = (id: string) => {
+  const getStudentName = (obs: any) => {
+    // Priorizamos el nombre guardado en el documento (denormalizado)
+    if (obs.studentName) return obs.studentName;
+    
+    // Fallback si no existe (registros viejos)
     if (!rawStudents) return 'Desconocido';
-    const s = rawStudents.find((st: any) => st.id === id);
-    return s ? `${s.lastName || ''} ${s.firstName || ''}`.trim() : 'Buscando...';
+    const s = rawStudents.find((st: any) => st.id === obs.studentId);
+    return s ? `${s.last_name || ''}, ${s.first_name || ''}`.trim() : 'Buscando...';
   };
 
   const getStudentGradeName = (id: string) => {
@@ -211,7 +217,7 @@ export default function ObservadorList() {
                     {format(new Date(obs.createdAt), "d 'de' MMM, yyyy", { locale: es })}
                   </span>
                   <h3 className="font-semibold text-slate-900 dark:text-white leading-tight truncate">
-                    {getStudentName(obs.studentId)}
+                    {getStudentName(obs)}
                   </h3>
                   {gradeName && (
                     <span className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5 font-medium">
@@ -289,7 +295,7 @@ export default function ObservadorList() {
                 </TableRow>
               ) : (
                 filteredObservations.map((obs: any) => {
-                  const sName = getStudentName(obs.studentId);
+                  const sName = getStudentName(obs);
                   const gName = getStudentGradeName(obs.studentId);
                   return (
                   <TableRow key={obs.id} className="border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
