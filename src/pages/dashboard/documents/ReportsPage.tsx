@@ -201,7 +201,9 @@ export default function ReportsPage() {
           return g.name.startsWith(prefix);
         });
       } else {
-        if (!selectedGroupId) { toast.error('Selecciona un grupo'); setGenerating(false); return; }
+        if (!selectedLevelId) { toast.error('Selecciona el nivel'); setGenerating(false); return; }
+        if (!selectedGradeName) { toast.error('Selecciona el grado'); setGenerating(false); return; }
+        if (!selectedGroupId) { toast.error('Selecciona el grupo'); setGenerating(false); return; }
         const g = gradesData.find(g => g.id === selectedGroupId);
         if (g) targetGrades = [g];
       }
@@ -250,10 +252,14 @@ export default function ReportsPage() {
         })
         .filter(item => item.student && item.student.state !== false)
         .sort((a, b) => {
-          // Ordenar por grupo y luego por apellido
-          const gradeComp = (a.grade?.name || '').localeCompare(b.grade?.name || '');
+          // Ordenar por grupo (natural: 601 antes de 1101) y luego por nombre completo
+          const gradeComp = (a.grade?.name || '').localeCompare(b.grade?.name || '', undefined, { numeric: true, sensitivity: 'base' });
           if (gradeComp !== 0) return gradeComp;
-          return (a.student.last_name || '').localeCompare(b.student.last_name || '');
+          
+          const lastNameComp = (a.student.last_name || '').localeCompare(b.student.last_name || '', 'es', { sensitivity: 'base' });
+          if (lastNameComp !== 0) return lastNameComp;
+          
+          return (a.student.first_name || '').localeCompare(b.student.first_name || '', 'es', { sensitivity: 'base' });
         });
 
       if (studentsToPrint.length === 0) {
@@ -470,7 +476,9 @@ export default function ReportsPage() {
           return g.name.startsWith(prefix);
         });
       } else {
-        if (!selectedGroupId) { toast.error('Selecciona un grupo'); setGenerating(false); return; }
+        if (!selectedLevelId) { toast.error('Selecciona el nivel'); setGenerating(false); return; }
+        if (!selectedGradeName) { toast.error('Selecciona el grado'); setGenerating(false); return; }
+        if (!selectedGroupId) { toast.error('Selecciona el grupo'); setGenerating(false); return; }
         const g = gradesData.find(g => g.id === selectedGroupId);
         if (g) targetGrades = [g];
       }
@@ -485,7 +493,9 @@ export default function ReportsPage() {
       const period = periodsData.find(p => p.id === selectedPeriodId);
       const periodNum = period?.period_number || '?';
 
-      // 2. Cargar Datos y Agrupar por Grupo
+      // 2. Cargar Datos y Agrupar por Grupo (Ordenado natural)
+      targetGrades.sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' }));
+      
       let pagesAdded = 0;
       for (const grade of targetGrades) {
         const q = query(
@@ -540,7 +550,11 @@ export default function ReportsPage() {
             return { student, uniqueSubjects };
           })
           .filter(s => s.student)
-          .sort((a, b) => (a.student.last_name || '').localeCompare(b.student.last_name || ''));
+          .sort((a, b) => {
+            const lnComp = (a.student.last_name || '').localeCompare(b.student.last_name || '', 'es', { sensitivity: 'base' });
+            if (lnComp !== 0) return lnComp;
+            return (a.student.first_name || '').localeCompare(b.student.first_name || '', 'es', { sensitivity: 'base' });
+          });
 
         const tableBody = studentsInGrade.map((item, idx) => [
           idx + 1,
