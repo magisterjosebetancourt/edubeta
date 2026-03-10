@@ -5,7 +5,8 @@ import { useGrades, useStudents, useAssignments, usePeriods, useSubjects } from 
 import { useSaveISA, useISARecords } from '@/lib/hooks/useIsa';
 import { ISA_INDICATORS, CreateISARecordParams } from '@/types/isa';
 import { FormView } from '@/components/ui/FormView';
-import { Button } from '@/components/ui/button';
+import { EduButton } from '@/components/ui/EduButton';
+import { EduSelect } from '@/components/ui/EduSelect';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Users, Loader2, Save, ShieldAlert } from 'lucide-react';
@@ -29,7 +30,6 @@ const GRADE_MAP: Record<string, string> = {
 
 export default function IsaPage() {
   const navigate = useNavigate();
-  const [exiting, setExiting] = useState(false);
   const { profile } = useUserProfile();
   
   // Settings & Global Toggle
@@ -229,7 +229,7 @@ export default function IsaPage() {
 
   if (isaEnabled === false && !isAdminOrCoord) {
     return (
-      <FormView exiting={exiting}>
+      <FormView>
         <Card className="border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-900/50">
           <CardContent className="p-12 text-center flex flex-col items-center gap-4">
             <div className="p-4 bg-amber-100 dark:bg-amber-900/50 rounded-full text-amber-600 dark:text-amber-400">
@@ -242,9 +242,9 @@ export default function IsaPage() {
                 Contacte a coordinación para más información.
               </p>
             </div>
-            <Button onClick={() => navigate('/dashboard')} variant="outline" className="mt-4 rounded-lg">
+            <EduButton onClick={() => navigate('/dashboard')} variant="secondary" className="mt-4 rounded-lg">
               Volver al Inicio
-            </Button>
+            </EduButton>
           </CardContent>
         </Card>
       </FormView>
@@ -258,7 +258,7 @@ export default function IsaPage() {
       <div className="space-y-4">
         {/* Header con estilo premium - Solo descripción según feedback */}
         <div className="flex flex-col gap-0.5 px-1">
-          <p className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-6">
+          <p className="w-full h-6 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-1 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-1">
             Seguimiento cualitativo del desempeño académico por periodo. Seleccione los criterios para cargar la lista.
           </p>
         </div>
@@ -284,27 +284,25 @@ export default function IsaPage() {
                 <>
                   <div className="space-y-1">
                     <Label className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Nivel</Label>
-                    <select 
+                    <EduSelect 
                       value={selectedLevelId}
                       onChange={(e) => { setSelectedLevelId(e.target.value); setSelectedGradeName(''); setSelectedGradeId(''); setLoadedStudents([]); }}
-                      className="pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all font-medium"
                     >
                       <option value="">Nivel...</option>
                       {LEVELS.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-                    </select>
+                    </EduSelect>
                   </div>
 
                   <div className="space-y-1">
                     <Label className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Grado</Label>
-                    <select 
+                    <EduSelect 
                       value={selectedGradeName}
                       onChange={(e) => { setSelectedGradeName(e.target.value); setSelectedGradeId(''); setLoadedStudents([]); }}
-                      className="pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all disabled:opacity-50 font-medium"
                       disabled={!selectedLevelId}
                     >
                       <option value="">Grado...</option>
                       {LEVELS.find(l => l.id === selectedLevelId)?.grades.map(g => ( <option key={g} value={g}>{g}</option> ))}
-                    </select>
+                    </EduSelect>
                   </div>
                 </>
               )}
@@ -312,54 +310,51 @@ export default function IsaPage() {
               {/* Selectores Comunes */}
               <div className="space-y-1">
                 <Label className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Grupo</Label>
-                <select 
+                <EduSelect 
                   value={selectedGradeId}
                   onChange={(e) => { setSelectedGradeId(e.target.value); setLoadedStudents([]); setSelectedSubjectId(''); }}
-                  className="pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all font-medium"
                   disabled={availableGrades.length === 0}
                 >
                   <option value="">Grupo...</option>
                   {availableGrades.sort((a: any, b: any) => a.name?.localeCompare(b.name || '')).map((g: any) => (
                     <option key={g.id} value={g.id}>{g.name}</option>
                   ))}
-                </select>
+                </EduSelect>
               </div>
 
               <div className="space-y-1">
                 <Label className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Asignatura</Label>
-                <select 
+                <EduSelect 
                   value={selectedSubjectId}
                   onChange={(e) => { setSelectedSubjectId(e.target.value); setLoadedStudents([]); }}
-                  className="pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all font-medium"
                   disabled={!selectedGradeId}
                 >
                   <option value="">Asignatura...</option>
                   {availableSubjects.map((s: any) => ( <option key={s.id} value={s.id}>{s.name}</option> ))}
-                </select>
+                </EduSelect>
               </div>
 
               <div className="space-y-1">
                 <Label className="text-[10px] font-semibold uppercase text-slate-400 tracking-wider">Periodo</Label>
                 <div className="relative">
-                  <select 
+                  <EduSelect 
                     value={selectedPeriodId}
                     onChange={(e) => { setSelectedPeriodId(e.target.value); setLoadedStudents([]); }}
-                    className="pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all font-medium"
                   >
                     {periods.map((p: any) => ( <option key={p.id} value={p.id}>Periodo {p.period_number}</option> ))}
-                  </select>
+                  </EduSelect>
                 </div>
               </div>
 
               <div className="lg:col-span-1 flex items-end">
-                <Button 
+                <EduButton 
                   onClick={handleCargarEstudiantes}
                   disabled={!selectedGradeId || !selectedSubjectId || isCargando || isLoadingExisting}
-                  className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
+                  icon={isCargando || isLoadingExisting ? Loader2 : Users}
+                  distributed
                 >
-                  {isCargando || isLoadingExisting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5" />}
                   Cargar Lista
-                </Button>
+                </EduButton>
               </div>
             </div>
           </CardContent>
@@ -427,18 +422,14 @@ export default function IsaPage() {
         {/* Floating Save Button */}
         {loadedStudents.length > 0 && (
           <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 w-full max-w-md px-4">
-            <Button 
+            <EduButton 
               onClick={handleSave}
               disabled={saveIsa.isPending}
-              className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
+              icon={saveIsa.isPending ? Loader2 : Save}
+              distributed
             >
-              {saveIsa.isPending ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <Save className="w-5 h-5" />
-              )}
               {saveIsa.isPending ? 'Guardando...' : 'Guardar Reporte'}
-            </Button>
+            </EduButton>
           </div>
         )}
       </div>

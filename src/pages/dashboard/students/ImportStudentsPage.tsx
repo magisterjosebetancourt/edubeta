@@ -1,19 +1,16 @@
 import { useNavigate } from 'react-router-dom'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { FormView } from '@/components/ui/FormView'
-import { Button } from '@/components/ui/button'
 import { CsvUploader } from '@/components/students/CsvUploader'
 import { useState, useEffect } from 'react'
 import { db } from '@/lib/firebase/config'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 import { toast } from 'sonner'
-import { X } from 'lucide-react'
 
 type Grade = { id: string; name: string }
 
 export default function ImportStudentsPage() {
   const navigate = useNavigate()
-  const [exiting, setExiting] = useState(false)
   const [grades, setGrades] = useState<Grade[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -24,20 +21,15 @@ export default function ImportStudentsPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const handleCancel = () => {
-    setExiting(true)
-    setTimeout(() => navigate(-1), 200)
-  }
 
   const handleComplete = () => {
-    setExiting(true)
-    setTimeout(() => navigate('/dashboard/students', { replace: true }), 200)
+    navigate('/dashboard/students', { replace: true })
   }
 
   if (loading) return <LoadingSpinner message="Cargando grados..." />;
 
   return (
-    <FormView exiting={exiting}>
+    <FormView>
       <div className="space-y-5">
         <div>
           <h2 className="text-base font-semibold text-slate-900 dark:text-white">
@@ -53,18 +45,6 @@ export default function ImportStudentsPage() {
 
         <CsvUploader grades={grades} onComplete={handleComplete} />
 
-        {/* Botón Cancelar — patrón estándar FormView */}
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={handleCancel}
-          className="w-full rounded-lg h-auto py-3.5 px-6 font-semibold text-sm
-            text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700
-            hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
-        >
-          <X className="w-4 h-4 mr-1.5" />
-          Cancelar
-        </Button>
       </div>
     </FormView>
   )

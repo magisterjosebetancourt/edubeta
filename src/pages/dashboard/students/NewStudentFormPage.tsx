@@ -3,11 +3,12 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useNavigate } from 'react-router-dom'
 import { FormView } from '@/components/ui/FormView'
 import { useQueryClient } from '@tanstack/react-query'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { EduButton } from '@/components/ui/EduButton'
+import { EduInput } from '@/components/ui/EduInput'
+import { EduSelect } from '@/components/ui/EduSelect'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Save, X } from 'lucide-react'
+import { Save } from 'lucide-react'
 import { db } from '@/lib/firebase/config'
 import { addDoc, collection, getDocs, query, where, serverTimestamp } from 'firebase/firestore'
 
@@ -27,8 +28,6 @@ const GRADE_MAP: Record<string, string> = {
 type Grade = { id: string; name: string }
 type Neighborhood = { id: string; name: string }
 
-const selectClass =
-  'pl-9 h-10 w-full sm:w-auto min-w-[150px] bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none disabled:opacity-50 transition-all'
 
 export default function NewStudentFormPage() {
   const navigate = useNavigate()
@@ -37,7 +36,6 @@ export default function NewStudentFormPage() {
   const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([])
   const [loadingData, setLoadingData] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [exiting, setExiting] = useState(false)
 
   // Form fields
   const [firstName, setFirstName] = useState('')
@@ -77,10 +75,6 @@ export default function NewStudentFormPage() {
     )
   }, [grades, selectedGradeName])
 
-  const handleCancel = () => {
-    setExiting(true)
-    setTimeout(() => navigate(-1), 220)
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -106,8 +100,7 @@ export default function NewStudentFormPage() {
       })
 
       toast.success('Estudiante matriculado')
-      setExiting(true)
-      setTimeout(() => navigate('/dashboard/students', { replace: true }), 220)
+      navigate('/dashboard/students', { replace: true })
     } catch (error: any) {
       toast.error('Error al matricular', { description: error.message })
     } finally {
@@ -118,31 +111,29 @@ export default function NewStudentFormPage() {
   if (loadingData) return <LoadingSpinner message="Cargando datos de matrícula..." />;
 
   return (
-    <FormView exiting={exiting}>
+    <FormView>
       <form onSubmit={handleSubmit} className="space-y-5">
 
         {/* Nombre y Apellido */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="lastName">Apellido</Label>
-            <Input
+            <EduInput
               id="lastName"
               value={lastName}
               onChange={e => setLastName(e.target.value)}
               placeholder="Apellido"
               required
-              className="h-12 text-sm bg-slate-100 dark:bg-[#1e2536] border dark:border-slate-800 focus:ring-2 focus:ring-primary/50"
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="firstName">Nombre</Label>
-            <Input
+            <EduInput
               id="firstName"
               value={firstName}
               onChange={e => setFirstName(e.target.value)}
               placeholder="Nombre"
               required
-              className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
         </div>
@@ -150,75 +141,62 @@ export default function NewStudentFormPage() {
         {/* Barrio */}
         <div className="space-y-2">
           <Label>Barrio / Ubicación</Label>
-          <select value={neighborhood} onChange={e => setNeighborhood(e.target.value)} className={selectClass}>
+          <EduSelect value={neighborhood} onChange={e => setNeighborhood(e.target.value)}>
             <option value="">Seleccionar barrio (opcional)</option>
             {neighborhoods.map(n => <option key={n.id} value={n.name}>{n.name}</option>)}
-          </select>
+          </EduSelect>
         </div>
 
         {/* Nivel educativo */}
         <div className="space-y-2">
           <Label>Nivel educativo</Label>
-          <select
+          <EduSelect
             value={selectedLevelId}
             onChange={e => { setSelectedLevelId(e.target.value); setSelectedGradeName(''); setSelectedGradeId('') }}
-            className={selectClass}
           >
             <option value="">Seleccionar nivel</option>
             {LEVELS.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-          </select>
+          </EduSelect>
         </div>
 
         {/* Grado */}
         <div className="space-y-2">
           <Label>Grado (Ley 115)</Label>
-          <select
+          <EduSelect
             value={selectedGradeName}
             onChange={e => { setSelectedGradeName(e.target.value); setSelectedGradeId('') }}
             disabled={!selectedLevelId}
-            className={selectClass}
           >
             <option value="">Seleccionar grado</option>
             {LEVELS.find(l => l.id === selectedLevelId)?.grades.map(g =>
               <option key={g} value={g}>{g}</option>
             )}
-          </select>
+          </EduSelect>
         </div>
 
         {/* Grupo */}
         <div className="space-y-2">
           <Label>Grupo / Curso</Label>
-          <select
+          <EduSelect
             value={selectedGradeId}
             onChange={e => setSelectedGradeId(e.target.value)}
             disabled={!selectedGradeName}
-            className={selectClass}
           >
             <option value="">{filteredGrades.length > 0 ? 'Seleccionar grupo' : 'No hay grupos'}</option>
             {filteredGrades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-          </select>
+          </EduSelect>
         </div>
 
         {/* Acciones */}
-        <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={handleCancel}
-            disabled={saving}
-            className="w-full sm:w-auto rounded-lg h-auto py-3.5 px-6 font-semibold text-sm text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
-          >
-            <X className="w-4 h-4 mr-1.5" />
-            Cancelar
-          </Button>
-          <Button
+        <div className="pt-2">
+          <EduButton
             type="submit"
             disabled={saving}
-            className="w-full sm:flex-1 bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 gap-2 shadow-xl shadow-primary/20 font-semibold text-sm transition-all active:scale-[0.98]"
+            icon={Save}
+            fullWidth
           >
-            <Save className="w-4 h-4" />
             {saving ? 'Matriculando...' : 'Matricular estudiante'}
-          </Button>
+          </EduButton>
         </div>
       </form>
     </FormView>

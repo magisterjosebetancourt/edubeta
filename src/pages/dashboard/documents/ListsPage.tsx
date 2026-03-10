@@ -5,10 +5,11 @@ import { db } from '@/lib/firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
 import { FormView } from '@/components/ui/FormView';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
-import { Users, FileText, Printer, Layers, CheckSquare, Square, X } from 'lucide-react';
+import { Users, FileText, Printer, Layers, CheckSquare, Square, ListChecks } from 'lucide-react';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { EduButton } from '@/components/ui/EduButton';
+import { EduSelect } from '@/components/ui/EduSelect';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -26,7 +27,7 @@ const GRADE_MAP: Record<string, string> = {
 };
 
 export default function ListsPage() {
-  const [exiting] = useState(false);
+  // No longer using exiting state
   const { profile } = useUserProfile();
   
   // States para filtros
@@ -43,10 +44,6 @@ export default function ListsPage() {
 
   const isAdminOrCoord = ['admin', 'coordinator'].includes(profile?.role?.toLowerCase() || '');
 
-  if (gradesData.length === 0 && studentsData.length === 0) {
-    return <LoadingSpinner message="Cargando datos escolares..." />;
-  }
-
   useEffect(() => {
     const fetchInstitution = async () => {
       const snap = await getDoc(doc(db, 'settings', 'institutional'));
@@ -54,6 +51,10 @@ export default function ListsPage() {
     };
     fetchInstitution();
   }, []);
+
+  if (gradesData.length === 0 && studentsData.length === 0) {
+    return <LoadingSpinner message="Cargando datos escolares..." />;
+  }
 
   const availableGrades = isAdminOrCoord
     ? gradesData.filter(g => {
@@ -74,9 +75,6 @@ export default function ListsPage() {
     setSelectedGroupIds(availableGrades.map(g => g.id));
   };
 
-  const clearSelection = () => {
-    setSelectedGroupIds([]);
-  };
 
   const generatePDF = async () => {
     if (selectedGroupIds.length === 0) {
@@ -204,54 +202,52 @@ export default function ListsPage() {
     toast.success(`PDF generado correctamente (${selectedGroupIds.length} listas).`);
   };
 
-  const fieldClass = "w-full bg-slate-100 dark:bg-[#1e2536] border dark:border-slate-800 rounded-lg py-3 px-4 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary/50 appearance-none disabled:opacity-50 transition-all";
 
   return (
-    <FormView exiting={exiting}>
-      <div className="space-y-6 max-w-5xl mx-auto pb-32">
-        <Card className="border-none shadow-none bg-transparent">
-          <CardContent className="p-0 space-y-6">
+    <FormView>
+      <div className="space-y-6 max-w-5xl mx-auto">
+        <div className="space-y-1">
+          <p className="text-sm text-slate-500 dark:text-slate-400 max-w-2xl">
+            Genere listados de asistencia personalizados por grado y grupo. Estos documentos facilitan el control diario y el seguimiento de asistencia en el aula.
+          </p>
+        </div>
+
+        <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {isAdminOrCoord && (
                 <>
                   <div className="space-y-2">
-                    <Label className="text-xs ml-1 font-semibold text-slate-400 uppercase tracking-widest">Nivel Educativo</Label>
-                    <div className="relative">
-                      <Layers className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                      <select 
-                        value={selectedLevelId}
-                        onChange={(e) => {
-                          setSelectedLevelId(e.target.value);
-                          setSelectedGradeName('');
-                          setSelectedGroupIds([]);
-                        }}
-                        className={cn(fieldClass, "pl-11")}
-                      >
-                        <option value="">Seleccionar Nivel</option>
-                        {LEVELS.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-                      </select>
-                    </div>
+                    <Label>Nivel Educativo</Label>
+                    <EduSelect 
+                      value={selectedLevelId}
+                      onChange={(e) => {
+                        setSelectedLevelId(e.target.value);
+                        setSelectedGradeName('');
+                        setSelectedGroupIds([]);
+                      }}
+                      icon={Layers}
+                    >
+                      <option value="">Seleccionar Nivel</option>
+                      {LEVELS.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                    </EduSelect>
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-xs ml-1 font-semibold text-slate-400 uppercase tracking-widest">Grado Escolar</Label>
-                    <div className="relative">
-                      <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                      <select 
-                        value={selectedGradeName}
-                        onChange={(e) => {
-                          setSelectedGradeName(e.target.value);
-                          setSelectedGroupIds([]);
-                        }}
-                        disabled={!selectedLevelId}
-                        className={cn(fieldClass, "pl-11")}
-                      >
-                        <option value="">Seleccionar Grado</option>
-                        {LEVELS.find(l => l.id === selectedLevelId)?.grades.map(g => (
-                          <option key={g} value={g}>{g}</option>
-                        ))}
-                      </select>
-                    </div>
+                    <Label>Grado Escolar</Label>
+                    <EduSelect 
+                      value={selectedGradeName}
+                      onChange={(e) => {
+                        setSelectedGradeName(e.target.value);
+                        setSelectedGroupIds([]);
+                      }}
+                      disabled={!selectedLevelId}
+                      icon={FileText}
+                    >
+                      <option value="">Seleccionar Grado</option>
+                      {LEVELS.find(l => l.id === selectedLevelId)?.grades.map(g => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
+                    </EduSelect>
                   </div>
                 </>
               )}
@@ -268,25 +264,20 @@ export default function ListsPage() {
                       <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                         Selección de Grupos
                       </p>
-                      <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
-                        {selectedGroupIds.length} seleccionados para impresión
+                      <p className="text-[10px] text-slate-500 font-medium tracking-wider">
+                        {selectedGroupIds.length} selección para impresión
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <button 
+                    <EduButton 
                       onClick={selectAll}
-                      className="text-[10px] h-9 px-4 rounded-xl font-semibold uppercase tracking-tight flex-1 sm:flex-none border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 shadow-sm hover:bg-slate-50 transition-all"
+                      variant="secondary"
+                      className="h-9 px-4"
+                      icon={ListChecks}
                     >
                       Todos
-                    </button>
-                    <button 
-                      onClick={clearSelection}
-                      disabled={selectedGroupIds.length === 0}
-                      className="text-[10px] h-9 px-4 rounded-xl font-semibold uppercase tracking-tight flex-1 sm:flex-none border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 shadow-sm hover:bg-slate-50 disabled:opacity-50 transition-all"
-                    >
-                      Limpiar
-                    </button>
+                    </EduButton>
                   </div>
                 </div>
 
@@ -326,28 +317,19 @@ export default function ListsPage() {
                 <p className="text-sm font-medium text-slate-500">No tienes grupos asignados actualmente.</p>
               </div>
             )}
-          </CardContent>
-        </Card>
+        </div>
       </div>
 
       {/* Floating Action Bar */}
-        <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
-          <button
-            type="button"
-            onClick={() => window.history.back()}
-            className="w-full sm:w-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl py-4 flex items-center justify-center gap-3 font-semibold text-sm shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-all h-[60px] px-8"
-          >
-            <X className="w-5 h-5 text-slate-400" />
-            Cancelar
-          </button>
-          <button 
+        <div>
+          <EduButton 
             onClick={generatePDF}
             disabled={selectedGroupIds.length === 0}
-            className="w-full sm:flex-1 bg-primary hover:bg-primary/90 disabled:opacity-50 text-white rounded-2xl py-4 flex items-center justify-center gap-3 font-semibold text-sm tracking-widest shadow-xl shadow-primary/30 active:scale-[0.98] transition-all h-[60px] uppercase px-8"
+            icon={Printer}
+            fullWidth
           >
-            <Printer className="w-5 h-5 text-white" />
-            GENERAR PDF SELECCIÓN
-          </button>
+            Generar PDF
+          </EduButton>
         </div>
     </FormView>
   );

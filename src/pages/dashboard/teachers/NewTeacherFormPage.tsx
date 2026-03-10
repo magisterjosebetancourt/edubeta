@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FormView } from '@/components/ui/FormView'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { EduButton } from '@/components/ui/EduButton'
+import { EduInput } from '@/components/ui/EduInput'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Mail, Copy, Save, X, Loader2 } from 'lucide-react'
+import { Mail, Copy, Save, Loader2 } from 'lucide-react'
 import { db } from '@/lib/firebase/config'
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
 
@@ -14,13 +14,8 @@ export default function NewTeacherFormPage() {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [saving, setSaving] = useState(false)
-  const [exiting, setExiting] = useState(false)
   const [generatedToken, setGeneratedToken] = useState<string | null>(null)
 
-  const handleCancel = () => {
-    setExiting(true)
-    setTimeout(() => navigate(-1), 220)
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,12 +57,11 @@ export default function NewTeacherFormPage() {
   }
 
   const handleDone = () => {
-    setExiting(true)
-    setTimeout(() => navigate('/dashboard/teachers', { replace: true }), 220)
+    navigate('/dashboard/teachers', { replace: true })
   }
 
   return (
-    <FormView exiting={exiting}>
+    <FormView>
       {generatedToken ? (
         /* ── Paso 2: Token generado ── */
         <div className="space-y-6">
@@ -83,75 +77,71 @@ export default function NewTeacherFormPage() {
           </div>
 
           <div className="space-y-3">
-            <Button
+            <EduButton
               onClick={handleSendEmail}
-              className="w-full h-14 gap-3 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold"
+              className="bg-slate-900 hover:bg-slate-800"
+              icon={Mail}
             >
-              <Mail className="w-5 h-5" />
               Enviar invitación por email
-            </Button>
+            </EduButton>
             <div className="grid grid-cols-2 gap-3">
-              <Button variant="outline" onClick={copyToken} className="h-12 gap-2 rounded-lg font-semibold text-xs">
-                <Copy className="w-4 h-4" />
+              <EduButton 
+                variant="outline" 
+                onClick={copyToken} 
+                icon={Copy}
+                distributed
+              >
                 Copiar código
-              </Button>
-              <Button variant="ghost" onClick={handleDone} className="h-12 rounded-lg font-semibold text-xs border border-slate-200 dark:border-slate-700">
+              </EduButton>
+              <EduButton 
+                variant="outline" 
+                onClick={handleDone}
+                distributed
+              >
                 Finalizar
-              </Button>
+              </EduButton>
             </div>
           </div>
         </div>
       ) : (
         /* ── Paso 1: Formulario ── */
         <form onSubmit={handleSubmit} className="space-y-5">
-          <p className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-6">
+          <p className="w-full h-6 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-1 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-1">
             Genera un código de acceso para que el docente pueda registrarse en la plataforma.
           </p>
 
           <div className="space-y-2">
             <Label htmlFor="fullName">Apellidos y nombres</Label>
-            <Input
+            <EduInput
               id="fullName"
               value={fullName}
               onChange={e => setFullName(e.target.value)}
               placeholder="Ej. Pérez, Juan"
               required
-              className="h-12 text-sm bg-slate-100 dark:bg-[#1e2536] border dark:border-slate-800 focus:ring-2 focus:ring-primary/50"
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="email">Correo institucional</Label>
-            <Input
+            <EduInput
               id="email"
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="ejemplo@institucion.edu.co"
               required
-              className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
 
-          <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={handleCancel}
-              disabled={saving}
-              className="w-full h-14 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 gap-2 rounded-lg font-semibold tracking-widest text-xs"
-            >
-              <X className="w-4 h-4 mr-1.5" />
-              Cancelar
-            </Button>
-            <Button
+          <div className="pt-2">
+            <EduButton
               type="submit"
               disabled={saving}
-              className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
+              icon={saving ? Loader2 : Save}
+              fullWidth
             >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               {saving ? 'Generando...' : 'Generar código de acceso'}
-            </Button>
+            </EduButton>
           </div>
         </form>
       )}

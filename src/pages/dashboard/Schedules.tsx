@@ -5,7 +5,8 @@ import { useSchedules } from "@/lib/hooks/useFirebaseData";
 import { collection, query, where, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { EduButton } from "@/components/ui/EduButton";
+import { EduSelect } from "@/components/ui/EduSelect";
 import { CalendarDays, Plus, Clock, Users, BookOpen, AlertCircle, Edit, Trash2, CalendarCheck } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -91,33 +92,34 @@ export default function SchedulesPage() {
               <CalendarDays className="w-6 h-6 text-primary" />
               Horario de Clases
             </h1>
-            <p className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-6">
+            <p className="w-full h-6 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-1 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-1">
               Visualiza y gestiona el horario académico.
             </p>
           </div>
 
           {(userRole === "admin" || userRole === "coordinator") && (
             <div className="w-full sm:w-64">
-              <select
+              <EduSelect
                 value={selectedTeacherId}
                 onChange={(e) => setSelectedTeacherId(e.target.value)}
-                className="pl-9 h-10 w-full sm:w-auto min-w-[150px] bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none"
+                className="w-full sm:w-auto h-12"
               >
                 <option value="">Selecciona un docente...</option>
                 {teachers.map((t) => (
                   <option key={t.id} value={t.id}>{t.full_name}</option>
                 ))}
-              </select>
+              </EduSelect>
             </div>
           )}
 
           {activeTeacherId && (
-            <Button
+            <EduButton
               onClick={() => navigate(`/dashboard/schedules/new${userRole !== 'teacher' ? `?teacher_id=${activeTeacherId}` : ''}`)}
-              className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
+              icon={Plus}
+              className="h-12 px-6 w-full sm:w-auto"
             >
-              <Plus className="w-4 h-4 stroke-[3]" /> Nueva hora de clase
-            </Button>
+              Nueva hora de clase
+            </EduButton>
           )}
         </div>
 

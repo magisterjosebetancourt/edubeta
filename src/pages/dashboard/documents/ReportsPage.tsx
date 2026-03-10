@@ -5,17 +5,19 @@ import { db } from '@/lib/firebase/config';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { FormView } from '@/components/ui/FormView';
 import { 
-  FileSearch, 
-  Calendar, 
   Printer, 
-  ChevronRight,
   ClipboardList,
-  X,
-  ShieldAlert
+  Calendar,
+  FileSearch
 } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { cn } from '@/lib/utils';
+import { EduInput } from "@/components/ui/EduInput";
+import { EduSelect } from "@/components/ui/EduSelect";
+import { EduButton } from "@/components/ui/EduButton";
 import jsPDF from 'jspdf';
 import { ISA_INDICATORS } from '@/types/isa';
 import autoTable from 'jspdf-autotable';
@@ -25,7 +27,6 @@ type ReportType = 'attendance_group' | 'academic_summary' | 'observador' | 'isa'
 
 export default function ReportsPage() {
   const { profile } = useUserProfile();
-  const [exiting, setExiting] = useState(false);
   const [selectedType, setSelectedType] = useState<ReportType>('attendance_group');
   const [exportFormat, setExportFormat] = useState<'pdf' | 'excel'>('pdf');
   
@@ -629,191 +630,145 @@ export default function ReportsPage() {
     Sexto:'6','Séptimo':'7',Octavo:'8',Noveno:'9','Décimo':'10',Once:'11',
   };
 
-  const fieldClass = "w-full bg-slate-100 dark:bg-[#1e2536] border dark:border-slate-800 rounded-lg py-3 px-4 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary/50 appearance-none transition-all placeholder:text-slate-500";
 
-  const handleCancel = () => {
-    setExiting(true);
-    setTimeout(() => {
-        // Redirigir al dashboard o donde corresponda
-        window.history.back();
-    }, 220);
-  };
 
   return (
-    <FormView exiting={exiting}>
-      <div className="max-w-md mx-auto bg-white dark:bg-[#151b2d] rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-100 dark:border-slate-800 p-8 space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700 font-sans mt-4 mb-24">
-        
-        {/* Tipo de Informe */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 tracking-wide ml-1">Tipo de informe</h3>
-          <div className="grid grid-cols-3 gap-3">
-            {reportTypes.map((type) => (
-              <button
-                key={type.id}
-                onClick={() => setSelectedType(type.id as ReportType)}
-                className={cn(
-                  "flex flex-col items-center justify-center py-5 px-2 rounded-2xl border transition-all duration-300 gap-2.5",
-                  selectedType === type.id 
-                    ? "bg-white border-primary text-primary shadow-lg shadow-primary/10 ring-[0.5px] ring-primary" 
-                    : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-400 dark:text-slate-500 hover:border-slate-200"
-                )}
-              >
-                <div className={cn("p-2 rounded-lg transition-colors", selectedType === type.id ? "bg-primary text-white" : "bg-slate-50 dark:bg-slate-800 text-slate-400")}>
-                  <type.icon className="w-5 h-5" />
+    <FormView>
+      <div className="space-y-6 max-w-5xl mx-auto">
+        <Card className="border-none shadow-none bg-transparent">
+          <p className="w-full h-6 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-1 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-1">
+            Configura los filtros y el tipo de informe que deseas generar.
+          </p>
+          <CardContent className="p-0 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              
+              {/* Tipo de Informe */}
+              <div className="space-y-2 lg:col-span-3">
+                <Label>Tipo de informe</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                  {reportTypes.map((type) => (
+                    <button
+                      key={type.id}
+                      onClick={() => setSelectedType(type.id as ReportType)}
+                      className={cn(
+                        "flex flex-col items-center justify-center py-4 px-2 rounded-2xl border transition-all duration-300 gap-2",
+                        selectedType === type.id 
+                          ? "bg-white border-primary text-primary shadow-lg shadow-primary/10 ring-[0.5px] ring-primary" 
+                          : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-400 dark:text-slate-500 hover:border-slate-200"
+                      )}
+                    >
+                      <div className={cn("p-2 rounded-lg transition-colors", selectedType === type.id ? "bg-primary text-white" : "bg-slate-50 dark:bg-slate-800 text-slate-400")}>
+                        <type.icon className="w-5 h-5" />
+                      </div>
+                      <span className="text-sm font-semibold tracking-tight">{type.label}</span>
+                    </button>
+                  ))}
                 </div>
-                <span className="text-[11px] font-semibold tracking-tight">{type.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+              </div>
 
-        {/* Rango de Fechas */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 tracking-wide ml-1">Rango de fechas</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-[10px] font-semibold text-slate-400 ml-1 uppercase">Desde</label>
-              <div className="relative">
-                <input 
+              {/* Rango de Fechas */}
+              <div className="space-y-2">
+                <Label>Desde</Label>
+                <EduInput 
                   type="date" 
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className={fieldClass} 
-                  placeholder="dd/mm/aaaa"
                 />
               </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-semibold text-slate-400 ml-1 uppercase">Hasta</label>
-              <div className="relative">
-                <input 
+              <div className="space-y-2">
+                <Label>Hasta</Label>
+                <EduInput 
                   type="date" 
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className={fieldClass} 
-                  placeholder="dd/mm/aaaa"
                 />
               </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Filtros dinámicos según el tipo de informe */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 tracking-wide ml-1">Filtros</h3>
-          
-          {(selectedType === 'isa' || selectedType === 'isa_list') ? (
-            <div className="space-y-4">
-              {/* Periodo para ISA */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-semibold text-slate-400 ml-1 uppercase">Periodo</label>
-                <div className="relative">
-                  <select 
-                    value={selectedPeriodId}
-                    onChange={(e) => setSelectedPeriodId(e.target.value)}
-                    className={cn(fieldClass, "cursor-pointer pr-10")}
-                  >
-                    <option value="">Seleccionar periodo</option>
-                    {periodsData.map((p: any) => (
-                      <option key={p.id} value={p.id}>Periodo {p.period_number}</option>
-                    ))}
-                  </select>
-                  <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 rotate-90 pointer-events-none" />
-                </div>
-              </div>
-
-              {/* Modo de Filtro de Grupo */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-semibold text-slate-400 ml-1 uppercase">Alcance del informe</label>
-                <div className="relative">
-                  <select 
-                    value={groupFilterMode}
-                    onChange={(e) => {
-                      setGroupFilterMode(e.target.value as any);
-                      setSelectedGradeName('');
-                      setSelectedLevelId('');
-                      setSelectedGroupId('');
-                    }}
-                    className={cn(fieldClass, "cursor-pointer pr-10")}
-                  >
-                    <option value="all_groups">Todos los grupos del colegio</option>
-                    <option value="all_grade">Todo el grado</option>
-                    <option value="single_group">Un grupo específico</option>
-                  </select>
-                  <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 rotate-90 pointer-events-none" />
-                </div>
-              </div>
-
-              {/* Filtros específicos según el modo */}
-              {groupFilterMode === 'all_grade' && (
-                <div className="space-y-2 animate-in slide-in-from-top-2">
-                  <label className="text-[10px] font-semibold text-slate-400 ml-1 uppercase">Seleccionar Grado</label>
-                  <div className="relative">
-                    <select 
-                      value={selectedGradeName}
-                      onChange={(e) => setSelectedGradeName(e.target.value)}
-                      className={cn(fieldClass, "cursor-pointer pr-10")}
+              {/* Filtros dinámicos según el tipo de informe */}
+              {(selectedType === 'isa' || selectedType === 'isa_list') ? (
+                <>
+                  <div className="space-y-2">
+                    <Label>Periodo</Label>
+                    <EduSelect 
+                      value={selectedPeriodId}
+                      onChange={(e) => setSelectedPeriodId(e.target.value)}
                     >
-                      <option value="">Cualquier grado...</option>
-                      {Object.keys(GRADE_MAP).map(g => <option key={g} value={g}>{g}</option>)}
-                      <option value="Transición">Transición</option>
-                    </select>
-                    <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 rotate-90 pointer-events-none" />
-                  </div>
-                </div>
-              )}
-
-              {groupFilterMode === 'single_group' && (
-                <div className="space-y-4 animate-in slide-in-from-top-2">
-                   <div className="space-y-2">
-                    <label className="text-[10px] font-semibold text-slate-400 ml-1 uppercase">Nivel</label>
-                    <div className="relative">
-                      <select 
-                        value={selectedLevelId}
-                        onChange={(e) => {
-                          setSelectedLevelId(e.target.value);
-                          setSelectedGradeName('');
-                          setSelectedGroupId('');
-                        }}
-                        className={cn(fieldClass, "cursor-pointer pr-10")}
-                      >
-                        <option value="">Seleccionar nivel...</option>
-                        {LEVELS.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-                      </select>
-                      <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 rotate-90 pointer-events-none" />
-                    </div>
+                      <option value="">Seleccionar periodo</option>
+                      {periodsData.map((p: any) => (
+                        <option key={p.id} value={p.id}>Periodo {p.period_number}</option>
+                      ))}
+                    </EduSelect>
                   </div>
 
-                  {(selectedType === 'isa' || selectedType === 'isa_list') && (
+                  <div className="space-y-2">
+                    <Label>Alcance del informe</Label>
+                    <EduSelect 
+                      value={groupFilterMode}
+                      onChange={(e) => {
+                        setGroupFilterMode(e.target.value as any);
+                        setSelectedGradeName('');
+                        setSelectedLevelId('');
+                        setSelectedGroupId('');
+                      }}
+                    >
+                      <option value="all_groups">Todos los grupos del colegio</option>
+                      <option value="all_grade">Todo el grado</option>
+                      <option value="single_group">Un grupo específico</option>
+                    </EduSelect>
+                  </div>
+
+                  {groupFilterMode === 'all_grade' && (
                     <div className="space-y-2 animate-in slide-in-from-top-2">
-                      <label className="text-[10px] font-semibold text-slate-400 ml-1 uppercase">Grado</label>
-                      <div className="relative">
-                        <select 
+                      <Label>Seleccionar Grado</Label>
+                      <EduSelect 
+                        value={selectedGradeName}
+                        onChange={(e) => setSelectedGradeName(e.target.value)}
+                      >
+                        <option value="">Cualquier grado...</option>
+                        {Object.keys(GRADE_MAP).map(g => <option key={g} value={g}>{g}</option>)}
+                        <option value="Transición">Transición</option>
+                      </EduSelect>
+                    </div>
+                  )}
+
+                  {groupFilterMode === 'single_group' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Nivel</Label>
+                        <EduSelect 
+                          value={selectedLevelId}
+                          onChange={(e) => {
+                            setSelectedLevelId(e.target.value);
+                            setSelectedGradeName('');
+                            setSelectedGroupId('');
+                          }}
+                        >
+                          <option value="">Seleccionar nivel...</option>
+                          {LEVELS.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                        </EduSelect>
+                      </div>
+
+                      <div className="space-y-2 animate-in slide-in-from-top-2">
+                        <Label>Grado</Label>
+                        <EduSelect 
                           value={selectedGradeName}
                           onChange={(e) => {
                             setSelectedGradeName(e.target.value);
                             setSelectedGroupId('');
                           }}
-                          className={cn(fieldClass, "cursor-pointer pr-10")}
                         >
                           <option value="">Cualquier grado...</option>
                           {LEVELS.find(l => l.id === selectedLevelId)?.grades.map(g => (
                             <option key={g} value={g}>{g}</option>
                           ))}
-                        </select>
-                        <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 rotate-90 pointer-events-none" />
+                        </EduSelect>
                       </div>
-                    </div>
-                  )}
 
-                  {(selectedType === 'isa' || selectedType === 'isa_list') && (
-                    <div className="space-y-2 animate-in slide-in-from-top-2">
-                      <label className="text-[10px] font-semibold text-slate-400 ml-1 uppercase">Grupo Final</label>
-                      <div className="relative">
-                        <select 
+                      <div className="space-y-2 animate-in slide-in-from-top-2">
+                        <Label>Grupo Final</Label>
+                        <EduSelect 
                           value={selectedGroupId}
                           onChange={(e) => setSelectedGroupId(e.target.value)}
-                          className={cn(fieldClass, "cursor-pointer pr-10")}
                         >
                           <option value="">Seleccionar grupo...</option>
                           {gradesData
@@ -827,102 +782,75 @@ export default function ReportsPage() {
                             .sort((a: any, b: any) => a.name.localeCompare(b.name))
                             .map((g: any) => <option key={g.id} value={g.id}>{g.name}</option>)
                           }
-                        </select>
-                        <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 rotate-90 pointer-events-none" />
+                        </EduSelect>
                       </div>
-                    </div>
+                    </>
                   )}
-                </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label>Grado</Label>
+                    <EduSelect 
+                      value={selectedGroupId}
+                      onChange={(e) => setSelectedGroupId(e.target.value)}
+                    >
+                      <option value="">Seleccionar grado</option>
+                      {gradesData.sort((a,b) => a.name.localeCompare(b.name)).map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                    </EduSelect>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Sección</Label>
+                    <EduSelect disabled>
+                      <option>Seleccionar sección</option>
+                    </EduSelect>
+                  </div>
+                </>
               )}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-[10px] font-semibold text-slate-400 ml-1 uppercase">Grado</label>
-                <div className="relative">
-                  <select 
-                    value={selectedGroupId}
-                    onChange={(e) => setSelectedGroupId(e.target.value)}
-                    className={cn(fieldClass, "cursor-pointer pr-10")}
+
+              {/* Formato de Exportación */}
+              <div className="space-y-2 col-span-1 md:col-span-2 lg:col-span-1">
+                <Label>Formato de exportación</Label>
+                <div className="bg-slate-50 dark:bg-slate-900 p-1.5 rounded-xl flex border border-slate-100 dark:border-slate-800 h-12">
+                  <button
+                    onClick={() => setExportFormat('pdf')}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-2 rounded-lg transition-all duration-300 font-semibold text-sm",
+                      exportFormat === 'pdf' 
+                        ? "bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-sm" 
+                        : "text-slate-400 dark:text-slate-500"
+                    )}
                   >
-                    <option value="">Seleccionar grado</option>
-                    {gradesData.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                  </select>
-                  <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 rotate-90 pointer-events-none" />
+                    <span className="text-red-500 text-xs">📄</span> PDF
+                  </button>
+                  <button
+                    onClick={() => setExportFormat('excel')}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-2 rounded-lg transition-all duration-300 font-semibold text-sm",
+                      exportFormat === 'excel' 
+                        ? "bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-sm" 
+                        : "text-slate-400 dark:text-slate-500"
+                    )}
+                  >
+                    <span className="text-emerald-500 text-xs">📗</span> Excel
+                  </button>
                 </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-semibold text-slate-400 ml-1 uppercase">Sección</label>
-                <div className="relative">
-                  <select className={cn(fieldClass, "opacity-60 cursor-not-allowed pr-10")} disabled>
-                    <option>Seleccionar sección</option>
-                  </select>
-                  <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 rotate-90 pointer-events-none" />
-                </div>
-              </div>
+
             </div>
-          )}
-        </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        {/* Formato de Exportación */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 tracking-wide ml-1">Formato de exportaciÃ³n</h3>
-          <div className="bg-slate-50 dark:bg-slate-900 p-1.5 rounded-xl flex border border-slate-100 dark:border-slate-800">
-            <button
-              onClick={() => setExportFormat('pdf')}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg transition-all duration-300 font-semibold text-[13px]",
-                exportFormat === 'pdf' 
-                  ? "bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-md shadow-slate-200/50 dark:shadow-none" 
-                  : "text-slate-400 dark:text-slate-500"
-              )}
-            >
-              <span className="text-red-500">📄</span> PDF
-            </button>
-            <button
-              onClick={() => setExportFormat('excel')}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2.5 py-3 rounded-lg transition-all duration-300 font-semibold text-[13px]",
-                exportFormat === 'excel' 
-                  ? "bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-md shadow-slate-200/50 dark:shadow-none" 
-                  : "text-slate-400 dark:text-slate-500"
-              )}
-            >
-              <span className="text-emerald-500">📗</span> Excel
-            </button>
-          </div>
-        </div>
-
-        {/* Botones de Acción - Orden Vertical Limpio y Sin Fondo de Contenedor */}
-        <div className="flex flex-col gap-4 mt-10 pb-12 max-w-md mx-auto w-full">
-            <button 
-                onClick={handleGenerate}
-                disabled={generating}
-                className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 text-white rounded-[5px] h-14 flex items-center justify-center gap-3 font-semibold text-[11px] tracking-widest shadow-lg shadow-primary/25 active:scale-[0.98] transition-all uppercase"
-            >
-                <Printer className="w-5 h-5 text-white" />
-                {generating ? 'GENERANDO...' : 'GENERAR INFORME'}
-            </button>
-            
-            <button 
-                onClick={handleCancel}
-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 rounded-[5px] h-14 flex items-center justify-center gap-3 font-semibold text-[11px] tracking-widest shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-all uppercase"
-            >
-                <X className="w-5 h-5 text-slate-400" />
-                Cancelar
-            </button>
-
-            {(profile?.role === 'admin' || profile?.role === 'coordinator') && (selectedType === 'isa' || selectedType === 'isa_list') && (
-              <button 
-                  onClick={handleFixIsaNames}
-                  className="w-full mt-4 text-slate-400 dark:text-slate-500 text-[10px] uppercase tracking-widest hover:text-primary transition-colors flex items-center justify-center gap-2"
-              >
-                  <ShieldAlert className="w-3 h-3" />
-                  Corregir nombres de asignaturas huerfanas
-              </button>
-            )}
-        </div>
-
+      <div className="mt-4">
+        <EduButton 
+          onClick={handleGenerate}
+          disabled={generating}
+          icon={Printer}
+          fullWidth
+        >
+          {generating ? 'Generando...' : 'Generar informe'}
+        </EduButton>
       </div>
     </FormView>
   );

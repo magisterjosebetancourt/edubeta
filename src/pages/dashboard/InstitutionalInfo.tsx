@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { db } from '@/lib/firebase/config'
 import { 
   collection, 
@@ -15,8 +14,8 @@ import {
 import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { EduButton } from '@/components/ui/EduButton'
+import { EduInput } from '@/components/ui/EduInput'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Building, 
@@ -26,8 +25,7 @@ import {
   Type, 
   Image as ImageIcon,
   Clock,
-  CheckCircle2,
-  X
+  CheckCircle2
 } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { toast } from 'sonner'
@@ -41,7 +39,6 @@ type Period = {
 }
 
 export default function InstitutionalInfo() {
-  const navigate = useNavigate()
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -198,9 +195,6 @@ export default function InstitutionalInfo() {
     }
   }
 
-  const handleCancel = () => {
-    navigate(-1)
-  }
 
   if (loading) return <LoadingSpinner message="Cargando información institucional..." />
 
@@ -220,33 +214,31 @@ export default function InstitutionalInfo() {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Información Básica</CardTitle>
-              <p className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-6">Datos que identifican al establecimiento educativo.</p>
+              <p className="w-full h-6 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-1 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-1">Datos que identifican al establecimiento educativo.</p>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="schoolName">Nombre del Colegio / Institución</Label>
                   <div className="relative">
-                    <Building className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input 
+                    <EduInput 
                       id="schoolName" 
-                      className="pl-9 w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] text-sm outline-none focus:ring-2 focus:ring-primary/50"
                       value={schoolName}
                       onChange={(e) => setSchoolName(e.target.value)}
                       placeholder="Ej. Institución Educativa Distrital..." 
+                      icon={Building}
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="academicYear">Año Lectivo Actual</Label>
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input 
+                    <EduInput 
                       id="academicYear" 
-                      className="pl-9 w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] text-sm outline-none focus:ring-2 focus:ring-primary/50"
                       value={academicYear}
                       onChange={(e) => setAcademicYear(e.target.value)}
                       placeholder="Ej. 2026" 
+                      icon={Calendar}
                     />
                   </div>
                 </div>
@@ -255,13 +247,12 @@ export default function InstitutionalInfo() {
               <div className="space-y-2">
                 <Label htmlFor="slogan">Lema o Slogan Institucional</Label>
                 <div className="relative">
-                  <Type className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input 
+                  <EduInput 
                     id="slogan" 
-                    className="pl-9 w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] text-sm outline-none focus:ring-2 focus:ring-primary/50"
                     value={slogan}
                     onChange={(e) => setSlogan(e.target.value)}
                     placeholder="Ej. Hacia la excelencia integral" 
+                    icon={Type}
                   />
                 </div>
               </div>
@@ -320,7 +311,7 @@ export default function InstitutionalInfo() {
               <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-[5px] border border-primary/10 shadow-sm">
                 <div className="space-y-0.5">
                   <Label className="text-base font-semibold text-slate-800 dark:text-white">Módulo ISA</Label>
-                  <p className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-6">Habilitar la captura de pre-informes cualitativos para docentes.</p>
+                  <p className="w-full h-6 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-1 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-1">Habilitar la captura de pre-informes cualitativos para docentes.</p>
                 </div>
                 <div 
                   onClick={() => setIsaEnabled(!isaEnabled)}
@@ -361,19 +352,17 @@ export default function InstitutionalInfo() {
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-1.5">
                         <Label className="text-xs">Fecha de Inicio</Label>
-                        <Input 
+                        <EduInput 
                           type="date" 
                           value={period.start_date}
-                          className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50"
                           onChange={(e) => handlePeriodChange(index, 'start_date', e.target.value)}
                         />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs">Fecha de Finalización</Label>
-                        <Input 
+                        <EduInput 
                           type="date" 
                           value={period.end_date}
-                          className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50"
                           onChange={(e) => handlePeriodChange(index, 'end_date', e.target.value)}
                         />
                       </div>
@@ -423,25 +412,15 @@ export default function InstitutionalInfo() {
 
       {/* Floating Save Button */}
       <div className="fixed bottom-20 lg:bottom-8 left-0 right-0 z-50 px-6 border-t">
-        <div className="max-w-5xl mx-auto flex gap-3">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={handleCancel}
-            disabled={saving}
-            className="w-full h-14 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 gap-2 rounded-lg font-semibold tracking-widest text-xs"
-          >
-            <X className="mr-2 h-4 w-4" />
-            Cancelar
-          </Button>
-          <Button 
+        <div className="max-w-5xl mx-auto">
+          <EduButton 
             onClick={handleSave} 
             disabled={saving}
-            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
+            icon={saving ? Loader2 : Save}
+            fullWidth
           >
-            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Guardar
-          </Button>
+            {saving ? 'Guardando...' : 'Guardar'}
+          </EduButton>
         </div>
       </div>
     </div>

@@ -9,8 +9,9 @@ EduBeta es utilizada en tiempo real desde el aula por docentes, padres y coordin
 ## Estándares de Diseño (ClassComponent.md / skill.md)
 - **Carga Global**: Todas las esperas de datos deben mostrar el componente `<LoadingSpinner />`.
 - **Identidad Visual (Avatares)**: Prioridad Foto (`avatar_url`) > Iniciales. Fondo `#C6E7FC`, Texto `#0099FE`.
-- **Botones**: Bordes `rounded-[5px]`, sombras `shadow-primary/20` para acciones principales.
-- **Formularios**: Uso de `FormView` para consistencia en pantallas completas.
+- **Botones**: Uso de `EduButton` para consistencia. Bordes `rounded-[5px]`, sombras `shadow-primary/20`.
+- **Formularios**: Uso de `FormView` (sin transiciones artificiales) para navegación instantánea.
+- **Componentes**: Uso obligatorio de `EduInput` y `EduSelect` para campos de entrada.
 
 ## Estructura de Navegación y Permisos
 La aplicación se organiza en 5 categorías principales:
@@ -22,10 +23,10 @@ La aplicación se organiza en 5 categorías principales:
 5. **Cliente**: Caracterización (Acceso: Solo Admin).
 
 ## Hitos Recientes (Marzo 2026)
-- **Estandarización de Avatares**: Implementación de lógica foto-primero en Asignaciones y Docentes.
-- **Optimización de Asignaciones**: Flujo continuo de creación sin salir del formulario (reset selectivo).
-- **Reorganización de Menú**: Nueva jerarquía de categorías y limpieza de opciones.
+- **Estandarización UI**: Implementación global de `EduButton`, `EduInput` y `EduSelect`.
+- **Eliminación de Transiciones**: Retirada de estados `exiting` y retardos `setTimeout` para una navegación instantánea.
+- **Limpieza de Interfaz**: Eliminación de botones "Cancelar" en favor de navegación nativa/Breadcrumbs.
 - **Acceso Docente**: Ampliación de permisos para que el rol `teacher` vea su carga académica.
 
 ---
-*Última actualización: 05 de Marzo, 2026*
+*Última actualización: 10 de Marzo, 2026*

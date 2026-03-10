@@ -12,8 +12,6 @@ import {
   ShieldAlert,
   ClipboardList
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { 
   Table, 
   TableBody, 
@@ -23,6 +21,10 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { EduButton } from '@/components/ui/EduButton';
+import { EduInput } from '@/components/ui/EduInput';
+import { EduSelect } from '@/components/ui/EduSelect';
+import { Card, CardContent } from '@/components/ui/card';
 import { useAllObservationsList } from '@/lib/hooks/useObservador';
 import { useStudents, useGrades, useAssignments } from '@/lib/hooks/useFirebaseData';
 import { useUserProfile } from '@/lib/context/UserProfileContext';
@@ -133,69 +135,65 @@ export default function ObservadorList() {
   };
 
   return (
-    <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
+    <div className="p-4 lg:p-8 space-y-6 max-w-5xl mx-auto">
       {/* Intro Text & Action Bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-            <ClipboardList className="w-5 h-5 text-primary" />
-            Control de Observaciones
-          </h2>
-          <p className="text-sm text-slate-500 max-w-2xl mt-1 leading-relaxed">
-            Gestione las anotaciones formativas, disciplinarias y de reconocimiento del estudiante bajo las directrices de la Ley 1620 y el debido proceso de la Ley 1098.
-          </p>
-        </div>
-        <Button 
+        <p className="text-sm text-slate-500 max-w-2xl leading-relaxed">
+          Gestione las anotaciones formativas, disciplinarias y de reconocimiento del estudiante bajo las directrices de la Ley 1620 y el debido proceso de la Ley 1098.
+        </p>
+        <EduButton 
           onClick={() => navigate('/dashboard/observations/new')}
-          className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
+          icon={Plus}
+          className="w-full sm:w-auto"
         >
-          <Plus className="w-5 h-5 stroke-[3]" />
           Registrar Caso
-        </Button>
+        </EduButton>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white dark:bg-[#151b2d] p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input 
-            placeholder="Buscar por alumno, categoría o docente..."
-            className="pl-9 bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 h-10 w-full"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex items-center">
-            <Layers className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
-            <select 
-              className="pl-9 h-10 w-full sm:w-auto min-w-[160px] bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none"
-              value={gradeFilter}
-              onChange={(e) => setGradeFilter(e.target.value)}
-            >
-              <option value="all">Todos los grupos</option>
-              {availableGrades.sort((a: any, b: any) => a.name?.localeCompare(b.name || '')).map((g: any) => (
-                <option key={g.id} value={g.id}>{g.name}</option>
-              ))}
-            </select>
-          </div>
+      <Card className="border-none shadow-none bg-transparent">
+        <p className="w-full h-6 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-1 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-1">
+          Busque casos específicos o filtre por grado y estado.
+        </p>
+        <CardContent className="p-0 space-y-4">
+          {/* Filters */}
+          <div className="bg-white dark:bg-[#151b2d] p-4 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <EduInput 
+                placeholder="Buscar por alumno, categoría o docente..."
+                icon={Search}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-3">
+              <EduSelect 
+                value={gradeFilter}
+                onChange={(e) => setGradeFilter(e.target.value)}
+                icon={Layers}
+                className="min-w-[180px]"
+              >
+                <option value="all">Todos los grupos</option>
+                {availableGrades.sort((a: any, b: any) => a.name?.localeCompare(b.name || '')).map((g: any) => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+              </EduSelect>
 
-          <div className="relative flex items-center">
-            <Filter className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
-            <select 
-              className="pl-9 h-10 w-full sm:w-auto min-w-[150px] bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="all">Cualquier estado</option>
-              <option value="Abierto">Abiertos</option>
-              <option value="En proceso">En proceso</option>
-              <option value="Cerrado">Cerrados</option>
-            </select>
+              <EduSelect 
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                icon={Filter}
+                className="min-w-[150px]"
+              >
+                <option value="all">Cualquier estado</option>
+                <option value="Abierto">Abiertos</option>
+                <option value="En proceso">En proceso</option>
+                <option value="Cerrado">Cerrados</option>
+              </EduSelect>
+            </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* MOBILE CARDS VIEW (md:hidden) */}
       <div className="grid grid-cols-1 gap-4 md:hidden">
@@ -254,14 +252,14 @@ export default function ObservadorList() {
               </div>
 
               {/* Actions */}
-              <Button 
-                variant="ghost" 
+              <EduButton 
+                variant="secondary" 
                 onClick={() => navigate(`/dashboard/observations/${obs.id}`)}
-                className="w-full text-primary hover:text-primary/90 hover:bg-primary/5 font-semibold tracking-wider text-[11px] mt-1"
+                className="w-full text-[11px] mt-1"
+                icon={Eye}
               >
-                <Eye className="w-4 h-4 mr-2" />
                 VER DETALLE DEL CASO
-              </Button>
+              </EduButton>
             </div>
             );
           })
@@ -349,14 +347,12 @@ export default function ObservadorList() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
+                      <EduButton
                         variant="ghost"
-                        size="icon"
-                        className="text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors"
+                        className="h-8 w-8 p-0"
                         onClick={() => navigate(`/dashboard/observations/${obs.id}`)}
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
+                        icon={Eye}
+                      />
                     </TableCell>
                   </TableRow>
                   );

@@ -27,9 +27,11 @@ import {
   Clock,
   AlertCircle,
   Search,
-  Filter,
-  Loader2
+  Filter
 } from 'lucide-react'
+import { EduInput } from "@/components/ui/EduInput";
+import { EduSelect } from "@/components/ui/EduSelect";
+import { EduButton } from "@/components/ui/EduButton";
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { cn } from '@/lib/utils'
 import { useUserProfile } from '@/lib/context/UserProfileContext'
@@ -474,71 +476,57 @@ export default function AttendanceHistoryPage() {
       {/* Filters Area */}
       <div className="p-4 space-y-4">
         {/* Row 1: Search - Main Placeholder */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input 
-            type="text"
-            placeholder="Buscar por nombre del estudiante..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm transition-all"
-          />
-        </div>
+        <EduInput 
+          type="text"
+          placeholder="Buscar por nombre del estudiante..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          icon={Search}
+          className="h-12"
+        />
 
         {/* Row 2: Select Filters */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-          <div className="relative">
-            <School className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-            <select 
-              value={filterGradeId}
-              onChange={(e) => setFilterGradeId(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] font-semibold focus:outline-none appearance-none transition-all"
-            >
-              <option value="">Grados</option>
-              {grades.map(g => (
-                <option key={g.id} value={String(g.id)}>{g.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="relative">
-            <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-            <select 
-              value={filterSubjectId}
-              onChange={(e) => setFilterSubjectId(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] font-semibold focus:outline-none appearance-none transition-all"
-            >
-              <option value="">Materias</option>
-              {subjects.map(s => (
-                <option key={s.id} value={String(s.id)}>{s.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-            <select 
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] font-semibold focus:outline-none appearance-none transition-all"
-            >
-              <option value="all">Estados</option>
-              <option value="absent">Inasistencias</option>
-              <option value="late">Tardanzas</option>
-              <option value="present">Presentes</option>
-            </select>
-          </div>
+          <EduSelect 
+            value={filterGradeId}
+            onChange={(e) => setFilterGradeId(e.target.value)}
+            icon={School}
+          >
+            <option value="">Grados</option>
+            {grades.map(g => (
+              <option key={g.id} value={String(g.id)}>{g.name}</option>
+            ))}
+          </EduSelect>
+          <EduSelect 
+            value={filterSubjectId}
+            onChange={(e) => setFilterSubjectId(e.target.value)}
+            icon={BookOpen}
+          >
+            <option value="">Materias</option>
+            {subjects.map(s => (
+              <option key={s.id} value={String(s.id)}>{s.name}</option>
+            ))}
+          </EduSelect>
+          <EduSelect 
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            icon={Filter}
+          >
+            <option value="all">Estados</option>
+            <option value="absent">Inasistencias</option>
+            <option value="late">Tardanzas</option>
+            <option value="present">Presentes</option>
+          </EduSelect>
           {(userRole === 'admin' || userRole === 'coordinator') && (
-            <div className="relative">
-              <Check className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-              <select 
-                value={filterProcessed}
-                onChange={(e) => setFilterProcessed(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] font-semibold focus:outline-none appearance-none transition-all"
-              >
-                <option value="all">Gestión</option>
-                <option value="false">Pendientes</option>
-                <option value="true">Procesados</option>
-              </select>
-            </div>
+            <EduSelect 
+              value={filterProcessed}
+              onChange={(e) => setFilterProcessed(e.target.value)}
+              icon={Check}
+            >
+              <option value="all">Gestión</option>
+              <option value="false">Pendientes</option>
+              <option value="true">Procesados</option>
+            </EduSelect>
           )}
         </div>
 
@@ -546,32 +534,32 @@ export default function AttendanceHistoryPage() {
         <div className="flex flex-col md:flex-row gap-2 items-center">
           <div className="flex-1 w-full grid grid-cols-2 gap-2">
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 pointer-events-none">De</span>
-              <input 
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 pointer-events-none z-10">De</span>
+              <EduInput 
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] focus:outline-none"
+                className="h-12 pl-12"
               />
             </div>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 pointer-events-none">A</span>
-              <input 
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 pointer-events-none z-10">A</span>
+              <EduInput 
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[11px] focus:outline-none"
+                className="h-12 pl-12"
               />
             </div>
           </div>
-          <button 
+          <EduButton 
             onClick={() => fetchData(true)}
             disabled={isRefreshing}
-            className="w-full md:w-auto px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            icon={RefreshCcw}
+            className="w-full md:w-auto px-4 h-12"
           >
-            <RefreshCcw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
-            <span className="text-[11px] font-semibold">Actualizar</span>
-          </button>
+            Actualizar
+          </EduButton>
         </div>
       </div>
 

@@ -6,7 +6,8 @@ import {
 } from "firebase/firestore";
 import { useUserProfile } from "@/lib/context/UserProfileContext";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { EduButton } from "@/components/ui/EduButton";
+import { EduInput } from "@/components/ui/EduInput";
 import { toast } from "sonner";
 import { ShieldAlert, Plus, Trash2, Edit2, Search, Lock, BookOpen } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -105,23 +106,21 @@ export default function InfractionsPage() {
 
       <div className="p-4 lg:p-8 space-y-6">
         <div className="flex items-center justify-between px-1">
-          <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-            {filteredSystem.length + filteredInfractions.length} faltas
-          </p>
           {isAdmin && (
-            <Button onClick={() => navigate('/dashboard/infractions/new')}
-              className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0">
-              <Plus className="w-4 h-4 stroke-[3]" />Registrar falta
-            </Button>
+            <EduButton onClick={() => navigate('/dashboard/infractions/new')}
+              icon={Plus}
+              className="h-12 px-6 w-full sm:w-auto"
+            >
+              Registrar falta
+            </EduButton>
           )}
         </div>
 
-        <div className="relative px-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input type="text" placeholder="Buscar por descripción..." value={searchTerm}
+          <EduInput type="text" placeholder="Buscar por descripción..." value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 h-12 bg-white dark:bg-slate-800 border-none rounded-lg shadow-sm font-medium" />
-        </div>
+            icon={Search}
+            className="h-12"
+          />
 
         {/* System Infractions */}
         {filteredSystem.length > 0 && (
@@ -130,6 +129,9 @@ export default function InfractionsPage() {
               <BookOpen className="w-4 h-4 text-slate-400" />
               <h2 className="text-xs tracking-wider text-slate-400">Marco Legal — Decreto 1965 / 2013</h2>
             </div>
+            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+              {infractions.length} faltas
+            </p>
             {filteredSystem.map(inf => {
               const TConfig = TYPE_MAP[inf.type];
               return (

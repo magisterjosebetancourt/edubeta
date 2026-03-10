@@ -11,15 +11,16 @@ import {
   HeartHandshake, 
   Medal,
   Users,
-  X,
   Fingerprint,
   RotateCcw
 } from 'lucide-react';
 import SignatureCanvas from 'react-signature-canvas';
 import { FormView } from '@/components/ui/FormView';
-import { Button } from '@/components/ui/button';
+import { EduButton } from '@/components/ui/EduButton';
+import { EduInput } from '@/components/ui/EduInput';
+import { EduSelect } from '@/components/ui/EduSelect';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from 'sonner';
 
@@ -62,7 +63,6 @@ export default function ObservadorForm() {
   const createObservation = useCreateObservation();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [exiting, setExiting] = useState(false);
   const [signatureRef, setSignatureRef] = useState<SignatureCanvas | null>(null);
   const [hasSignature, setHasSignature] = useState(false);
 
@@ -205,8 +205,7 @@ export default function ObservadorForm() {
       });
 
       toast.success("Anotación registrada correctamente");
-      setExiting(true);
-      setTimeout(() => navigate('/dashboard/observations'), 220);
+      navigate('/dashboard/observations');
     } catch (error) {
       console.error(error);
       toast.error("Error al guardar la observación");
@@ -223,352 +222,332 @@ export default function ObservadorForm() {
   };
 
   return (
-    <FormView exiting={exiting} className="max-w-4xl mx-auto space-y-6">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-        {/* Sección 1: Datos Básicos */}
-        <Card className="border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-[#1e1e2d]">
-          <CardContent className="p-6 space-y-6">
-            <h2 className="text-base font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2 tracking-wide">
-              <Users className="w-4 h-4 text-primary" /> 
-              Identificación del estudiante
-            </h2>
-            
-            <div className={`grid grid-cols-1 ${isAdminOrCoord ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-2'} gap-4`}>
-              {isAdminOrCoord && (
-                <>
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Nivel</label>
-                    <select 
-                      value={selectedLevelId}
-                      onChange={(e) => {
-                        setSelectedLevelId(e.target.value);
-                        setSelectedGradeName('');
-                        setSelectedGroupId('');
-                      }}
-                      className="pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all font-medium"
-                    >
-                      <option value="">Todos los niveles</option>
-                      {LEVELS.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-                    </select>
-                  </div>
+    <FormView>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Contenedor Principal de Datos */}
+        <div className="space-y-6 max-w-5xl mx-auto">
+          {/* Header Info Bar */}
+          <p className="text-ms text-slate-700 dark:text-slate-300 leading-tight">
+            Registro oficial de seguimiento convivencial y pedagógico. Toda anotación debe seguir los principios de objetividad y debido proceso (Ley 1098).
+          </p>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Grado</label>
-                    <select 
-                      value={selectedGradeName}
-                      onChange={(e) => {
-                        setSelectedGradeName(e.target.value);
-                        setSelectedGroupId('');
-                      }}
-                      className="pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all disabled:opacity-50 font-medium"
-                      disabled={!selectedLevelId}
-                    >
-                      <option value="">Todos los grados</option>
-                      {LEVELS.find(l => l.id === selectedLevelId)?.grades.map(g => (
-                        <option key={g} value={g}>{g}</option>
-                      ))}
-                    </select>
-                  </div>
-                </>
-              )}
+          <div className="space-y-8">
+            {/* Sección 1: Datos Básicos */}
+            <div className="space-y-6">
+              <h2 className="text-ms font-semibold text-slate-900 dark:text-white flex items-center gap-2   tracking-wider">
+                <Users className="w-4 h-4 text-primary" /> 
+                1. Identificación del estudiante
+              </h2>
+              
+              <div className={`grid grid-cols-1 ${isAdminOrCoord ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-2'} gap-6`}>
+                {isAdminOrCoord && (
+                  <>
+                    <div className="space-y-2">
+                      <Label className="text-ms font-semibold text-slate-500 dark:text-slate-400   tracking-tight">Nivel</Label>
+                      <EduSelect 
+                        value={selectedLevelId}
+                        onChange={(e) => {
+                          setSelectedLevelId(e.target.value);
+                          setSelectedGradeName('');
+                          setSelectedGroupId('');
+                        }}
+                      >
+                        <option value="">Todos los niveles</option>
+                        {LEVELS.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                      </EduSelect>
+                    </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Grupo / Curso</label>
-                <select 
-                  value={selectedGroupId}
-                  onChange={(e) => setSelectedGroupId(e.target.value)}
-                  className="pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all font-medium"
-                  disabled={loadingGrades || loadingAssignments || (isAdminOrCoord && !!selectedLevelId && !selectedGradeName)}
-                >
-                  <option value="">{isAdminOrCoord ? 'Todos los grupos' : 'Seleccionar grupo'}</option>
-                  {availableGrades.sort((a: any, b: any) => a.name?.localeCompare(b.name || '')).map((g: any) => (
-                    <option key={g.id} value={g.id}>{g.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Estudiante implicado *</label>
-                <select 
-                  {...register('studentId')}
-                  className={`pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border ${errors.studentId ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'} rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all font-medium`}
-                  disabled={loadingStudents || (!!selectedGradeName && !selectedGroupId) || students.length === 0}
-                >
-                  <option value="">
-                    {students.length === 0 && selectedGroupId 
-                      ? "Este grupo no tiene estudiantes matriculados" 
-                      : !selectedGroupId 
-                        ? "Primero seleccione un grupo..." 
-                        : "Seleccione estudiante..."}
-                  </option>
-                  {students.sort((a: any, b: any) => a.last_name?.localeCompare(b.last_name || '')).map((s: any) => (
-                    <option key={s.id} value={s.id}>{s.last_name} {s.first_name}</option>
-                  ))}
-                </select>
-                {errors.studentId && <p className="text-xs text-red-500 font-medium">{errors.studentId.message}</p>}
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Fecha de la situación *</label>
-                <input 
-                  type="date"
-                  {...register('incidentDate')}
-                  className={`w-full h-12 rounded-lg border ${errors.incidentDate ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'} bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50`}
-                />
-                {errors.incidentDate && <p className="text-xs text-red-500 font-medium">{errors.incidentDate.message}</p>}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Sección 2: Tipificación y Ley 1620 */}
-        <Card className="border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-[#1e1e2d]">
-          <CardContent className="p-6 space-y-8">
-            <h2 className="text-base font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2 tracking-wide">
-              <ShieldAlert className="w-4 h-4 text-primary" /> 
-              Clasificación de la situación
-            </h2>
-            
-            <div className="space-y-4">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tipo de anotación</label>
-              <Controller
-                name="type"
-                control={control}
-                render={({ field }) => (
-                  <RadioGroup 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                    className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-                  >
-                    {(Object.keys(tipoIcons) as ObservationType[]).map((type) => (
-                      <div key={type} className="relative">
-                        <RadioGroupItem value={type} id={`type-${type}`} className="peer sr-only" />
-                        <label 
-                          htmlFor={`type-${type}`}
-                          className="flex items-center gap-3 p-4 border-2 border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 dark:peer-data-[state=checked]:bg-primary/10 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                        >
-                          {tipoIcons[type]}
-                          <span className="font-semibold text-slate-700 dark:text-slate-200">{type}</span>
-                        </label>
-                      </div>
-                    ))}
-                  </RadioGroup>
+                    <div className="space-y-2">
+                      <Label className="text-ms font-semibold text-slate-500 dark:text-slate-400   tracking-tight">Grado</Label>
+                      <EduSelect 
+                        value={selectedGradeName}
+                        onChange={(e) => {
+                          setSelectedGradeName(e.target.value);
+                          setSelectedGroupId('');
+                        }}
+                        disabled={!selectedLevelId}
+                      >
+                        <option value="">Todos los grados</option>
+                        {LEVELS.find(l => l.id === selectedLevelId)?.grades.map(g => (
+                          <option key={g} value={g}>{g}</option>
+                        ))}
+                      </EduSelect>
+                    </div>
+                  </>
                 )}
-              />
+
+                <div className="space-y-2">
+                  <Label className="text-ms font-semibold text-slate-500 dark:text-slate-400   tracking-tight">Grupo / Curso</Label>
+                  <EduSelect 
+                    value={selectedGroupId}
+                    onChange={(e) => setSelectedGroupId(e.target.value)}
+                    disabled={loadingGrades || loadingAssignments || (isAdminOrCoord && !!selectedLevelId && !selectedGradeName)}
+                  >
+                    <option value="">{isAdminOrCoord ? 'Todos los grupos' : 'Seleccionar grupo'}</option>
+                    {availableGrades.sort((a: any, b: any) => a.name?.localeCompare(b.name || '')).map((g: any) => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                  </EduSelect>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-ms font-semibold text-slate-500 dark:text-slate-400   tracking-tight">Estudiante implicado *</Label>
+                  <EduSelect 
+                    {...register('studentId')}
+                    disabled={loadingStudents || (!!selectedGradeName && !selectedGroupId) || students.length === 0}
+                    className={errors.studentId ? 'border-red-500' : ''}
+                  >
+                    <option value="">
+                      {students.length === 0 && selectedGroupId 
+                        ? "Sin estudiantes matriculados" 
+                        : !selectedGroupId 
+                          ? "Seleccione grupo primero..." 
+                          : "Seleccionar estudiante..."}
+                    </option>
+                    {students.sort((a: any, b: any) => a.last_name?.localeCompare(b.last_name || '')).map((s: any) => (
+                      <option key={s.id} value={s.id}>{s.last_name} {s.first_name}</option>
+                    ))}
+                  </EduSelect>
+                  {errors.studentId && <p className="text-[10px] text-red-500 font-semibold mt-1  ">{errors.studentId.message}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-ms font-semibold text-slate-500 dark:text-slate-400 tracking-tight">Fecha de la situación *</Label>
+                  <EduInput 
+                    type="date"
+                    {...register('incidentDate')}
+                    className={errors.incidentDate ? 'border-red-500' : ''}
+                  />
+                  {errors.incidentDate && <p className="text-[10px] text-red-500 font-semibold mt-1  ">{errors.incidentDate.message}</p>}
+                </div>
+              </div>
             </div>
 
-            {selectedType === 'Disciplinaria' && (
-              <div className="space-y-4 p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 rounded-xl">
-                <label className="text-sm font-semibold text-amber-900 dark:text-amber-400 flex items-center gap-2">
-                  <ShieldAlert className="w-4 h-4" />
-                  Ruta de Atención Integral (Ley 1620)
-                </label>
+            {/* Sección 2: Clasificación */}
+            <div className="pt-8 border-t border-slate-200 dark:border-slate-800 space-y-6">
+              <h2 className="text-ms font-semibold text-slate-900 dark:text-white flex items-center gap-2   tracking-wider">
+                <ShieldAlert className="w-4 h-4 text-primary" /> 
+                2. Clasificación de la situación
+              </h2>
+              
+              <div className="space-y-4">
+                <Label className="text-ms text-slate-500 dark:text-slate-400 tracking-tight">Tipo de anotación</Label>
                 <Controller
-                  name="law1620Category"
+                  name="type"
                   control={control}
                   render={({ field }) => (
                     <RadioGroup 
                       onValueChange={field.onChange} 
                       defaultValue={field.value}
-                      className="flex flex-col gap-3"
+                      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
                     >
-                      <div className="flex items-start space-x-3">
-                        <RadioGroupItem value="Tipo I" id="t1" className="mt-1" />
-                        <label htmlFor="t1" className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-tight">
-                          <span className="font-semibold block mb-1">Situación Tipo I</span>
-                          Conflictos manejables intraescolarmente. No generan daño al cuerpo o a la salud.
-                        </label>
-                      </div>
-                      <div className="flex items-start space-x-3">
-                        <RadioGroupItem value="Tipo II" id="t2" className="mt-1" />
-                        <label htmlFor="t2" className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-tight">
-                          <span className="font-semibold block mb-1">Situación Tipo II</span>
-                          Agresión escolar, acoso (bullying) o ciberacoso. Daño físico o psicológico que no requiere atención médica.
-                        </label>
-                      </div>
-                      <div className="flex items-start space-x-3">
-                        <RadioGroupItem value="Tipo III" id="t3" className="mt-1" />
-                        <label htmlFor="t3" className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-tight">
-                          <span className="font-semibold block text-red-600 dark:text-red-400 mb-1">Situación Tipo III (Delito)</span>
-                          Presuntos delitos contra la libertad, integridad o formación sexual. Requiere denuncia a ICBF / Policía de Infancia.
-                        </label>
-                      </div>
+                      {(Object.keys(tipoIcons) as ObservationType[]).map((type) => (
+                        <div key={type} className="relative">
+                          <RadioGroupItem value={type} id={`type-${type}`} className="peer sr-only" />
+                          <label 
+                            htmlFor={`type-${type}`}
+                            className="flex items-center gap-3 p-3 border-2 border-slate-100 dark:border-slate-800 rounded-xl cursor-pointer transition-all peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 dark:peer-data-[state=checked]:bg-primary/10 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                          >
+                            {tipoIcons[type]}
+                            <span className="text-ms font-semibold text-slate-700 dark:text-slate-200   tracking-tight">{type}</span>
+                          </label>
+                        </div>
+                      ))}
                     </RadioGroup>
                   )}
                 />
               </div>
-            )}
-          </CardContent>
-        </Card>
 
-        {/* Sección 3: Descripción de Hechos */}
-        <Card className="border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-[#1e1e2d]">
-          <CardContent className="p-6 space-y-6">
-            <h2 className="text-base font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2 tracking-wide">
-              <ClipboardList className="w-4 h-4 text-primary" /> 
-              Relato de los hechos y compromisos
-            </h2>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Descripción Objetiva (¿Qué, cómo, cuándo y dónde pasó?)
-              </label>
-              <Textarea 
-                {...register('description')}
-                placeholder="Redacte de forma neutral lo sucedido..."
-                className="min-h-[120px] bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 resize-none dark:text-white"
-              />
-              {errors.description && <p className="text-xs text-red-500 font-medium">{errors.description.message}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Acción Adelantada (¿Qué medidas se tomaron inicialmente?) *
-              </label>
-              <Textarea 
-                {...register('actionTaken')}
-                placeholder="Ej: Diálogo con el estudiante, citación inmediata..."
-                className="min-h-[80px] bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 resize-none dark:text-white"
-              />
-              {errors.actionTaken && <p className="text-xs text-red-500 font-medium">{errors.actionTaken.message}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Sugerencias y Recomendaciones (Para el estudiante o docente) *
-              </label>
-              <Textarea 
-                {...register('suggestions')}
-                placeholder="Indique acciones preventivas o de mejora..."
-                className="min-h-[80px] bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 resize-none dark:text-white"
-              />
-              {errors.suggestions && <p className="text-xs text-red-500 font-medium">{errors.suggestions.message}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Compromiso y Seguimiento *
-              </label>
-              <select 
-                {...register('commitmentStatus')}
-                className="pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all font-medium"
-              >
-                <option value="Iniciada">Iniciada</option>
-                <option value="En evaluación">En evaluación</option>
-                <option value="Finalizada">Finalizada</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                Acuerdos y Compromisos (Acciones de mejora) *
-              </label>
-              <Textarea 
-                {...register('agreements')}
-                placeholder="Ej: El estudiante se compromete a... (separar por saltos de línea)"
-                className="min-h-[100px] bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 resize-none dark:text-white"
-              />
-              <p className="text-xs text-slate-500">Puede agregar múltiples compromisos separándolos con la tecla Enter.</p>
-              {errors.agreements && <p className="text-xs text-red-500 font-medium">{errors.agreements.message}</p>}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Sección 4: Firma Digital */}
-        <Card className="border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-[#1e1e2d]">
-          <CardContent className="p-6 space-y-4">
-            <h2 className="text-base font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2 tracking-wide">
-              <Fingerprint className="w-4 h-4 text-primary" /> 
-              Firma Digital de Conformidad
-            </h2>
-            
-            <p className="text-xs text-slate-500 mb-2 leading-relaxed">
-              El estudiante puede firmar en este recuadro si está presente durante el registro. Esta firma es opcional en este momento pero garantiza el inicio del debido proceso.
-            </p>
-
-            <div className="relative bg-slate-50 dark:bg-slate-900/50 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
-              <SignatureCanvas
-                ref={(ref) => setSignatureRef(ref)}
-                penColor='currentColor'
-                canvasProps={{
-                  className: "signature-canvas w-full h-40 cursor-crosshair dark:text-white",
-                  style: { width: '100%', height: '160px' }
-                }}
-                onBegin={() => setHasSignature(true)}
-              />
-              {!hasSignature && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
-                  <span className="text-sm font-medium text-slate-400">Firmar aquí (Mouse o Táctil)</span>
+              {selectedType === 'Disciplinaria' && (
+                <div className="space-y-4 p-5 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 rounded-xl">
+                  <Label className="text-ms font-semibold text-amber-900 dark:text-amber-400 flex items-center gap-2  ">
+                    <ShieldAlert className="w-4 h-4" />
+                    Ruta de Atención Integral (Ley 1620)
+                  </Label>
+                  <Controller
+                    name="law1620Category"
+                    control={control}
+                    render={({ field }) => (
+                      <RadioGroup 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                        className="flex flex-col gap-4"
+                      >
+                        <div className="flex items-start space-x-3">
+                          <RadioGroupItem value="Tipo I" id="t1" className="mt-1" />
+                          <label htmlFor="t1" className="text-ms font-medium text-slate-700 dark:text-slate-300 leading-normal">
+                            <span className="font-semibold block mb-1   tracking-tight">Situación Tipo I</span>
+                            Conflictos manejables intraescolarmente. No generan daño al cuerpo o a la salud.
+                          </label>
+                        </div>
+                        <div className="flex items-start space-x-3">
+                          <RadioGroupItem value="Tipo II" id="t2" className="mt-1" />
+                          <label htmlFor="t2" className="text-ms font-medium text-slate-700 dark:text-slate-300 leading-normal">
+                            <span className="font-semibold block mb-1   tracking-tight">Situación Tipo II</span>
+                            Agresión escolar, acoso (bullying) o ciberacoso. Daño físico o psicológico que no requiere atención médica.
+                          </label>
+                        </div>
+                        <div className="flex items-start space-x-3">
+                          <RadioGroupItem value="Tipo III" id="t3" className="mt-1" />
+                          <label htmlFor="t3" className="text-ms font-medium text-slate-700 dark:text-slate-300 leading-normal">
+                            <span className="font-semibold block text-red-600 dark:text-red-400 mb-1   tracking-tight">Situación Tipo III (Delito)</span>
+                            Presuntos delitos contra la libertad, integridad o formación sexual. Requiere denuncia a ICBF / Policía de Infancia.
+                          </label>
+                        </div>
+                      </RadioGroup>
+                    )}
+                  />
                 </div>
               )}
             </div>
 
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/20 px-3 py-1.5 rounded-lg">
-                <ShieldAlert className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span className="text-[10px] sm:text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                  Firma encriptada y protegida con sello de tiempo
-                </span>
-              </div>
+            {/* Sección 3: Descripción y Compromisos */}
+            <div className="pt-8 border-t border-slate-200 dark:border-slate-800 space-y-6">
+              <h2 className="text-ms text-slate-900 dark:text-white flex items-center gap-2   tracking-wider">
+                <ClipboardList className="w-4 h-4 text-primary" /> 
+                3. Relato de los hechos y compromisos
+              </h2>
               
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  signatureRef?.clear();
-                  setHasSignature(false);
-                }}
-                className="text-slate-500 hover:text-red-500 text-xs gap-1.5"
-                disabled={!hasSignature}
-              >
-                <RotateCcw className="w-3 h-3" />
-                Limpiar
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-ms text-slate-500 dark:text-slate-400   tracking-tight">
+                    Descripción Objetiva (¿Qué, cómo, cuándo y dónde pasó?)
+                  </Label>
+                  <Textarea 
+                    {...register('description')}
+                    placeholder="Redacte de forma neutral lo sucedido..."
+                    className="min-h-[120px] bg-white dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 resize-none dark:text-white text-ms"
+                  />
+                  {errors.description && <p className="text-[10px] text-red-500 font-semibold mt-1  ">{errors.description.message}</p>}
+                </div>
 
-        {/* Notificación a padres */}
-        <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 p-4 rounded-xl flex items-start gap-3">
-          <ShieldAlert className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-          <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-            <strong>Debido proceso:</strong> Al guardar esta anotación, el estudiante será notificado en su plataforma para presentar sus <span className="font-semibold">descargos</span>. Posteriormente, se enviará una notificación a la cuenta del acudiente.
+                <div className="space-y-2">
+                  <Label className="text-ms text-slate-500 dark:text-slate-400   tracking-tight">
+                    Acción Adelantada (¿Qué medidas se tomaron inicialmente?) *
+                  </Label>
+                  <Textarea 
+                    {...register('actionTaken')}
+                    placeholder="Ej: Diálogo con el estudiante, citación inmediata..."
+                    className="min-h-[120px] bg-white dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 resize-none dark:text-white text-ms"
+                  />
+                  {errors.actionTaken && <p className="text-[10px] text-red-500 font-semibold mt-1  ">{errors.actionTaken.message}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-ms text-slate-500 dark:text-slate-400   tracking-tight">
+                    Sugerencias de mejora / Recomendaciones *
+                  </Label>
+                  <Textarea 
+                    {...register('suggestions')}
+                    placeholder="Indique acciones preventivas o de mejora..."
+                    className="min-h-[100px] bg-white dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 resize-none dark:text-white text-ms"
+                  />
+                  {errors.suggestions && <p className="text-[10px] text-red-500 font-semibold mt-1  ">{errors.suggestions.message}</p>}
+                </div>
+
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label className="text-ms text-slate-500 dark:text-slate-400   tracking-tight">
+                      Estado de los compromisos *
+                    </Label>
+                    <EduSelect {...register('commitmentStatus')}>
+                      <option value="Iniciada">Iniciada</option>
+                      <option value="En evaluación">En evaluación</option>
+                      <option value="Finalizada">Finalizada</option>
+                    </EduSelect>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-ms text-slate-500 dark:text-slate-400   tracking-tight">
+                      Acuerdos y Compromisos Alcanzados *
+                    </Label>
+                    <Textarea 
+                      {...register('agreements')}
+                      placeholder="Ej: El estudiante se compromete a... (separar por saltos de línea)"
+                      className="min-h-[80px] bg-white dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 resize-none dark:text-white text-ms"
+                    />
+                    <p className="text-[10px] text-slate-400 font-medium">Use 'Enter' para múltiples compromisos.</p>
+                    {errors.agreements && <p className="text-[10px] text-red-500 mt-1 ">{errors.agreements.message}</p>}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Sección 4: Firma Digital */}
+            <div className="pt-8 border-t border-slate-200 dark:border-slate-800 space-y-2">
+              <h2 className="text-ms font-semibold text-slate-900 dark:text-white flex items-center gap-2   tracking-wider">
+                <Fingerprint className="w-4 h-4 text-primary" /> 
+                4. Firma Digital de Conformidad
+              </h2>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 items-start">
+                <div className="space-y-4">
+                  <p className="text-ms text-slate-500 leading-relaxed font-medium py-2">
+                    El estudiante puede firmar en este recuadro si está presente durante el registro. Esta firma es opcional en este momento pero garantiza el inicio del debido proceso convivencial.
+                  </p>
+                </div>
+
+                <div className="relative bg-white dark:bg-slate-900/50 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-inner">
+                  <SignatureCanvas
+                    ref={(ref) => setSignatureRef(ref)}
+                    penColor='currentColor'
+                    canvasProps={{
+                      className: "signature-canvas w-full h-40 cursor-crosshair dark:text-white",
+                      style: { width: '100%', height: '160px' }
+                    }}
+                    onBegin={() => setHasSignature(true)}
+                  />
+                  {!hasSignature && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+                      <span className="text-ms text-slate-400   tracking-widest">ESPACIO PARA FIRMA</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-3">
+                    <div className="w-full flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/20 px-3 py-2 rounded-lg flex-1">
+                      <ShieldAlert className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <span className="text-[11px] text-emerald-700 dark:text-emerald-300 tracking-tight">
+                        Firma encriptada y protegida
+                      </span>
+                    </div>
+                    
+                    <EduButton
+                      type="button"
+                      variant="secondary"
+                      onClick={() => {
+                        signatureRef?.clear();
+                        setHasSignature(false);
+                      }}
+                      disabled={!hasSignature}
+                      icon={RotateCcw}
+                      fullWidth={true}
+                    >
+                      Reiniciar firma
+                    </EduButton>
+                  </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col sm:flex-row gap-3 pt-6 border-t border-slate-200 dark:border-slate-800">
-          <Button 
+        {/* Notificación y Acción Final (Diseño Padre de Listas) */}
+        <div className="space-y-4">
+          <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20 p-4 rounded-xl flex items-start gap-3 shadow-sm">
+            <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
+            <div className="text-ms text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+              <span className="text-amber-700 dark:text-amber-500  ">Debido proceso:</span> Al guardar esta anotación, el estudiante será notificado para presentar sus descargos según el Manual de Convivencia.
+            </div>
+          </div>
+
+          <EduButton 
             type="submit" 
             disabled={isSubmitting}
-            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
+            icon={Save}
+            fullWidth
           >
-            {isSubmitting ? (
-              <div className="flex items-center justify-center gap-2">
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Guardando...
-              </div>
-            ) : (
-              <>
-                <Save className="w-4 h-4" />
-                Registrar
-              </>
-            )}
-          </Button>
-
-          <Button 
-            type="button" 
-            variant="ghost" 
-            onClick={() => {
-              setExiting(true);
-              setTimeout(() => navigate(-1), 220);
-            }}
-            className="w-full h-14 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 gap-2 rounded-lg font-semibold tracking-widest text-xs"
-            disabled={isSubmitting}
-          >
-            <X className="w-4 h-4" />
-            Cancelar
-          </Button>
+            {isSubmitting ? 'Registrando...' : 'Registrar caso en el observador'}
+          </EduButton>
         </div>
       </form>
     </FormView>

@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { FormView } from '@/components/ui/FormView'
-import { Button } from '@/components/ui/button'
+import { EduButton } from '@/components/ui/EduButton'
+import { EduSelect } from '@/components/ui/EduSelect'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Save, X, Loader2, CalendarDays } from 'lucide-react'
+import { Save, Loader2, CalendarDays } from 'lucide-react'
 import { db } from '@/lib/firebase/config'
 import { collection, getDocs, addDoc, query, where, serverTimestamp } from 'firebase/firestore'
 import { useUserProfile } from '@/lib/context/UserProfileContext'
@@ -24,7 +25,6 @@ export default function NewScheduleFormPage() {
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [exiting, setExiting] = useState(false)
 
   const [assignments, setAssignments] = useState<any[]>([])
   
@@ -108,10 +108,6 @@ export default function NewScheduleFormPage() {
     loadAssignments()
   }, [teacherId, navigate])
 
-  const handleCancel = () => {
-    setExiting(true)
-    setTimeout(() => navigate(-1), 220)
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -151,8 +147,7 @@ export default function NewScheduleFormPage() {
       })
 
       toast.success('Hora de clase registrada')
-      setExiting(true)
-      setTimeout(() => navigate('/dashboard/schedules', { replace: true }), 220)
+      navigate('/dashboard/schedules', { replace: true })
     } catch (error: any) {
       toast.error('Error al guardar', { description: error.message })
     } finally {
@@ -160,12 +155,10 @@ export default function NewScheduleFormPage() {
     }
   }
 
-  const selectClass = "pl-9 h-10 w-full sm:w-auto min-w-[150px] bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all"
-
   if (loading) return <LoadingSpinner message="Cargando asignaciones..." />;
 
   return (
-    <FormView exiting={exiting}>
+    <FormView>
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -173,41 +166,41 @@ export default function NewScheduleFormPage() {
            </div>
            <div>
              <h2 className="text-lg font-semibold text-slate-800 dark:text-white">Nueva hora de clase</h2>
-             <p className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-6">Programa el horario del docente en la semana.</p>
+             <p className="w-full h-6 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-1 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-1">Programa el horario del docente en la semana.</p>
            </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label className="text-[10px] font-black tracking-widest text-slate-400">Día de la semana</Label>
-            <select value={day} onChange={e => setDay(e.target.value)} required className={selectClass}>
+            <EduSelect value={day} onChange={e => setDay(e.target.value)} required>
               {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'].map(d => (
                 <option key={d} value={d}>{d}</option>
               ))}
-            </select>
+            </EduSelect>
           </div>
           <div className="space-y-2">
             <Label className="text-[10px] font-black tracking-widest text-slate-400">Hora</Label>
-            <select value={timeItem} onChange={e => setTimeItem(e.target.value)} required className={selectClass}>
+            <EduSelect value={timeItem} onChange={e => setTimeItem(e.target.value)} required>
               {Array.from({length: 10}, (_, i) => i + 1).map(h => (
                 <option key={h} value={h}>Hora {h}</option>
               ))}
-            </select>
+            </EduSelect>
           </div>
         </div>
 
         <div className="space-y-2">
           <Label className="text-[10px] font-black tracking-widest text-slate-400">Peso (Duración)</Label>
-           <select value={weight} onChange={e => setWeight(Number(e.target.value))} required className={selectClass}>
+           <EduSelect value={weight} onChange={e => setWeight(Number(e.target.value))} required>
               <option value={1}>1 Hora</option>
               <option value={2}>Bloque (2 horas consecutivas)</option>
-           </select>
+           </EduSelect>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label className="text-[10px] font-black tracking-widest text-slate-400">Grupo *</Label>
-            <select value={selectedGroupId} onChange={e => setSelectedGroupId(e.target.value)} required className={selectClass} disabled={availableGroups.length === 0}>
+            <EduSelect value={selectedGroupId} onChange={e => setSelectedGroupId(e.target.value)} required disabled={availableGroups.length === 0}>
               {availableGroups.length === 0 ? (
                  <option value="">Sin grupos asignados</option>
               ) : (
@@ -215,11 +208,11 @@ export default function NewScheduleFormPage() {
                     <option key={g.id} value={g.id}>{g.name}</option>
                   ))
               )}
-            </select>
+            </EduSelect>
           </div>
           <div className="space-y-2">
             <Label className="text-[10px] font-black tracking-widest text-slate-400">Asignatura *</Label>
-            <select value={selectedSubjectId} onChange={e => setSelectedSubjectId(e.target.value)} required className={selectClass} disabled={availableSubjects.length === 0}>
+            <EduSelect value={selectedSubjectId} onChange={e => setSelectedSubjectId(e.target.value)} required disabled={availableSubjects.length === 0}>
               {availableSubjects.length === 0 ? (
                  <option value="">Sin asignaturas</option>
               ) : (
@@ -227,7 +220,7 @@ export default function NewScheduleFormPage() {
                     <option key={s.subject_id} value={s.subject_id}>{s.subject_name}</option>
                   ))
               )}
-            </select>
+            </EduSelect>
           </div>
         </div>
         
@@ -237,16 +230,10 @@ export default function NewScheduleFormPage() {
           </p>
         )}
 
-        <div className="flex flex-col-reverse sm:flex-row gap-3 pt-6">
-          <Button type="button" variant="ghost" onClick={handleCancel} disabled={saving}
-            className="w-full h-14 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 gap-2 rounded-lg font-semibold tracking-widest text-xs">
-            <X className="w-4 h-4 mr-1.5" /> Cancelar
-          </Button>
-          <Button type="submit" disabled={saving || assignments.length === 0}
-            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+        <div className="pt-6">
+          <EduButton type="submit" disabled={saving || assignments.length === 0} fullWidth icon={saving ? Loader2 : Save}>
             {saving ? 'Guardando...' : 'Guardar y Programar'}
-          </Button>
+          </EduButton>
         </div>
       </form>
     </FormView>

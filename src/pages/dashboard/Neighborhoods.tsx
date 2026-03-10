@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { db } from '@/lib/firebase/config'
 import { collection, getDocs, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore'
 import { Button } from '@/components/ui/button'
+import { EduButton } from '@/components/ui/EduButton'
 import { toast } from 'sonner'
 import { Trash2, Plus, MapPin, Pencil } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
@@ -49,15 +50,16 @@ export default function NeighborhoodsPage() {
     <div className="bg-background-light dark:bg-background-dark min-h-screen pb-24 text-slate-800 dark:text-slate-100">
       <div className="p-4 lg:p-8 space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-1">
-          <p className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-6">
+          <p className="w-full h-6 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-1 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-1">
             Administra los sectores para la caracterización socioeconómica.
           </p>
-          <Button
+          <EduButton
             onClick={() => navigate('/dashboard/neighborhoods/new')}
-            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
+            icon={Plus}
+            className="h-12 px-6 w-full sm:w-auto"
           >
-            <Plus className="w-5 h-5 stroke-[3]" />Nuevo Barrio
-          </Button>
+            Nuevo Barrio
+          </EduButton>
         </div>
       </div>
       <main className="p-4 space-y-3">

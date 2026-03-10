@@ -4,7 +4,7 @@ import { useStudents, useGrades } from '@/lib/hooks/useFirebaseData';
 import { useObservationsList } from '@/lib/hooks/useObservador';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Filter, User, Plus, X } from 'lucide-react';
+import { Filter, User, Plus } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export default function StudentObservationsPage() {
@@ -84,7 +84,7 @@ export default function StudentObservationsPage() {
           <div className="relative">
             <Filter className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <select 
-              className="pl-9 h-10 w-full sm:w-auto min-w-[160px] bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all font-medium"
+              className="pl-9 h-12 w-full sm:w-auto min-w-[160px] bg-slate-100 dark:bg-[#1e2536] border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all font-medium"
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
             >
@@ -153,19 +153,12 @@ export default function StudentObservationsPage() {
             onClick={() => navigate('/dashboard/observations/new', { 
               state: { prefill_student_id: student.id, prefill_grade_id: student.grade_id } 
             })}
-            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
+            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-12 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0 flex items-center justify-center"
           >
             <Plus className="w-4 h-4" />
             Crear Nueva Anotación
           </button>
 
-          <button
-            onClick={() => navigate(-1)}
-            className="w-full h-14 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 gap-2 rounded-lg font-semibold tracking-widest text-xs"
-          >
-            <X className="w-4 h-4" />
-            Cancelar
-          </button>
         </div>
       </div>
     </div>

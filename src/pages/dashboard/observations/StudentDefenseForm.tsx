@@ -11,7 +11,7 @@ import {
   PenTool
 } from 'lucide-react';
 import { FormView } from '@/components/ui/FormView';
-import { Button } from '@/components/ui/button';
+import { EduButton } from '@/components/ui/EduButton';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -30,7 +30,6 @@ export default function StudentDefenseForm() {
 
   const [defenseText, setDefenseText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [exiting, setExiting] = useState(false);
   
   // Referencia al SignatureCanvas
   const sigCanvas = useRef<SignatureCanvas>(null);
@@ -48,7 +47,7 @@ export default function StudentDefenseForm() {
       <div className="p-8 text-center max-w-2xl mx-auto space-y-4">
         <AlertCircle className="w-12 h-12 text-slate-400 mx-auto" />
         <h2 className="text-xl font-semibold">Anotación no encontrada</h2>
-        <Button onClick={() => navigate(-1)} variant="outline">Volver</Button>
+        <EduButton onClick={() => navigate(-1)} variant="secondary">Volver</EduButton>
       </div>
     );
   }
@@ -78,8 +77,7 @@ export default function StudentDefenseForm() {
       });
 
       toast.success("Descargos y firma guardados correctamente");
-      setExiting(true);
-      setTimeout(() => navigate('/dashboard/observations'), 220);
+      navigate('/dashboard/observations');
     } catch (error) {
       console.error(error);
       toast.error("Error al guardar los descargos");
@@ -99,7 +97,7 @@ export default function StudentDefenseForm() {
   })();
 
   return (
-    <FormView exiting={exiting} className="max-w-4xl mx-auto space-y-6">
+    <FormView className="max-w-4xl mx-auto space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Lado Izquierdo: Resumen del Hecho */}
         <div className="space-y-6">
@@ -224,9 +222,9 @@ export default function StudentDefenseForm() {
                       <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                         Firma Digital
                       </label>
-                      <Button variant="ghost" size="sm" onClick={handleClearSignature} className="h-6 text-xs text-slate-500">
+                      <EduButton variant="secondary" onClick={handleClearSignature} className="h-6 text-xs text-slate-500">
                         Limpiar firma
-                      </Button>
+                      </EduButton>
                     </div>
                     
                     <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900/50 overflow-hidden touch-none relative h-[200px]">
@@ -243,13 +241,13 @@ export default function StudentDefenseForm() {
                     </div>
                   </div>
 
-                  <Button 
+                  <EduButton 
                     onClick={handleSubmit} 
                     disabled={isSubmitting}
-                    className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
+                    distributed
                   >
                     {isSubmitting ? 'Guardando firmando...' : 'Guardar y firmar'}
-                  </Button>
+                  </EduButton>
                 </div>
               )}
             </CardContent>

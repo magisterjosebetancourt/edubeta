@@ -13,7 +13,9 @@ import {
 import { useUserProfile } from "@/lib/context/UserProfileContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useStudents, useGrades } from '@/lib/hooks/useFirebaseData';
-import { Button } from "@/components/ui/button";
+import { EduButton } from "@/components/ui/EduButton";
+import { EduInput } from "@/components/ui/EduInput";
+import { EduSelect } from "@/components/ui/EduSelect";
 import { toast } from "sonner";
 import { Search, Edit, MapPin, UserPlus, FileUp, FileSignature, Trash2 } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -170,47 +172,48 @@ export default function StudentsPage() {
         {/* Barra de búsqueda y acciones */}
         <div className="grid grid-cols-1 gap-3 md:flex md:items-center">
           <div className="relative flex-grow">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-            <input
+            <EduInput
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-primary/50"
               placeholder="Buscar por apellido o nombre..."
-              type="text"
+              icon={Search}
+              className="h-12"
             />
           </div>
 
           <div className="w-full grid grid-cols-2 md:flex gap-2">
-            <select
+            <EduSelect
               value={filterGradeId}
               onChange={(e) => setFilterGradeId(e.target.value)}
-              className="pl-9 h-10 w-full sm:w-auto min-w-[150px] bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none"
+              className="w-full sm:w-auto h-12"
             >
               <option value="">Grados</option>
               {grades.map((g) => (
                 <option key={g.id} value={g.id}>{g.name}</option>
               ))}
-            </select>
+            </EduSelect>
 
             {(userRole === "admin" || userRole === "coordinator") && (
               <div className="grid grid-cols-2 md:flex gap-2 col-span-2 md:col-span-1">
-                <Button
+              <div className="grid grid-cols-2 md:flex gap-2 col-span-2 md:col-span-1">
+                <EduButton
                   onClick={() => navigate("/dashboard/students/import")}
                   variant="outline"
-                  className="w-full h-14 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 gap-2 rounded-lg font-semibold tracking-widest text-xs"
+                  icon={FileUp}
+                  className="h-12 w-full flex-1 md:w-auto"
                 >
-                  <FileUp className="w-4 h-4" />
                   <span className="hidden lg:inline">Carga Masiva</span>
                   <span className="lg:hidden text-xs">CSV</span>
-                </Button>
-                <Button
+                </EduButton>
+                <EduButton
                   onClick={() => navigate("/dashboard/students/new")}
-                  className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
+                  icon={UserPlus}
+                  className="h-12 w-full flex-1 md:w-auto"
                 >
-                  <UserPlus className="w-4 h-4" />
                   <span className="hidden lg:inline">Matricular</span>
                   <span className="lg:hidden text-xs">Añadir</span>
-                </Button>
+                </EduButton>
+              </div>
               </div>
             )}
           </div>

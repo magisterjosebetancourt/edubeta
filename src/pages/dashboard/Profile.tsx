@@ -3,8 +3,8 @@ import { auth } from '@/lib/firebase/config'
 import { getUserProfile, saveUserProfile } from '@/lib/firebase/firestore'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { EduButton } from '@/components/ui/EduButton'
+import { EduInput } from '@/components/ui/EduInput'
 import { User, Mail, Shield, Save, Loader2, Image as ImageIcon } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { toast } from 'sonner'
@@ -135,11 +135,14 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="flex-1 w-full space-y-2">
-                    <Label htmlFor="avatar-upload" className="cursor-pointer">
-                        <div className="flex items-center justify-center w-full md:w-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all text-xs font-semibold tracking-widest text-slate-700 dark:text-slate-200 shadow-sm gap-2 h-auto py-3.5 px-6">
-                             <ImageIcon className="w-4 h-4" />
+                        <EduButton 
+                             onClick={() => document.getElementById('avatar-upload')?.click()}
+                             variant="secondary"
+                             icon={ImageIcon}
+                             className="h-12 px-6 w-full md:w-auto text-[11px] font-semibold tracking-widest"
+                        >
                              Cambiar Foto
-                        </div>
+                        </EduButton>
                         <input
                             id="avatar-upload"
                             type="file"
@@ -148,10 +151,6 @@ export default function ProfilePage() {
                             disabled={uploading}
                             className="hidden" 
                         />
-                    </Label>
-                    <p className="text-xs text-slate-500">
-                        Sube una imagen JPG o PNG. Máximo 1MB.
-                    </p>
                     
                 </div>
             </CardContent>
@@ -166,12 +165,11 @@ export default function ProfilePage() {
                 <div className="space-y-2">
                     <Label htmlFor="email">Correo Electrónico</Label>
                     <div className="relative">
-                        <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input 
+                        <EduInput 
                             id="email" 
                             value={email} 
                             disabled 
-                            className="pl-9 w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] text-sm outline-none focus:ring-2 focus:ring-primary/50 opacity-70" 
+                            icon={Mail}
                         />
                     </div>
                     <p className="text-xs text-slate-400">El correo no se puede cambiar directamente.</p>
@@ -180,8 +178,7 @@ export default function ProfilePage() {
                 <div className="space-y-2">
                     <Label htmlFor="role">Rol de Usuario</Label>
                     <div className="relative">
-                        <Shield className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input 
+                        <EduInput 
                             id="role" 
                             value={
                                 profile?.role === 'admin' ? 'Administrador' : 
@@ -189,7 +186,7 @@ export default function ProfilePage() {
                                 'Docente'
                             } 
                             disabled 
-                            className="pl-9 w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] text-sm outline-none focus:ring-2 focus:ring-primary/50 opacity-70 capitalize" 
+                            icon={Shield}
                         />
                     </div>
                 </div>
@@ -205,13 +202,12 @@ export default function ProfilePage() {
                 <div className="space-y-2">
                     <Label htmlFor="fullName">Nombre Completo</Label>
                     <div className="relative">
-                        <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input 
+                        <EduInput 
                             id="fullName" 
                             value={fullName}
                             onChange={(e) => setFullName(e.target.value)}
-                            className="pl-9 w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] text-sm outline-none focus:ring-2 focus:ring-primary/50"
                             placeholder="Ej. GÓMEZ, Roberto"
+                            icon={User}
                         />
                     </div>
                 </div>
@@ -222,14 +218,14 @@ export default function ProfilePage() {
       {/* Floating Save Button */}
       <div className="fixed bottom-20 lg:bottom-8 left-0 right-0 z-50 px-6">
         <div className="max-w-2xl mx-auto">
-          <Button 
+          <EduButton 
             onClick={handleSave} 
             disabled={saving}
-            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
+            icon={saving ? Loader2 : Save}
+            distributed
           >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Guardar Cambios
-          </Button>
+            {saving ? 'Guardando...' : 'Guardar Cambios'}
+          </EduButton>
         </div>
       </div>
     </div>

@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useNavigate, useParams } from 'react-router-dom'
 import { FormView } from '@/components/ui/FormView'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { EduButton } from '@/components/ui/EduButton'
+import { EduInput } from '@/components/ui/EduInput'
+import { EduSelect } from '@/components/ui/EduSelect'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Save, X, Loader2 } from 'lucide-react'
+import { Save, Loader2 } from 'lucide-react'
 import { auth, db } from '@/lib/firebase/config'
 import { collection, getDocs, addDoc, updateDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore'
 import { format } from 'date-fns'
@@ -23,7 +24,6 @@ export default function InfractionFormPage() {
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [exiting, setExiting] = useState(false)
   const [currentUserName, setCurrentUserName] = useState('Docente')
 
   // Controlled values for edit pre-fill
@@ -64,10 +64,6 @@ export default function InfractionFormPage() {
     load().catch(e => { toast.error('Error al cargar', { description: e.message }); setLoading(false) })
   }, [id, isEdit])
 
-  const handleCancel = () => {
-    setExiting(true)
-    setTimeout(() => navigate(-1), 220)
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -95,8 +91,8 @@ export default function InfractionFormPage() {
         })
         toast.success('Falta registrada correctamente')
       }
-      setExiting(true)
-      setTimeout(() => navigate('/dashboard/infractions', { replace: true }), 220)
+      toast.success('Falta registrada correctamente')
+      navigate('/dashboard/infractions', { replace: true })
     } catch (error: any) {
       toast.error('Error al guardar', { description: error.message })
     } finally {
@@ -104,41 +100,40 @@ export default function InfractionFormPage() {
     }
   }
 
-  const selectClass = "pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all font-medium"
 
   if (loading) return <LoadingSpinner message="Cargando datos de la falta..." />;
 
   return (
-    <FormView exiting={exiting}>
+    <FormView>
       <form onSubmit={handleSubmit} className="space-y-5">
-        <p className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-6">
+        <p className="w-full h-6 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-1 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-1">
           {isEdit ? 'Modifica los datos del registro de falta.' : 'Documenta una falta disciplinaria de un estudiante.'}
         </p>
 
         <div className="space-y-2">
           <Label className="text-[10px] font-black tracking-widest text-slate-400">Estudiante *</Label>
-          <select value={studentId} onChange={e => setStudentId(e.target.value)} required className={selectClass}>
+          <EduSelect value={studentId} onChange={e => setStudentId(e.target.value)} required>
             <option value="">Seleccionar estudiante...</option>
             {students.map(s => <option key={s.id} value={s.id}>{s.last_name}, {s.first_name}</option>)}
-          </select>
+          </EduSelect>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label className="text-[10px] font-black tracking-widest text-slate-400">Tipo de falta</Label>
-            <select value={type} onChange={e => setType(e.target.value as InfractionType)} required className={selectClass}>
+            <EduSelect value={type} onChange={e => setType(e.target.value as InfractionType)} required>
               <option value="leve">Tipo I</option>
               <option value="grave">Tipo II</option>
               <option value="gravisima">Tipo III</option>
-            </select>
+            </EduSelect>
           </div>
           <div className="space-y-2">
             <Label className="text-[10px] font-black tracking-widest text-slate-400">Estado</Label>
-            <select value={status} onChange={e => setStatus(e.target.value as InfractionStatus)} required className={selectClass}>
+            <EduSelect value={status} onChange={e => setStatus(e.target.value as InfractionStatus)} required>
               <option value="abierto">Abierto</option>
               <option value="seguimiento">En seguimiento</option>
               <option value="cerrado">Cerrado</option>
-            </select>
+            </EduSelect>
           </div>
         </div>
 
@@ -155,22 +150,20 @@ export default function InfractionFormPage() {
 
         <div className="space-y-2">
           <Label className="text-[10px] font-black tracking-widest text-slate-400">Fecha del hecho</Label>
-          <Input
+          <EduInput
             type="date" value={date} onChange={e => setDate(e.target.value)} required
-            className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50"
           />
         </div>
 
-        <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
-          <Button type="button" variant="ghost" onClick={handleCancel} disabled={saving}
-            className="w-full h-14 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 gap-2 rounded-lg font-semibold tracking-widest text-xs">
-            <X className="w-4 h-4" />Cancelar
-          </Button>
-          <Button type="submit" disabled={saving}
-            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+        <div className="pt-2">
+          <EduButton
+            type="submit"
+            disabled={saving}
+            icon={saving ? Loader2 : Save}
+            fullWidth
+          >
             {saving ? 'Guardando...' : (isEdit ? 'Guardar cambios' : 'Registrar falta')}
-          </Button>
+          </EduButton>
         </div>
       </form>
     </FormView>

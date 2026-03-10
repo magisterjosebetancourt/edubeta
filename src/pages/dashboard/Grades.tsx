@@ -8,7 +8,7 @@ import {
 } from 'firebase/firestore'
 import { useGrades, useStudents, useTeachers } from '@/lib/hooks/useFirebaseData'
 import { useQueryClient } from '@tanstack/react-query'
-import { Button } from '@/components/ui/button'
+import { EduButton } from '@/components/ui/EduButton'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { Trash2, Plus, School, Layers, Pencil, Users, UserCheck, UserMinus } from 'lucide-react'
@@ -115,17 +115,17 @@ export default function GradesPage() {
       <div className="p-4 lg:px-8 lg:pt-8 lg:pb-2s">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-1">
           <div>
-            <p className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-6">
+            <p className="w-full h-6 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-1 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-1">
               Gestión de grados y grupos según la Ley 115.
             </p>
           </div>
-          <Button
+          <EduButton
             onClick={() => navigate('/dashboard/grades/new')}
-            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
+            icon={Plus}
+            className="h-12 px-6 w-full sm:w-auto"
           >
-            <Plus className="w-5 h-5 stroke-[3]" />
             Nuevo Grupo
-          </Button>
+          </EduButton>
         </div>
       </div>
 

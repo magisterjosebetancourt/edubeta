@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useNavigate, useParams } from 'react-router-dom'
 import { FormView } from '@/components/ui/FormView'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { EduButton } from '@/components/ui/EduButton'
+import { EduInput } from '@/components/ui/EduInput'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
-import { Save, X, Loader2 } from 'lucide-react'
+import { Save, Loader2 } from 'lucide-react'
 import { db } from '@/lib/firebase/config'
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 
@@ -20,7 +20,6 @@ export default function EditTeacherFormPage() {
   const [isCoordinator, setIsCoordinator] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [exiting, setExiting] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -40,10 +39,6 @@ export default function EditTeacherFormPage() {
       .finally(() => setLoading(false))
   }, [id, navigate])
 
-  const handleCancel = () => {
-    setExiting(true)
-    setTimeout(() => navigate(-1), 220)
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -59,8 +54,7 @@ export default function EditTeacherFormPage() {
         updated_at: serverTimestamp(),
       })
       toast.success('Docente actualizado')
-      setExiting(true)
-      setTimeout(() => navigate('/dashboard/teachers', { replace: true }), 220)
+      navigate('/dashboard/teachers', { replace: true })
     } catch (error: any) {
       toast.error('Error al actualizar', { description: error.message })
     } finally {
@@ -71,27 +65,26 @@ export default function EditTeacherFormPage() {
   if (loading) return <LoadingSpinner message="Cargando datos del docente..." />;
 
   return (
-    <FormView exiting={exiting}>
+    <FormView>
       <form onSubmit={handleSubmit} className="space-y-5">
 
         <div className="space-y-2">
           <Label htmlFor="fullName">Nombre completo</Label>
-          <Input
+          <EduInput
             id="fullName"
             value={fullName}
             onChange={e => setFullName(e.target.value)}
             placeholder="Ej. Gómez, Roberto"
             required
-            className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50"
           />
         </div>
 
         <div className="space-y-2">
           <Label>Correo institucional (no modificable)</Label>
-          <Input
+          <EduInput
             value={email}
             disabled
-            className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-4 text-sm outline-none opacity-70"
+            className="bg-slate-50 dark:bg-slate-800/50 opacity-70"
           />
         </div>
 
@@ -112,25 +105,15 @@ export default function EditTeacherFormPage() {
           />
         </div>
 
-        <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={handleCancel}
-            disabled={saving}
-            className="w-full sm:w-auto rounded-lg h-auto py-3.5 px-6 font-semibold text-sm text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
-          >
-            <X className="w-4 h-4 mr-1.5" />
-            Cancelar
-          </Button>
-          <Button
+        <div className="pt-2">
+          <EduButton
             type="submit"
             disabled={saving}
-            className="w-full sm:flex-1 bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 gap-2 shadow-xl shadow-primary/20 font-semibold text-sm transition-all active:scale-[0.98]"
+            icon={saving ? Loader2 : Save}
+            fullWidth
           >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {saving ? 'Guardando...' : 'Guardar cambios'}
-          </Button>
+          </EduButton>
         </div>
       </form>
     </FormView>

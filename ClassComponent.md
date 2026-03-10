@@ -26,21 +26,18 @@ className="bg-background-light dark:bg-background-dark min-h-screen text-slate-8
 ### Texto Descriptivo de Vista
 **PÃ¡rrafo informativo al inicio de cada pÃ¡gina:**
 ```text
-className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-6"
+className="w-full h-6 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-1 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-1"
 ```
 
-## Componentes de Formulario y NavegaciÃ³n
+## Componentes de Formulario y Navegación
 
-### Campos de Entrada (Inputs)
-**Campo de bÃºsqueda:**
-```text
-className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50"
-```
-
-### Selectores (Selects)
-**Selector estÃ¡ndar:**
-```text
-className="pl-9 h-10 w-full sm:w-auto min-w-[150px] bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none"
+### Campos de Entrada y Selectores (`EduInput`, `EduSelect`)
+**Regla OBLIGATORIA**: Usar los componentes reutilizables en lugar de clases manuales.
+```tsx
+<EduInput label="Nombre" placeholder="Ingrese..." />
+<EduSelect label="Grado">
+  <option>...</option>
+</EduSelect>
 ```
 
 ## Botones y Acciones
@@ -48,23 +45,17 @@ className="pl-9 h-10 w-full sm:w-auto min-w-[150px] bg-slate-50 dark:bg-slate-90
 className="flex flex-col gap-2 w-full"
 ```
 
-### Botones de Acción Formulario (Orden Vertical)
-**Regla OBLIGATORIA**: Los botones se apilan verticalmente **SIN contenedor de fondo ni sombras en el wrapper**.
-1. **Primario (Arriba)**: Acción principal (Guardar/Crear).
-2. **Secundario (Abajo)**: Cancelar.
+### Botones de Acción (`EduButton`)
+**Regla OBLIGATORIA**: Usar `<EduButton />` para todas las acciones.
+- **Primario**: Por defecto (azul), sombra `shadow-primary/20`.
+- **Ancho**: Usar la prop `fullWidth` para botones que deben ocupar toda la base del formulario (estándar en móvil).
+
+```tsx
+<EduButton icon={Save} fullWidth>Guardar cambios</EduButton>
 ```
 
-### Botones de AcciÃ³n Horizontal
-
-**BotÃ³n Secundario / Acción Peligro:**
-```text
-className="w-full h-14 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 gap-2 rounded-lg font-semibold tracking-widest text-xs"
-```
-
-**BotÃ³n Primario / AcciÃ³n Principal:**
-```text
-className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
-```
+### Eliminación del Botón Cancelar
+**Regla OBLIGATORIA**: No incluir botones de "Cancelar" dentro del flujo del formulario. Se espera que el usuario use el botón de retroceso del navegador, el menú o los breadcrumbs.
 
 ### Avatares (Jerarquía Imagen > Iniciales)
 **Regla OBLIGATORIA**: Los avatares deben mostrar la foto de perfil si existe.
@@ -95,35 +86,34 @@ className="font-semibold text-slate-900 dark:text-white leading-tight uppercase 
 className="text-xs font-medium text-slate-500 dark:text-slate-400"
 ```
 
-### Botones de AcciÃ³n Internos (Tarjetas)
-**Regla OBLIGATORIA**: EstarÃ¡n posicionados por debajo de una lÃ­nea suave separadora. El contenedor permite scroll horizontal en mÃ³vil si es necesario.
+### Botones de Acción Internos (Tarjetas)
+**Regla OBLIGATORIA**: Estarán posicionados por debajo de una línea suave separadora. El contenedor permite scroll horizontal en móvil si es necesario.
 ```text
 className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-nowrap items-center justify-end w-full gap-1 overflow-x-auto"
 ```
 
-**BotÃ³n Observador / AnotaciÃ³n (Destacado):**
+**Botón Observador / Anotación (Destacado):**
 ```text
 className="flex flex-1 min-w-0 items-center justify-center gap-2 px-2 py-2 rounded-[5px] text-xs font-semibold text-primary bg-primary/5 hover:bg-primary/10 transition-all border border-primary/20"
 ```
-**BotÃ³n Editar / AcciÃ³n (EstÃ¡ndar):**
+**Botón Editar / Acción (Estándar):**
 ```text
 className="flex flex-1 min-w-0 items-center justify-center gap-2 px-2 py-2 rounded-[5px] text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 transition-all"
 ```
 
-### Regla Universal de Botones de AcciÃ³n
-**Todos los botones de acciÃ³n deben cumplir:**
+### Regla Universal de Botones de Acción
+**Todos los botones de acción deben cumplir:**
 1. **Borde suave**: Definido por `border` con colores sutiles (`slate-200`, `primary/20`, etc.).
 2. **Icono**: Siempre presente a la izquierda del texto.
-3. **Texto**: Siempre presente (en Sentence Case o Uppercase segÃºn el contexto).
+3. **Texto**: Siempre presente (en Sentence Case o Uppercase según el contexto).
 
-## Componentes de Feedback
+## Componentes de Layout
 
-### Indicador de Carga (Spinner)
-**Regla OBLIGATORIA**: Todos los estados de carga asÃ­ncrona deben usar el componente `<LoadingSpinner />` con un mensaje descriptivo.
-```tsx
-<LoadingSpinner message="Cargando datos..." />
-```
+### FormView
+**Regla OBLIGATORIA**: Todas las páginas de formulario deben estar envueltas en `<FormView />`.
+- **No usar `exiting`**: La lógica de transiciones ha sido eliminada para mejorar el rendimiento.
+- **Navegación**: Utilizar `navigate()` directamente sin retardos artificiales.
 
 ---
 > [!NOTE]
-> Estas clases estÃ¡n diseÃ±adas para funcionar con el sistema de diseÃ±o de EduBeta y deben actualizarse aquÃ­ antes de aplicarse masivamente si hay cambios en el branding.
+> Estas clases están diseñadas para funcionar con el sistema de diseño de EduBeta y deben actualizarse aquí antes de aplicarse masivamente si hay cambios en el branding.

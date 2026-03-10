@@ -4,7 +4,9 @@ import { useGrades, usePeriods } from '@/lib/hooks/useFirebaseData';
 import { getISAHistory } from '@/lib/firebase/isa';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { EduButton } from '@/components/ui/EduButton';
+import { EduSelect } from '@/components/ui/EduSelect';
+import { EduInput } from '@/components/ui/EduInput';
 import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Search, FileText, ChevronRight, Calendar, Users, Filter, X } from 'lucide-react';
@@ -87,13 +89,13 @@ export default function IsaHistoryPage() {
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header - Sin título por solicitud */}
         <div className="flex flex-col md:flex-row md:items-center justify-end gap-4">
-          <Button 
+          <EduButton 
             onClick={() => navigate('/dashboard/isa')} 
-            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0"
+            icon={FileText}
+            distributed
           >
-            <FileText className="w-4 h-4" />
             Nuevo Pre-informe
-          </Button>
+          </EduButton>
         </div>
 
         {/* Filters Card */}
@@ -104,9 +106,9 @@ export default function IsaHistoryPage() {
                 <Filter className="w-4 h-4 text-primary" />
               </div>
               {(selectedPeriodId !== 'all' || selectedGradeId !== 'all') && (
-                <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 text-[11px] font-semibold text-amber-600 hover:text-amber-700 hover:bg-amber-50 gap-1 uppercase">
+                <EduButton variant="secondary" onClick={clearFilters} className="h-8 text-[11px] font-semibold text-amber-600 hover:text-amber-700 hover:bg-amber-50 gap-1 uppercase">
                   <X className="w-3 h-3" /> Limpiar
-                </Button>
+                </EduButton>
               )}
             </div>
           </CardHeader>
@@ -115,16 +117,15 @@ export default function IsaHistoryPage() {
               <div className="space-y-1.5">
                 <Label className="text-[11px] font-semibold uppercase text-slate-400 tracking-wider">Periodo Académico</Label>
                 <div className="relative">
-                  <select 
+                  <EduSelect 
                     value={selectedPeriodId}
                     onChange={(e) => setSelectedPeriodId(e.target.value)}
-                    className="pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all font-medium"
                   >
                     <option value="all">Todos los periodos</option>
                     {periods.map((p: any) => (
                       <option key={p.id} value={p.id}>Periodo {p.period_number}</option>
                     ))}
-                  </select>
+                  </EduSelect>
                   <Calendar className="absolute right-3 top-3 w-4 h-4 text-slate-400 pointer-events-none" />
                 </div>
               </div>
@@ -132,16 +133,15 @@ export default function IsaHistoryPage() {
               <div className="space-y-1.5">
                 <Label className="text-[11px] font-semibold uppercase text-slate-400 tracking-wider">Grupo / Grado</Label>
                 <div className="relative">
-                  <select 
+                  <EduSelect 
                     value={selectedGradeId}
                     onChange={(e) => setSelectedGradeId(e.target.value)}
-                    className="pl-9 h-10 w-full bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg pr-8 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all font-medium"
                   >
                     <option value="all">Todos los grupos</option>
                     {grades.map((g: any) => (
                       <option key={g.id} value={g.id}>{g.name}</option>
                     ))}
-                  </select>
+                  </EduSelect>
                   <Users className="absolute right-3 top-3 w-4 h-4 text-slate-400 pointer-events-none" />
                 </div>
               </div>
@@ -149,14 +149,13 @@ export default function IsaHistoryPage() {
               <div className="space-y-1.5 lg:col-span-2">
                 <Label className="text-[11px] font-semibold uppercase text-slate-400 tracking-wider">Buscar por Docente o Asignatura</Label>
                 <div className="relative">
-                  <input 
+                  <EduInput 
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Ej: Matemáticas, Juan Perez..."
-                    className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 font-medium"
+                    icon={Search}
                   />
-                  <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
                 </div>
               </div>
 
@@ -231,12 +230,12 @@ export default function IsaHistoryPage() {
                          <div className="text-xs font-semibold text-primary">{session.student_count}</div>
                          <div className="text-[10px] text-slate-400 font-medium">Estudiantes reportados</div>
                        </div>
-                       <Button 
-                         variant="ghost" 
+                       <EduButton 
+                         variant="secondary" 
                          className="h-7 px-2 text-[10px] font-semibold uppercase gap-1 text-primary hover:bg-primary/5 rounded-[5px]"
                        >
                          Ver detalle <ChevronRight className="w-3 h-3" />
-                       </Button>
+                       </EduButton>
                     </div>
                   </div>
                 </div>
@@ -267,14 +266,13 @@ export default function IsaHistoryPage() {
                     <p className="text-xs text-slate-500 font-medium">{selectedSession.subject_name} • {selectedSession.teacher_name}</p>
                   </div>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <EduButton 
+                  variant="secondary" 
                   onClick={() => setSelectedSession(null)}
-                  className="rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 w-10 h-10 p-0"
                 >
                   <X className="w-5 h-5" />
-                </Button>
+                </EduButton>
               </div>
             </CardHeader>
             <CardContent className="overflow-y-auto flex-1 p-4">
@@ -312,13 +310,14 @@ export default function IsaHistoryPage() {
               </div>
             </CardContent>
             <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 flex justify-end">
-               <Button 
+               <EduButton 
                  onClick={() => setSelectedSession(null)} 
-                 className="w-full h-14 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 gap-2 rounded-lg font-semibold tracking-widest text-xs"
+                 variant="secondary"
+                 icon={X}
+                 distributed
                >
-                 <X className="w-4 h-4" />
                  Cerrar Detalle
-               </Button>
+               </EduButton>
             </div>
           </Card>
         </div>

@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FormView } from '@/components/ui/FormView'
-import { Button } from '@/components/ui/button'
+import { EduButton } from '@/components/ui/EduButton'
+import { EduInput } from '@/components/ui/EduInput'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Save, X } from 'lucide-react'
+import { Save } from 'lucide-react'
 import { db } from '@/lib/firebase/config'
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
 
@@ -12,12 +13,7 @@ export default function NewNeighborhoodFormPage() {
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [saving, setSaving] = useState(false)
-  const [exiting, setExiting] = useState(false)
 
-  const handleCancel = () => {
-    setExiting(true)
-    setTimeout(() => navigate(-1), 220)
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,8 +26,7 @@ export default function NewNeighborhoodFormPage() {
         created_at: serverTimestamp(),
       })
       toast.success('Barrio creado correctamente')
-      setExiting(true)
-      setTimeout(() => navigate('/dashboard/neighborhoods', { replace: true }), 220)
+      navigate('/dashboard/neighborhoods', { replace: true })
     } catch (error: any) {
       toast.error('Error al crear', { description: error.message })
     } finally {
@@ -40,31 +35,30 @@ export default function NewNeighborhoodFormPage() {
   }
 
   return (
-    <FormView exiting={exiting}>
+    <FormView>
       <form onSubmit={handleSubmit} className="space-y-5">
-        <p className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-6">
+        <p className="w-full h-6 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-1 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-1">
           Agrega un nuevo sector para la caracterización socioeconómica de los estudiantes.
         </p>
         <div className="space-y-2">
           <Label htmlFor="name">Nombre del barrio</Label>
-          <input
+          <EduInput
             id="name"
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="Ej: Centro, El Prado..."
             required
-            className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50"
           />
         </div>
-        <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
-          <Button type="button" variant="ghost" onClick={handleCancel} disabled={saving}
-            className="w-full h-14 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 gap-2 rounded-lg font-semibold tracking-widest text-xs">
-            <X className="w-4 h-4 mr-1.5" />Cancelar
-          </Button>
-          <Button type="submit" disabled={saving}
-            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0">
-            <Save className="w-4 h-4" />{saving ? 'Guardando...' : 'Crear barrio'}
-          </Button>
+        <div className="pt-2">
+          <EduButton
+            type="submit"
+            disabled={saving}
+            icon={Save}
+            fullWidth
+          >
+            {saving ? 'Guardando...' : 'Crear barrio'}
+          </EduButton>
         </div>
       </form>
     </FormView>

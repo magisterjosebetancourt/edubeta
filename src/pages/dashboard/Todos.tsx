@@ -5,7 +5,8 @@ import {
   collection, getDocs, updateDoc, deleteDoc, doc, query, where
 } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { EduButton } from "@/components/ui/EduButton";
+import { EduInput } from "@/components/ui/EduInput";
 import { toast } from "sonner";
 import {
   Plus, Trash2, CheckCircle2, Clock, AlertCircle, Calendar, Edit2
@@ -116,21 +117,22 @@ export default function TodosPage() {
 
       <div className="p-4 lg:p-8 space-y-6">
         <div className="flex items-center justify-between px-1">
-          <p className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-6">
+          <p className="w-full h-6 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-1 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-1">
             {filteredTodos.length} {filteredTodos.length === 1 ? 'tarea' : 'tareas'}
           </p>
-          <Button onClick={() => navigate('/dashboard/todos/new')}
-            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0">
-            <Plus className="w-4 h-4 stroke-[3]" />Nueva tarea
-          </Button>
+          <EduButton onClick={() => navigate('/dashboard/todos/new')}
+            icon={Plus}
+            className="h-12 px-6 w-full sm:w-auto"
+          >
+            Nueva tarea
+          </EduButton>
         </div>
 
-        <div className="relative px-1">
-          <Plus className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 rotate-45" />
-          <Input type="text" placeholder="Buscar por título o descripción..."
-            value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-            className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-primary/50" />
-        </div>
+        <EduInput type="text" placeholder="Buscar por título o descripción..."
+          value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+          icon={Plus}
+          className="h-12"
+        />
 
         <div className="grid grid-cols-1 gap-4">
           {filteredTodos.length === 0 ? (

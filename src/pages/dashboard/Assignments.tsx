@@ -4,7 +4,7 @@ import { db } from "@/lib/firebase/config";
 import {
   collection, getDocs, updateDoc, deleteDoc, doc, query, where, orderBy
 } from "firebase/firestore";
-import { Button } from "@/components/ui/button";
+import { EduButton } from "@/components/ui/EduButton";
 import { toast } from "sonner";
 import { Trash2, Plus, BookOpen, GraduationCap, ChevronDown, Edit } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -93,13 +93,15 @@ export default function AssignmentsPage() {
     <div className="bg-background-light dark:bg-background-dark min-h-screen pb-24">
       <div className="p-4 lg:p-8 space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-1">
-          <p className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-6">
+          <p className="w-full h-6 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-1 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-1">
             Define la carga académica vinculando docentes con grados y materias.
           </p>
-          <Button onClick={() => navigate('/dashboard/assignments/new')}
-            className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0">
-            <Plus className="w-5 h-5 stroke-[3]" />Nueva Asignación
-          </Button>
+          <EduButton onClick={() => navigate('/dashboard/assignments/new')}
+            icon={Plus}
+            className="h-12 px-6 w-full sm:w-auto"
+          >
+            Nueva Asignación
+          </EduButton>
         </div>
       </div>
       <main className="p-4 space-y-3">

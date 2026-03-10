@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useNavigate, useParams } from 'react-router-dom'
 import { FormView } from '@/components/ui/FormView'
-import { Button } from '@/components/ui/button'
+import { EduButton } from '@/components/ui/EduButton'
+import { EduInput } from '@/components/ui/EduInput'
 import { toast } from 'sonner'
-import { CheckCircle, XCircle, Clock, Search, FileText, X } from 'lucide-react'
+import { CheckCircle, XCircle, Clock, Search, FileText } from 'lucide-react'
 import { db } from '@/lib/firebase/config'
 import {
   collection, getDocs, getDoc, setDoc, updateDoc, doc, query, where, writeBatch, serverTimestamp
@@ -35,7 +36,6 @@ export default function TakingAttendancePage() {
   const [subjectName, setSubjectName] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
-  const [exiting, setExiting] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -131,15 +131,10 @@ export default function TakingAttendancePage() {
   }
 
   const handleFinish = () => {
-    setExiting(true)
     toast.success('Clase completada y guardada')
-    setTimeout(() => navigate('/dashboard/attendance', { replace: true }), 220)
+    navigate('/dashboard/attendance', { replace: true })
   }
 
-  const handleCancel = () => {
-    setExiting(true)
-    setTimeout(() => navigate(-1), 220)
-  }
 
   const dateLabel = date ? format(new Date(date + 'T00:00:00'), "dd 'de' MMM yyyy", { locale: es }) : ''
 
@@ -150,7 +145,7 @@ export default function TakingAttendancePage() {
   if (loading) return <LoadingSpinner message="Cargando lista de clase..." />;
 
   return (
-    <FormView exiting={exiting}>
+    <FormView>
       {/* Session info banner */}
       <div className="-mx-4 sm:-mx-6 -mt-4 sm:-mt-6 px-4 sm:px-6 py-4 bg-primary/5 dark:bg-primary/10 border-b border-primary/10 mb-5">
         <h3 className="font-semibold text-slate-900 dark:text-white">{subjectName}</h3>
@@ -175,10 +170,12 @@ export default function TakingAttendancePage() {
       {/* Search + Mark remaining */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input type="text" placeholder="Buscar estudiante..." value={searchTerm}
+          <EduInput
+            placeholder="Buscar estudiante..."
+            value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full h-12 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-primary/50" />
+            icon={Search}
+          />
         </div>
         <button onClick={handleMarkRemaining}
           className="flex items-center justify-center gap-2 px-5 py-3 bg-white dark:bg-slate-800 border-2 border-primary text-primary rounded-lg hover:bg-primary hover:text-white transition-all text-xs font-semibold">
@@ -243,15 +240,15 @@ export default function TakingAttendancePage() {
       </div>
 
       {/* Action buttons */}
-      <div className="flex flex-col-reverse sm:flex-row gap-3">
-        <Button type="button" variant="ghost" onClick={handleCancel}
-          className="w-full h-14 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-100 dark:border-red-900/30 gap-2 rounded-lg font-semibold tracking-widest text-xs">
-          <X className="w-4 h-4 mr-1.5" />Cancelar
-        </Button>
-        <Button type="button" onClick={handleFinish}
-          className="bg-primary hover:bg-primary/90 text-white rounded-lg h-auto py-3.5 px-6 gap-2 shadow-xl shadow-primary/20 font-semibold text-xs tracking-widest w-full sm:w-auto transition-all active:scale-95 shrink-0">
-          <CheckCircle className="w-4 h-4" />Finalizar asistencia
-        </Button>
+      <div className="pt-2">
+        <EduButton
+          type="button"
+          onClick={handleFinish}
+          icon={CheckCircle}
+          fullWidth
+        >
+          Finalizar asistencia
+        </EduButton>
       </div>
     </FormView>
   )

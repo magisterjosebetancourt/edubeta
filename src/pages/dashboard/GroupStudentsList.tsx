@@ -5,6 +5,8 @@ import { useStudents, useGrades } from "@/lib/hooks/useFirebaseData";
 import { useUserProfile } from "@/lib/context/UserProfileContext";
 import { toast } from "sonner";
 import { Search, Users, MapPin } from "lucide-react";
+import { EduInput } from "@/components/ui/EduInput";
+import { EduSelect } from "@/components/ui/EduSelect";
 
 type Student = {
   id: string;
@@ -89,32 +91,29 @@ export default function GroupStudentsListPage() {
           </p>
         </div>
 
-        {/* Search + Filter */}
         <div className="flex gap-2">
-          <div className="relative flex-grow">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-            <input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-100 dark:bg-[#1e2536] border dark:border-slate-800 rounded-lg py-2.5 pl-9 pr-4 text-sm text-slate-900 dark:text-white placeholder-slate-500 focus:ring-2 focus:ring-primary/50 transition-all outline-none"
-              placeholder={
-                filterBy === "apellido"
-                  ? "Buscar por apellido..."
-                  : "Buscar por nombre..."
-              }
-              type="text"
-            />
-          </div>
-          <select
+          <EduInput
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder={
+              filterBy === "apellido"
+                ? "Buscar por apellido..."
+                : "Buscar por nombre..."
+            }
+            type="text"
+            icon={Search}
+            className="flex-grow"
+          />
+          <EduSelect
             value={filterBy}
             onChange={(e) =>
               setFilterBy(e.target.value as "apellido" | "nombre")
             }
-            className="bg-slate-100 dark:bg-[#1e2536] border dark:border-slate-800 rounded-lg py-2.5 px-3 text-sm text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-primary/50 outline-none appearance-none"
+            className="w-32"
           >
             <option value="apellido">Apellido</option>
             <option value="nombre">Nombre</option>
-          </select>
+          </EduSelect>
         </div>
       </div>
 
