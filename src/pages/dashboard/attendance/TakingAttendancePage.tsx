@@ -5,7 +5,7 @@ import { FormView } from '@/components/ui/FormView'
 import { EduButton } from '@/components/ui/EduButton'
 import { EduInput } from '@/components/ui/EduInput'
 import { toast } from 'sonner'
-import { CheckCircle, XCircle, Clock, Search, FileText } from 'lucide-react'
+import { CheckCircle, XCircle, Clock, Search, FileText, UserCheck } from 'lucide-react'
 import { db } from '@/lib/firebase/config'
 import {
   collection, getDocs, getDoc, setDoc, updateDoc, doc, query, where, writeBatch, serverTimestamp
@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils'
 type StudentWithStatus = {
   id: string; first_name: string; last_name: string; grade_id: string;
   status?: 'present' | 'late' | 'absent' | 'excused'
-  justified?: boolean; avatarColor?: string
+  justified?: boolean; permission?: boolean; avatarColor?: string
 }
 
 const AVATAR_COLORS = [
@@ -74,6 +74,7 @@ export default function TakingAttendancePage() {
           return {
             id: docSnap.id, first_name: s.first_name, last_name: s.last_name,
             grade_id: s.grade_id, status: record?.status, justified: record?.justified || false,
+            permission: record?.permission || false,
             avatarColor: AVATAR_COLORS[idx % AVATAR_COLORS.length]
           }
         }))
@@ -102,11 +103,22 @@ export default function TakingAttendancePage() {
   const handleJustify = async (studentId: string, justified: boolean) => {
     try {
       const docId = `${studentId}_${date}_${subjectId}`
-      await updateDoc(doc(db, 'attendance_records', docId), { justified })
-      setStudents(prev => prev.map(s => s.id === studentId ? { ...s, justified } : s))
+      await updateDoc(doc(db, 'attendance_records', docId), { justified, permission: false })
+      setStudents(prev => prev.map(s => s.id === studentId ? { ...s, justified, permission: false } : s))
       toast.success(justified ? 'Justificación registrada' : 'Justificación removida')
     } catch (e: any) {
       toast.error('Error al justificar', { description: e.message })
+    }
+  }
+
+  const handlePermission = async (studentId: string, permission: boolean) => {
+    try {
+      const docId = `${studentId}_${date}_${subjectId}`
+      await updateDoc(doc(db, 'attendance_records', docId), { permission, justified: false })
+      setStudents(prev => prev.map(s => s.id === studentId ? { ...s, permission, justified: false } : s))
+      toast.success(permission ? 'Permiso docente registrado' : 'Permiso removido')
+    } catch (e: any) {
+      toast.error('Error al registrar permiso', { description: e.message })
     }
   }
 
@@ -223,15 +235,22 @@ export default function TakingAttendancePage() {
               ))}
             </div>
             {student.status === 'absent' && (
-              <div className="mt-3 pt-3 border-t border-slate-50 dark:border-slate-700/50 flex items-center justify-between">
-                <p className="text-[10px] text-slate-400 font-semibold tracking-wider">¿Tiene justificación válida?</p>
+              <div className="mt-3 pt-3 border-t border-slate-50 dark:border-slate-700/50 flex items-center justify-end gap-2">
+                <button onClick={() => handlePermission(student.id, !student.permission)}
+                  className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-semibold transition-all border",
+                    student.permission
+                      ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400"
+                      : "bg-white dark:bg-slate-900 text-slate-400 border-slate-200")}>
+                  <UserCheck className="w-3 h-3" />
+                  {student.permission ? 'Con Permiso' : 'Permiso'}
+                </button>
                 <button onClick={() => handleJustify(student.id, !student.justified)}
                   className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-semibold transition-all border",
                     student.justified
                       ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400"
                       : "bg-white dark:bg-slate-900 text-slate-400 border-slate-200")}>
                   <FileText className="w-3 h-3" />
-                  {student.justified ? 'Justificada' : 'Marcar Justificación'}
+                  {student.justified ? 'Justificada' : 'Justificar'}
                 </button>
               </div>
             )}

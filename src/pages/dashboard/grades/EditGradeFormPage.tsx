@@ -80,6 +80,11 @@ export default function EditGradeFormPage() {
 
   return (
     <FormView>
+      {/* Descripción de la página */}
+      <p className="text-sm text-slate-500 dark:text-slate-400">
+        Edita un grupo para la gestión de los estudiantes.
+      </p>
+      {/* Formulario */}
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-2">
           <Label htmlFor="grade-name">Nombre del grupo</Label>
@@ -109,7 +114,9 @@ export default function EditGradeFormPage() {
               ))}
             </EduSelect>
           </div>
-          <p className="w-full h-6 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-1 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-1">Solo aparecen docentes y coordinadores registrados.</p>
+          <p className="w-full h-4 text-red-500 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-1 text-xs outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-1">
+            Solo docentes y coordinadores registrados.
+          </p>
         </div>
 
         {/* Acciones */}

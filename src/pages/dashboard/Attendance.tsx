@@ -11,13 +11,16 @@ import { cn } from '@/lib/utils'
 import { EduButton } from '@/components/ui/EduButton'
 import { EduInput } from '@/components/ui/EduInput'
 import {
-  Clock, CheckCircle, FileText, CalendarDays, BookOpen, Plus,
+  Clock, CheckCircle, FileText, CalendarDays, Plus,
   ArrowRight, User, History, TrendingUp, Users, XCircle, Pencil
 } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import html2canvas from 'html2canvas'
+import { AttendanceShareCard } from '@/components/dashboard/AttendanceShareCard'
+import { MessageSquare } from 'lucide-react'
 
 // Types
 type UserRole = 'admin' | 'teacher' | 'coordinator' | null
@@ -42,18 +45,17 @@ export default function AttendancePage() {
   const appRole = profile?.role as UserRole
   const currentUserId = firebaseUser?.uid ?? null
 
+  const [sharingSession, setSharingSession] = useState<AttendanceSession | null>(null)
+  const [sharingAbsents, setSharingAbsents] = useState<any[]>([])
+  const [sharingBranding, setSharingBranding] = useState<any>(null)
+  const [isCapturing, setIsCapturing] = useState(false)
+
 
   useEffect(() => {
-    if (appRole && currentUserId) {
+    if (appRole && currentUserId && !loadingGrades && !loadingSubjects && !loadingStudents) {
       fetchSessions(appRole, currentUserId)
     }
-  }, [appRole, currentUserId])
-
-  useEffect(() => {
-    if (appRole && currentUserId) {
-      fetchSessions(appRole, currentUserId)
-    }
-  }, [filterDate])
+  }, [appRole, currentUserId, filterDate, loadingGrades, loadingSubjects, loadingStudents])
 
   const fetchSessions = async (role: UserRole, userId: string) => {
     try {
@@ -111,26 +113,6 @@ export default function AttendancePage() {
     }
   }
 
-  const loading = loadingInitial || loadingGrades || loadingSubjects || loadingStudents;
-
-
-  const markSessionAsProcessed = async (session: AttendanceSession) => {
-    try {
-      const q = query(collection(db, "attendance_records"), where("date", "==", session.date), where("subject_id", "==", session.subject_id), where("teacher_id", "==", session.teacher_id))
-      const recordsSnap = await getDocs(q)
-      const batch = writeBatch(db)
-      recordsSnap.docs.forEach(docSnap => {
-        const data = docSnap.data()
-        if (data.status === 'absent' || data.status === 'late') batch.update(docSnap.ref, { processed: true })
-      })
-      await batch.commit()
-      toast.success('Sesión marcada como procesada')
-      fetchSessions(appRole, currentUserId as string)
-    } catch (err: any) {
-      toast.error('Error', { description: err.message })
-    }
-  }
-
   const generateReport = async (session: AttendanceSession) => {
     if (!session.date || !session.subject_id || !session.grade_id) { toast.error('Datos de sesión incompletos'); return }
     toast.loading('Generando informe...')
@@ -175,10 +157,149 @@ export default function AttendancePage() {
     }
   }
 
+  const loading = loadingInitial || loadingGrades || loadingSubjects || loadingStudents || !appRole;
+
+
+  const markSessionAsProcessed = async (session: AttendanceSession) => {
+    try {
+      const q = query(collection(db, "attendance_records"), where("date", "==", session.date), where("subject_id", "==", session.subject_id), where("teacher_id", "==", session.teacher_id))
+      const recordsSnap = await getDocs(q)
+      const batch = writeBatch(db)
+      recordsSnap.docs.forEach(docSnap => {
+        const data = docSnap.data()
+        if (data.status === 'absent' || data.status === 'late') batch.update(docSnap.ref, { processed: true })
+      })
+      await batch.commit()
+      toast.success('Sesión marcada como procesada')
+      fetchSessions(appRole, currentUserId as string)
+    } catch (err: any) {
+      toast.error('Error', { description: err.message })
+    }
+  }
+
+  const shareWhatsAppReport = async (session: AttendanceSession) => {
+    try {
+      toast.loading('Preparando captura para WhatsApp...')
+      setIsCapturing(true)
+      
+      // 1. Fetch records and institutional settings
+      const [instSnap, recordsSnap] = await Promise.all([
+        getDoc(doc(db, "settings", "institutional")),
+        getDocs(query(
+          collection(db, "attendance_records"), 
+          where("date", "==", session.date), 
+          where("subject_id", "==", session.subject_id),
+          where("teacher_id", "==", session.teacher_id)
+        ))
+      ])
+      
+      const schoolSettings = instSnap.data()
+      const branding = { 
+        name: schoolSettings?.school_name || 'EDUBETA', 
+        logo: schoolSettings?.logo_url || '' 
+      }
+      
+      const studentMap = new Map(globalStudents.map(d => [d.id, d]))
+      const absents = recordsSnap.docs
+        .map(d => {
+          const data = d.data()
+          const s = studentMap.get(data.student_id) as any
+          if (!s || (data.status !== 'absent' && data.status !== 'late')) return null
+          return {
+            name: `${s.last_name}, ${s.first_name}`,
+            status: data.status,
+            justified: data.justified || false
+          }
+        })
+        .filter((i): i is NonNullable<typeof i> => i !== null)
+        .sort((a, b) => a.name.localeCompare(b.name))
+
+      setSharingSession(session)
+      setSharingAbsents(absents)
+      setSharingBranding(branding)
+
+      // Wait for re-render
+      setTimeout(async () => {
+        const element = document.getElementById('attendance-share-card')
+        if (!element) {
+          toast.dismiss()
+          toast.error('Error al generar la captura')
+          setIsCapturing(false)
+          return
+        }
+
+        const canvas = await html2canvas(element, {
+          backgroundColor: null,
+          scale: 2, // Better quality
+          logging: false,
+          useCORS: true
+        })
+
+        const imageData = canvas.toDataURL('image/png')
+        
+        // Prepare WhatsApp Message
+        const dateStr = format(new Date(session.date + 'T00:00:00'), 'dd/MM/yyyy')
+        const absentsText = absents.length > 0 
+          ? absents.map(a => `• ${a.name} (${a.status === 'absent' ? 'Ausente' : 'Tarde'}${a.justified ? ' - Justificada' : ''})`).join('\n')
+          : '✓ Sin inasistencias registradas.'
+        
+        const message = `*INFORME DE INASISTENCIAS*\n\n` +
+          `*Institución:* ${session.grade_name}\n` +
+          `*Materia:* ${session.subject_name}\n` +
+          `*Fecha:* ${dateStr}\n` +
+          `*Docente:* ${session.teacher_name}\n\n` +
+          `*Resumen:* ${session.present_count} Presentes, ${session.absent_count} Ausentes, ${session.late_count} Tardes\n\n` +
+          `*Detalle:*\n${absentsText}\n\n` +
+          `_Generado por EduBeta_`
+
+        // Check if Web Share API is available (mostly mobile)
+        if (navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+          const blob = await (await fetch(imageData)).blob()
+          const file = new File([blob], `reporte-${session.date}.png`, { type: 'image/png' })
+          
+          try {
+            await navigator.share({
+              title: 'Informe de Inasistencia',
+              text: message,
+              files: [file]
+            })
+            toast.dismiss()
+            toast.success('Informe listo para compartir')
+          } catch (err) {
+            // Fallback to simple WhatsApp link if sharing cancelled or failed
+            window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank')
+          }
+        } else {
+          // PC/Web Fallback: Download image and open WhatsApp
+          const link = document.createElement('a')
+          link.download = `Reporte_${session.subject_name}_${session.date}.png`
+          link.href = imageData
+          link.click()
+          
+          window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank')
+          toast.dismiss()
+          toast.success('Imagen descargada. Abre WhatsApp para enviarla.')
+        }
+        
+        setIsCapturing(false)
+        setSharingSession(null)
+      }, 500)
+
+    } catch (err: any) {
+      console.error(err)
+      toast.dismiss()
+      toast.error('Error al generar informe WhatsApp')
+      setIsCapturing(false)
+    }
+  }
+
   if (loading) return <LoadingSpinner message="Cargando asistencia..." />
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-background-dark pb-24 lg:pb-0">
+      <p className="px-5 pt-4 text-sm text-slate-500 dark:text-slate-400">
+        Aquí puedes gestionar las asistencias de los estudiantes.
+      </p>
       <div className="flex flex-col gap-4 p-5">
         <EduButton
           onClick={() => navigate('/dashboard/attendance/new')}
@@ -237,9 +358,6 @@ export default function AttendancePage() {
                 className="bg-white dark:bg-slate-800 p-5 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-all active:scale-[0.98] cursor-pointer group"
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
-                    <BookOpen className="w-6 h-6 text-primary" />
-                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="text-[10px] font-semibold text-primary tracking-wider">{s.grade_name}</span>
@@ -275,6 +393,10 @@ export default function AttendancePage() {
                         className="p-1.5 bg-slate-50 dark:bg-slate-900 rounded-lg text-slate-400 hover:text-primary transition-colors">
                         <FileText className="w-4 h-4" />
                       </button>
+                      <button onClick={e => { e.stopPropagation(); shareWhatsAppReport(s) }}
+                        className="p-1.5 bg-green-50 dark:bg-green-900/30 rounded-lg text-green-500 hover:text-green-600 transition-colors">
+                        <MessageSquare className="w-4 h-4" />
+                      </button>
                       {(appRole === 'admin' || appRole === 'coordinator') && s.absent_count + s.late_count > 0 && (
                         <button onClick={e => { e.stopPropagation(); if (!s.all_processed) markSessionAsProcessed(s) }}
                           className={cn("p-1.5 rounded-lg transition-all",
@@ -292,6 +414,16 @@ export default function AttendancePage() {
         )}
       </div>
 
+      {/* Hidden container for WhatsApp sharing capture */}
+      {isCapturing && sharingSession && (
+        <div style={{ position: 'absolute', left: '-9999px', top: '0' }}>
+          <AttendanceShareCard 
+            session={sharingSession} 
+            absentStudents={sharingAbsents}
+            schoolBranding={sharingBranding}
+          />
+        </div>
+      )}
     </div>
   )
 }

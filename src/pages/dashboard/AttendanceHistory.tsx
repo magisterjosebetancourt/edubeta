@@ -43,6 +43,7 @@ type DailyRecord = {
   date: string;
   status: 'present' | 'late' | 'absent' | 'excused';
   justified: boolean;
+  permission: boolean;
   processed: boolean;
   subject_id: string;
   teacher_id: string;
@@ -178,6 +179,7 @@ export default function AttendanceHistoryPage() {
           date: data.date,
           status: data.status,
           justified: data.justified,
+          permission: data.permission || false,
           processed: data.processed,
           subject_id: data.subject_id,
           teacher_id: data.teacher_id,
@@ -593,6 +595,13 @@ export default function AttendanceHistoryPage() {
                   <div className="absolute top-0 right-0">
                     <div className="bg-green-500 text-white text-[9px] font-semibold px-3 py-1 rounded-bl-xl tracking-widest shadow-sm">
                        Justificada
+                    </div>
+                  </div>
+                )}
+                {record.permission && (
+                  <div className="absolute top-0 right-0">
+                    <div className="bg-amber-500 text-white text-[9px] font-semibold px-3 py-1 rounded-bl-xl tracking-widest shadow-sm">
+                       Con Permiso
                     </div>
                   </div>
                 )}

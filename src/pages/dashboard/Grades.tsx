@@ -112,7 +112,7 @@ export default function GradesPage() {
 
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen pb-24">
-      <div className="p-4 lg:px-8 lg:pt-8 lg:pb-2s">
+      <div className="p-4 lg:px-8 lg:pt-8 lg:pb-2">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-1">
           <div>
             <p className="w-full h-6 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-1 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-1">

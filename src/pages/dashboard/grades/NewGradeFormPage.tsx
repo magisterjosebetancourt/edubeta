@@ -91,6 +91,11 @@ export default function NewGradeFormPage() {
 
   return (
     <FormView>
+      {/* Descripción de la página */}
+      <p className="text-sm text-slate-500 dark:text-slate-400">
+        Agrega un nuevo grupo para la gestión de los estudiantes.
+      </p>
+      {/* Formulario */}
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Nivel educativo */}
         <div className="space-y-2">
