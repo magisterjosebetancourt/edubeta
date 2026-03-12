@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { db } from '@/lib/firebase/config'
 import { 
   collection, 
@@ -11,30 +11,41 @@ import { useUserProfile } from '@/lib/context/UserProfileContext'
 import { useGrades, useSubjects } from '@/lib/hooks/useFirebaseData'
 import { cn } from '@/lib/utils'
 import { 
-  Users, 
-  PieChart, 
-  UserCheck,
-  ChevronDown,
+  Users,
+  PieChart,
+  Bell,
+  FlaskConical,
+  Target,
   BookOpen,
-  LayoutGrid,
-  CheckCircle2,
-  School
+  Calculator,
+  Compass,
+  GraduationCap
 } from 'lucide-react'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+
+// Icon mapping helper
+const getSubjectIcon = (name: string) => {
+  const n = name.toLowerCase()
+  if (n.includes('mat')) return { icon: Calculator, color: 'blue' }
+  if (n.includes('fis') || n.includes('cie') || n.includes('bio')) return { icon: FlaskConical, color: 'purple' }
+  if (n.includes('geo') || n.includes('art')) return { icon: Compass, color: 'green' }
+  if (n.includes('ing') || n.includes('esp')) return { icon: BookOpen, color: 'indigo' }
+  return { icon: GraduationCap, color: 'slate' }
+}
 
 export default function DashboardPage() {
   const { profile: userProfile, firebaseUser } = useUserProfile()
+  const navigate = useNavigate()
   const { data: gradesData = [] } = useGrades()
   const { data: subjectsData = [] } = useSubjects()
   
   const [stats, setStats] = useState({ students: 0, teachers: 0, attendance: 0, grades: 0, subjects: 0 })
   const [assignments, setAssignments] = useState<any[]>([])
   const [todos, setTodos] = useState<any[]>([])
+  const [notifications, setNotifications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  
-  // Accordion states
-  const [openGrades, setOpenGrades] = useState(true)
-  const [openSubjects, setOpenSubjects] = useState(false)
-  const [openTasks, setOpenTasks] = useState(true)
+
+  const appRole = userProfile?.role as 'admin' | 'teacher' | 'coordinator' | null
 
   useEffect(() => {
     if (!userProfile || !firebaseUser) return
@@ -45,13 +56,11 @@ export default function DashboardPage() {
         const role = userProfile!.role
         const today = new Date().toISOString().split('T')[0]
 
-        // 2. Fetch Stats based on Role
         let studentCount = 0;
         let teacherCount = 0;
         let presentCount = 0;
 
         if (role === 'admin' || role === 'coordinator') {
-          // Global Stats
           const [sSnap, tSnap, pSnap] = await Promise.all([
             getDocs(collection(db, "students")),
             getDocs(query(collection(db, "profiles"), where("role", "==", "teacher"))),
@@ -61,7 +70,6 @@ export default function DashboardPage() {
           teacherCount = tSnap.size;
           presentCount = pSnap.size;
         } else {
-          // Teacher Stats
           const assSnap = await getDocs(query(collection(db, "assignments"), where("teacher_id", "==", user.uid), where("state", "==", true)));
           const assignmentsData = assSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
@@ -70,17 +78,17 @@ export default function DashboardPage() {
           
           setStats(prev => ({ ...prev, grades: gradeIds.length, subjects: subjectIds.length }));
           
-          // No necesitamos cargar names desde db porque usamos la cache de react-query
           const todosSnap = await getDocs(query(collection(db, "todos"), where("user_id", "==", user.uid), where("completed", "==", false)));
           const todosData = todosSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
           setAssignments(assignmentsData);
           setTodos(todosData);
 
+          const notifSnap = await getDocs(query(collection(db, "notifications"), where("user_id", "==", user.uid), where("read", "==", false)));
+          const notifData = notifSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+          setNotifications(notifData);
 
           if (gradeIds.length > 0) {
-            // Firestore doesn't support easy "IN" for large arrays or complex joins
-            // We fetch and filter in memory if needed, but for small sets getDocs is fine
             const stdSnap = await getDocs(collection(db, "students"));
             const filteredStudents = stdSnap.docs.filter(d => gradeIds.includes(d.data().grade_id));
             studentCount = filteredStudents.length;
@@ -94,11 +102,13 @@ export default function DashboardPage() {
           }
         }
 
+        const attendanceRate = studentCount > 0 ? Math.round((presentCount / studentCount) * 100) : 0;
+
         setStats(prev => ({ 
           ...prev, 
           students: studentCount, 
           teachers: teacherCount, 
-          attendance: presentCount 
+          attendance: attendanceRate 
         }))
         
       } catch (error) {
@@ -111,7 +121,6 @@ export default function DashboardPage() {
     getInitialData()
   }, [userProfile, firebaseUser])
 
-  // Sync Global counts when Cache Loads (only for Admin)
   useEffect(() => {
     if (userProfile && (userProfile.role === 'admin' || userProfile.role === 'coordinator')) {
       setStats(prev => ({
@@ -122,264 +131,195 @@ export default function DashboardPage() {
     }
   }, [gradesData.length, subjectsData.length, userProfile]);
 
-  const gradeMap = useMemo(() => new Map(gradesData.map(d => [d.id, d.name])), [gradesData]);
+  if (loading) return <LoadingSpinner message="Cargando portal..." />;
 
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-  }
+  if (loading) return <LoadingSpinner message="Cargando portal..." />;
 
-  if (loading) {
-    return <div className="flex items-center justify-center h-full pt-20 text-slate-400 font-semibold uppercase tracking-widest text-xs">Cargando dashboard...</div>
-  }
 
   return (
-    <div className="flex flex-col h-full bg-background-light dark:bg-background-dark min-h-screen overflow-y-auto">
-      {/* Header local - Solo visible en desktop */}
-      <header className="hidden lg:flex h-16 bg-white dark:bg-[#1a182e] border-b border-slate-200 dark:border-slate-800 items-center justify-between px-4 lg:px-8 shrink-0 sticky top-0 z-30">
-        <div className="flex items-center gap-4">
-          <h2 className="text-lg font-semibold text-slate-800 dark:text-white uppercase tracking-tight">Panel Principal</h2>
+    <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-background-dark">
+      {/* Original Header Section */}
+      <header className="sticky top-0 z-10 flex items-center bg-slate-50/80 dark:bg-background-dark/80 backdrop-blur-md p-4 justify-between border-b border-slate-200 dark:border-slate-800 mb-4">
+        <div className="flex items-center gap-3">
+          <div>
+            <h2 className="text-slate-900 dark:text-slate-100 text-lg font-bold leading-tight truncate max-w-[250px]">
+              ¡Hola, {userProfile?.full_name?.split(' ')[0] || 'Docente'}!
+            </h2>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider">EduBeta Dashboard</p>
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-           <div className="text-right">
-              <p className="text-xs font-semibold text-slate-900 dark:text-white leading-none">{userProfile?.full_name}</p>
-              <p className="text-[10px] font-medium text-primary uppercase tracking-tighter">{userProfile?.role}</p>
-           </div>
-           <Link to="/dashboard/profile" className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden transition-all hover:ring-2 hover:ring-primary/20 group">
-              {userProfile?.avatar_url ? (
-                <img src={userProfile.avatar_url} alt="Perfil" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-primary font-black text-xs group-hover:scale-110 transition-transform">{userProfile ? getInitials(userProfile.full_name) : 'JB'}</span>
-              )}
-           </Link>
+        <div className="flex items-center gap-2">
+          <button onClick={() => navigate('/dashboard/notifications')} className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 active:scale-95 transition-all">
+            <Bell className="w-5 h-5" />
+            {(notifications.length > 0 || todos.length > 0) && (
+              <span className="absolute top-2.5 right-2.5 flex h-2 w-2 rounded-full bg-orange-500 ring-2 ring-white dark:ring-slate-800"></span>
+            )}
+          </button>
         </div>
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 p-4 lg:p-8 space-y-6">
+      <main className="flex flex-col gap-6 p-4 max-w-2xl mx-auto w-full pb-24">
         
+        {/* Notifications Card */}
+        <section className="w-full">
+          <div className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-primary/10 bg-white dark:bg-slate-900 p-5 shadow-sm sm:flex-row sm:items-center">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-50 dark:bg-orange-900/20 text-orange-500">
+                <Bell className="w-6 h-6" />
+              </div>
+              <div className="flex flex-col">
+                <p className="text-slate-900 dark:text-slate-100 text-base font-bold leading-tight">Notificaciones</p>
+                <p className="text-slate-500 dark:text-slate-400 text-sm font-normal">Tienes {notifications.length + todos.length} nuevas alertas hoy</p>
+              </div>
+            </div>
+            <button onClick={() => navigate('/dashboard/notifications')} 
+              className="w-full sm:w-auto flex items-center justify-center rounded-xl h-10 px-6 bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-all active:scale-95 shadow-lg shadow-primary/20">
+              Ver todas
+            </button>
+          </div>
+        </section>
+
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-          {/* Card 1: Total Students */}
-          <div className="bg-primary text-white rounded-2xl p-6 shadow-xl shadow-primary/20 relative overflow-hidden group">
-            <div className="absolute right-[-20px] top-[-20px] bg-white/10 w-32 h-32 rounded-full blur-2xl group-hover:scale-110 transition-transform"></div>
-            <div className="relative z-10 flex justify-between items-start">
-              <div>
-                <p className="text-indigo-100 text-sm font-medium mb-1 opacity-80 uppercase tracking-wider">
-                  {userProfile?.role === 'admin' ? 'Total Estudiantes' : 'Mis Estudiantes'}
-                </p>
-                <h3 className="text-4xl font-semibold tracking-tight">{stats.students}</h3>
-              </div>
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                <Users className="text-white w-6 h-6" />
-              </div>
+        <section className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-2 rounded-2xl bg-white dark:bg-slate-900 p-5 border border-slate-100 dark:border-slate-800 shadow-sm">
+            <div className="flex items-center gap-2 text-primary">
+              <Users className="w-4 h-4" />
+              <p className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest leading-none">Mis estudiantes</p>
+            </div>
+            <p className="text-slate-900 dark:text-slate-100 text-3xl font-bold leading-tight mt-1">{stats.students}</p>
+            <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mt-1">
+              <div className="h-full bg-primary w-full opacity-80"></div>
             </div>
           </div>
-
-          {/* Card 2: Attendance Rate */}
-          <div className="bg-white dark:bg-[#1e1c30] rounded-2xl p-6 shadow-soft border border-slate-100 dark:border-slate-800">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1 uppercase tracking-wider">Asistencia Hoy</p>
-                <h3 className="text-4xl font-semibold text-slate-800 dark:text-white">{stats.attendance}%</h3>
-              </div>
-              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
-                <PieChart className="text-green-600 dark:text-green-400 w-6 h-6" />
-              </div>
+          <div className="flex flex-col gap-2 rounded-2xl bg-white dark:bg-slate-900 p-5 border border-slate-100 dark:border-slate-800 shadow-sm">
+            <div className="flex items-center gap-2 text-orange-500">
+              <PieChart className="w-4 h-4" />
+              <p className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest leading-none">Asistencia hoy</p>
             </div>
-            <div className="mt-6 w-full bg-slate-100 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
-              <div 
-                className="bg-green-500 h-full rounded-full transition-all duration-500" 
-                style={{ width: `${stats.attendance}%` }}
-              ></div>
+            <p className="text-slate-900 dark:text-slate-100 text-3xl font-bold leading-tight mt-1">{stats.attendance}%</p>
+            <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden mt-1">
+              <div className="h-full bg-orange-500 rounded-full transition-all duration-1000" style={{ width: `${stats.attendance}%` }}></div>
             </div>
           </div>
+        </section>
 
-          {/* Card 3: Docentes (Admin only) */}
-          {(userProfile?.role === 'admin' || userProfile?.role === 'coordinator') && (
-            <div className="bg-white dark:bg-[#1e1c30] rounded-2xl p-6 shadow-soft border border-slate-100 dark:border-slate-800">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1 uppercase tracking-wider">Docentes</p>
-                  <h3 className="text-4xl font-semibold text-slate-800 dark:text-white">{stats.teachers}</h3>
-                </div>
-                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-                  <UserCheck className="text-primary dark:text-blue-400 w-6 h-6" />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Card 4: Total Grades */}
-          <div className="bg-white dark:bg-[#1e1c30] rounded-2xl p-6 shadow-soft border border-slate-100 dark:border-slate-800">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1 uppercase tracking-wider">Grados/Grupos</p>
-                <h3 className="text-4xl font-semibold text-slate-800 dark:text-white">{stats.grades}</h3>
-              </div>
-              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center text-green-600 dark:text-green-400">
-                <School className="w-6 h-6" />
-              </div>
-            </div>
+        {/* Mis Grupos (Horizontal Scroll) */}
+        <section>
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h3 className="text-slate-900 dark:text-slate-100 text-lg font-bold flex items-center gap-2">
+              Mis grupos <span className="text-primary font-normal text-sm bg-primary/10 px-2 py-0.5 rounded-full">({stats.grades})</span>
+            </h3>
           </div>
-
-          {/* Card 5: Total Subjects */}
-          <div className="bg-white dark:bg-[#1e1c30] rounded-2xl p-6 shadow-soft border border-slate-100 dark:border-slate-800">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1 uppercase tracking-wider">Asignaturas</p>
-                <h3 className="text-4xl font-semibold text-slate-800 dark:text-white">{stats.subjects}</h3>
+          <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar scroll-smooth">
+            {gradesData.filter(g => appRole === 'admin' ? true : assignments.some(a => a.grade_id === g.id)).map((grade: any, idx) => (
+              <div key={grade.id} 
+                onClick={() => navigate(`/dashboard/grades/${grade.id}/students`)}
+                className={cn("flex flex-col items-center justify-center min-w-[100px] aspect-square rounded-2xl shadow-sm border transition-all active:scale-95 cursor-pointer",
+                idx === 0 ? "bg-primary text-white border-primary shadow-lg shadow-primary/20" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+              )}>
+                <span className="text-2xl font-black">{grade.name}</span>
+                <span className={cn("text-[9px] uppercase font-bold mt-1 tracking-tighter", idx === 0 ? "text-white/80" : "text-slate-400")}>
+                  Ver Grupo
+                </span>
               </div>
-              <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center text-amber-600 dark:text-amber-400">
-                <BookOpen className="w-6 h-6" />
+            ))}
+            {appRole !== 'admin' && stats.grades === 0 && (
+              <div className="flex-1 text-center py-6 text-slate-400 text-xs font-medium border-2 border-dashed rounded-2xl">
+                Sin grupos asignados
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Global Accordion Section: General for all but specially for teacher grouping */}
-        <div className="space-y-4">
-          <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest pl-1">Resumen de Actividad</h4>
-          
-          {/* Accordion List */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            
-            {/* Tareas (All roles) */}
-            <div className="bg-white dark:bg-[#1e1c30] rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
-              <button 
-                onClick={() => setOpenTasks(!openTasks)}
-                className="w-full p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center">
-                    <CheckCircle2 className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-xs font-semibold text-slate-400 uppercase leading-none mb-1">Mis Tareas</p>
-                    <h5 className="font-black text-slate-800 dark:text-white text-lg">
-                      {todos.length} Tareas
-                    </h5>
-                  </div>
-                </div>
-                <ChevronDown className={cn("w-5 h-5 text-slate-400 transition-transform duration-300", openTasks && "rotate-180")} />
-              </button>
-              
-              {openTasks && (
-                <div className="px-4 pb-4 animate-in slide-in-from-top-2 duration-300">
-                  <div className="pt-2 border-t border-slate-50 dark:border-slate-800/50 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider pb-4">
-                    <div className="flex flex-col items-center gap-1 flex-1 text-center">
-                      <span className="text-slate-400">Pends</span>
-                      <span className="text-lg text-slate-600 dark:text-slate-300">{todos.filter(t => t.status === 'pendiente').length}</span>
-                    </div>
-                    <div className="w-px h-8 bg-slate-100 dark:bg-slate-800/50" />
-                    <div className="flex flex-col items-center gap-1 flex-1 text-center">
-                      <span className="text-blue-500">Activas</span>
-                      <span className="text-lg text-blue-600 dark:text-blue-400">{todos.filter(t => t.status === 'activa').length}</span>
-                    </div>
-                    <div className="w-px h-8 bg-slate-100 dark:bg-slate-800/50" />
-                    <div className="flex flex-col items-center gap-1 flex-1 text-center">
-                      <span className="text-green-500">Hechas</span>
-                      <span className="text-lg text-green-600 dark:text-green-400">{todos.filter(t => t.status === 'cumplida').length}</span>
-                    </div>
-                  </div>
-                  <Link 
-                    to="/dashboard/todos" 
-                    className="flex items-center justify-center w-full py-2.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors"
-                  >
-                    Ver todas las tareas
-                  </Link>
-                </div>
-              )}
-            </div>
-
-            {/* Teacher Specific Accordions */}
-            {userProfile?.role === 'teacher' && (
-              <>
-                {/* Grupos */}
-                <div className="bg-white dark:bg-[#1e1c30] rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
-                  <button 
-                    onClick={() => setOpenGrades(!openGrades)}
-                    className="w-full p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center">
-                        <LayoutGrid className="w-5 h-5 text-primary" />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-xs font-semibold text-slate-400 uppercase leading-none mb-1">Carga Salones</p>
-                        <h5 className="font-black text-slate-800 dark:text-white text-lg">
-                          {Array.from(new Set(assignments.map(a => a.grade_id))).length} Grupos
-                        </h5>
-                      </div>
-                    </div>
-                    <ChevronDown className={cn("w-5 h-5 text-slate-400 transition-transform duration-300", openGrades && "rotate-180")} />
-                  </button>
-                  
-                  {openGrades && (
-                    <div className="px-4 pb-4 animate-in slide-in-from-top-2 duration-300">
-                      <div className="pt-2 border-t border-slate-50 dark:border-slate-800/50 grid grid-cols-2 gap-2">
-                        {Array.from(new Set(assignments.map(a => a.grade_id)))
-                          .filter(Boolean)
-                          .sort((a, b) => (gradeMap.get(a) || '').localeCompare(gradeMap.get(b) || ''))
-                          .map((gradeId, idx) => (
-                            <div key={idx} className="px-3 py-2 bg-slate-50 dark:bg-slate-900/50 rounded-lg text-[10px] font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                              {gradeMap.get(gradeId) || 'N/A'}
-                            </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Asignaturas */}
-                <div className="bg-white dark:bg-[#1e1c30] rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
-                  <button 
-                    onClick={() => setOpenSubjects(!openSubjects)}
-                    className="w-full p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center">
-                        <BookOpen className="w-5 h-5 text-orange-500" />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-xs font-semibold text-slate-400 uppercase leading-none mb-1">Asignaturas</p>
-                        <h5 className="font-black text-slate-800 dark:text-white text-lg">
-                          {Array.from(new Set(assignments.map(a => a.subject_id))).length} Asignaturas
-                        </h5>
-                      </div>
-                    </div>
-                    <ChevronDown className={cn("w-5 h-5 text-slate-400 transition-transform duration-300", openSubjects && "rotate-180")} />
-                  </button>
-                  
-                  {openSubjects && (
-                    <div className="px-4 pb-4 animate-in slide-in-from-top-2 duration-300">
-                      <div className="pt-2 border-t border-slate-50 dark:border-slate-800/50 space-y-1">
-                        {Array.from(new Set(assignments.map(a => a.subjects?.name)))
-                          .filter(Boolean)
-                          .sort()
-                          .map((subjectName, idx) => (
-                            <div key={idx} className="px-3 py-2 bg-orange-50/50 dark:bg-orange-900/10 rounded-lg text-[9px] font-semibold text-orange-700 dark:text-orange-400 flex items-center justify-between">
-                              <span>{subjectName}</span>
-                              <span className="text-[8px] bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded-md border border-orange-100 dark:border-orange-800/50">
-                                {assignments.filter(a => a.subjects?.name === subjectName).length} Grupos
-                              </span>
-                            </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </>
             )}
           </div>
-          
-          {userProfile?.role === 'teacher' && assignments.length === 0 && (
-            <div className="py-8 text-center bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 text-slate-400 text-xs font-medium">
-              No tienes asignaciones registradas.
-            </div>
-          )}
-        </div>
-      </div>
+        </section>
+
+        {/* Asignaturas Section */}
+        <section>
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h3 className="text-slate-900 dark:text-slate-100 text-lg font-bold flex items-center gap-2">
+              Asignaturas <span className="text-primary font-normal text-sm bg-primary/10 px-2 py-0.5 rounded-full">({stats.subjects})</span>
+            </h3>
+          </div>
+          <div className="space-y-3">
+            {appRole === 'teacher' ? (
+              Array.from(new Set(assignments.map(a => a.subject_id))).map((subId, idx) => {
+                const subName = subjectsData.find(s => s.id === subId)?.name || 'Cargando...';
+                const style = getSubjectIcon(subName)
+                const Icon = style.icon
+                return (
+                  <div key={idx} className="flex items-center gap-4 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm hover:border-primary/30 transition-all group">
+                    <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl transition-all group-hover:scale-110", 
+                      `bg-${style.color}-50 dark:bg-${style.color}-900/20 text-${style.color}-500`)}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{subName}</p>
+                      <p className="text-[11px] text-slate-500 font-medium">Carga activa en {assignments.filter(a => a.subject_id === subId).length} grupos</p>
+                    </div>
+                    <Target className="w-5 h-5 text-slate-300 group-hover:text-primary transition-colors" />
+                  </div>
+                )
+              })
+            ) : (
+                subjectsData.slice(0, 4).map((sub: any) => {
+                  const style = getSubjectIcon(sub.name)
+                  const Icon = style.icon
+                  return (
+                    <div key={sub.id} className="flex items-center gap-4 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm hover:border-primary/30 transition-all group">
+                       <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl transition-all group-hover:scale-110", 
+                        `bg-${style.color}-50 dark:bg-${style.color}-900/20 text-${style.color}-500`)}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{sub.name}</p>
+                        <p className="text-[11px] text-slate-500 font-medium">Código: {sub.id.slice(0,4)}</p>
+                      </div>
+                      <Target className="w-5 h-5 text-slate-300 group-hover:text-primary transition-colors" />
+                    </div>
+                  )
+                })
+            )}
+          </div>
+        </section>
+
+        {/* Tasks Progress Section */}
+        <section className="mb-4">
+          <div className="flex items-center justify-between mb-4 px-1">
+            <h3 className="text-slate-900 dark:text-slate-100 text-lg font-bold">Mis tareas</h3>
+            <Link to="/dashboard/todos" className="text-primary text-xs font-bold uppercase tracking-wider">Ver todas</Link>
+          </div>
+          <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-6 shadow-sm space-y-7">
+            {todos.length > 0 ? (
+              todos.slice(0, 3).map((todo: any) => {
+                const progress = todo.status === 'completed' ? 100 : (todo.status === 'in-progress' ? 50 : 10)
+                const color = todo.status === 'completed' ? 'bg-green-500' : 'bg-primary'
+                return (
+                  <div key={todo.id} className="space-y-3">
+                    <div className="flex justify-between items-end">
+                      <div className="max-w-[80%]">
+                        <p className="text-sm font-black text-slate-800 dark:text-white leading-tight uppercase tracking-tight">{todo.title}</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Prioridad: {todo.priority}</p>
+                      </div>
+                      <span className={cn("text-[11px] font-black", color.replace('bg-', 'text-'))}>{progress}%</span>
+                    </div>
+                    <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div className={cn("h-full transition-all duration-1000", color)} style={{ width: `${progress}%` }}></div>
+                    </div>
+                  </div>
+                )
+              })
+            ) : (
+              <div className="flex flex-col items-center justify-center py-6 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl">
+                <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Sin tareas pendientes</p>
+              </div>
+            )}
+          </div>
+        </section>
+      </main>
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}} />
     </div>
   )
 }

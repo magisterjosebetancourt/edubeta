@@ -23,6 +23,7 @@ import AttendanceHistoryPage from '@/pages/dashboard/AttendanceHistory';
 import SettingsPage from '@/pages/dashboard/Settings';
 import AssignmentsPage from '@/pages/dashboard/Assignments';
 import TeacherRegister from '@/pages/TeacherRegister';
+import NotificationsPage from '@/pages/dashboard/Notifications';
 import DashboardLayout from '@/components/DashboardLayout';
 import MobileMenuPage from '@/pages/dashboard/MobileMenuPage';
 import ProfilePage from '@/pages/dashboard/Profile';
@@ -104,6 +105,7 @@ function App() {
           <Route path="neighborhoods/:id/edit" element={<EditNeighborhoodFormPage />} />
           <Route path="menu" element={<MobileMenuPage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
           <Route path="todos" element={<TodosPage />} />
           <Route path="todos/new" element={<NewTodoFormPage />} />
           <Route path="todos/:id/edit" element={<EditTodoFormPage />} />

@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils'
 type StudentWithStatus = {
   id: string; first_name: string; last_name: string; grade_id: string;
   status?: 'present' | 'late' | 'absent' | 'excused'
-  justified?: boolean; permission?: boolean; avatarColor?: string
+  justified?: boolean; permission?: boolean; is_partial?: boolean; avatarColor?: string
 }
 
 const AVATAR_COLORS = [
@@ -34,6 +34,7 @@ export default function TakingAttendancePage() {
   const [students, setStudents] = useState<StudentWithStatus[]>([])
   const [gradeName, setGradeName] = useState('')
   const [subjectName, setSubjectName] = useState('')
+  const [teacherName, setTeacherName] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -41,12 +42,14 @@ export default function TakingAttendancePage() {
     const load = async () => {
       if (!gradeId || !subjectId || !date || !teacherId) return
       try {
-        const [gSnap, sSnap] = await Promise.all([
+        const [gSnap, sSnap, tSnap] = await Promise.all([
           getDoc(doc(db, 'grades', gradeId)),
           getDoc(doc(db, 'subjects', subjectId)),
+          getDoc(doc(db, 'profiles', teacherId))
         ])
         setGradeName(gSnap.data()?.name || '')
         setSubjectName(sSnap.data()?.name || '')
+        setTeacherName(tSnap.data()?.full_name || 'Docente')
 
         // Fetch students of this grade
         const studentsSnap = await getDocs(query(
@@ -88,23 +91,57 @@ export default function TakingAttendancePage() {
   }, [gradeId, subjectId, date, teacherId])
 
   const handleStatusChange = async (studentId: string, status: 'present' | 'late' | 'absent' | 'excused') => {
+    setStudents(prev => prev.map(s => s.id === studentId ? { 
+      ...s, 
+      status, 
+      is_partial: status === 'absent' ? s.is_partial : false 
+    } : s))
+    
     try {
       const docId = `${studentId}_${date}_${subjectId}`
       await setDoc(doc(db, 'attendance_records', docId), {
         student_id: studentId, date, subject_id: subjectId, teacher_id: teacherId, status,
         updated_at: serverTimestamp()
       }, { merge: true })
-      setStudents(prev => prev.map(s => s.id === studentId ? { ...s, status } : s))
     } catch (e: any) {
       toast.error('Error al guardar', { description: e.message })
+    }
+  }
+
+  const handlePartialToggle = async (studentId: string, is_partial: boolean) => {
+    try {
+      const docId = `${studentId}_${date}_${subjectId}`
+      await updateDoc(doc(db, 'attendance_records', docId), { 
+        is_partial,
+        justified: false,
+        permission: false
+      })
+      setStudents(prev => prev.map(s => s.id === studentId ? { 
+        ...s, 
+        is_partial, 
+        justified: false, 
+        permission: false 
+      } : s))
+      toast.success(is_partial ? 'Inasistencia parcial marcada' : 'Estado parcial removido')
+    } catch (e: any) {
+      toast.error('Error al actualizar estado parcial', { description: e.message })
     }
   }
 
   const handleJustify = async (studentId: string, justified: boolean) => {
     try {
       const docId = `${studentId}_${date}_${subjectId}`
-      await updateDoc(doc(db, 'attendance_records', docId), { justified, permission: false })
-      setStudents(prev => prev.map(s => s.id === studentId ? { ...s, justified, permission: false } : s))
+      await updateDoc(doc(db, 'attendance_records', docId), { 
+        justified, 
+        permission: false,
+        is_partial: false
+      })
+      setStudents(prev => prev.map(s => s.id === studentId ? { 
+        ...s, 
+        justified, 
+        permission: false,
+        is_partial: false
+      } : s))
       toast.success(justified ? 'Justificación registrada' : 'Justificación removida')
     } catch (e: any) {
       toast.error('Error al justificar', { description: e.message })
@@ -114,8 +151,17 @@ export default function TakingAttendancePage() {
   const handlePermission = async (studentId: string, permission: boolean) => {
     try {
       const docId = `${studentId}_${date}_${subjectId}`
-      await updateDoc(doc(db, 'attendance_records', docId), { permission, justified: false })
-      setStudents(prev => prev.map(s => s.id === studentId ? { ...s, permission, justified: false } : s))
+      await updateDoc(doc(db, 'attendance_records', docId), { 
+        permission, 
+        justified: false,
+        is_partial: false
+      })
+      setStudents(prev => prev.map(s => s.id === studentId ? { 
+        ...s, 
+        permission, 
+        justified: false,
+        is_partial: false
+      } : s))
       toast.success(permission ? 'Permiso docente registrado' : 'Permiso removido')
     } catch (e: any) {
       toast.error('Error al registrar permiso', { description: e.message })
@@ -142,9 +188,91 @@ export default function TakingAttendancePage() {
     }
   }
 
-  const handleFinish = () => {
-    toast.success('Clase completada y guardada')
-    navigate('/dashboard/attendance', { replace: true })
+  const handleFinish = async () => {
+    if (loading) return
+    const unmarked = students.filter(s => !s.status)
+    if (unmarked.length > 0) {
+      toast.error('Asistencia incompleta', {
+        description: `Faltan ${unmarked.length} estudiante(s) por marcar.`
+      })
+      return
+    }
+
+    const partialAbsences = students.filter(s => s.status === 'absent' && s.is_partial)
+    
+    if (partialAbsences.length > 0) {
+      setLoading(true)
+      const proceed = confirm(`Has marcado ${partialAbsences.length} inasistencia(s) parcial(es). Se creará automáticamente un reporte en el Observador (Tipo I) y se notificará a coordinación. ¿Deseas continuar?`)
+      if (!proceed) {
+        setLoading(false)
+        return
+      }
+    } else {
+      setLoading(true)
+    }
+
+    const toastId = toast.loading('Guardando registros y notificando...')
+
+    try {
+      const batch = writeBatch(db)
+      const now = new Date().toISOString()
+      
+      // Get grade info for notification
+      const gradeDoc = await getDoc(doc(db, 'grades', gradeId!))
+      const gradeData = gradeDoc.data()
+      const directorId = gradeData?.director_id
+
+      for (const s of partialAbsences) {
+        // 1. Create Observation (Disciplinaria Tipo I)
+        const obsRef = doc(collection(db, 'student_observations'))
+        const studentName = `${s.last_name}, ${s.first_name}`
+        
+        batch.set(obsRef, {
+          studentId: s.id,
+          studentName,
+          createdBy: teacherId,
+          creatorName: teacherName,
+          date: date,
+          type: 'Disciplinaria',
+          law1620Category: 'Tipo I',
+          description: `Inasistencia parcial detectada en la materia de ${subjectName}. El estudiante se ausentó sin justificación después de haber ingresado a la institución.`,
+          actionTaken: 'Registro automático por sistema de asistencia.',
+          suggestions: 'Seguimiento por parte de dirección de grupo.',
+          commitmentStatus: 'Iniciada',
+          agreements: ['El estudiante debe presentar descargos ante el director de grupo.'],
+          status: 'Abierto',
+          notificationsSent: { parentsApp: false, whatsappAdmins: false },
+          createdAt: now,
+          updatedAt: now
+        })
+
+        // 2. Create Notifications
+        const recipients = Array.from(new Set([directorId, 'admin_placeholder'].filter(Boolean)))
+        
+        recipients.forEach(rid => {
+          const notifRef = doc(collection(db, 'notifications'))
+          batch.set(notifRef, {
+            user_id: rid,
+            title: 'Alerta: Inasistencia Parcial',
+            message: `El estudiante ${studentName} (${gradeName}) presentó inasistencia parcial en ${subjectName}. Se generó reporte en observador.`,
+            type: 'alert',
+            read: false,
+            link: `/dashboard/observations`,
+            createdAt: serverTimestamp()
+          })
+        })
+      }
+
+      await batch.commit()
+      toast.dismiss(toastId)
+      toast.success('Clase completada, observador actualizado y alertas enviadas')
+      navigate('/dashboard/attendance', { replace: true })
+    } catch (e: any) {
+      toast.dismiss(toastId)
+      toast.error('Error al procesar la finalización', { description: e.message })
+    } finally {
+      setLoading(false)
+    }
   }
 
 
@@ -235,17 +363,25 @@ export default function TakingAttendancePage() {
               ))}
             </div>
             {student.status === 'absent' && (
-              <div className="mt-3 pt-3 border-t border-slate-50 dark:border-slate-700/50 flex items-center justify-end gap-2">
+              <div className="mt-3 pt-3 border-t border-slate-50 dark:border-slate-700/50 grid grid-cols-3 gap-2 w-full">
+                <button onClick={() => handlePartialToggle(student.id, !student.is_partial)}
+                  className={cn("flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[9px] font-semibold transition-all border",
+                    student.is_partial
+                      ? "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400"
+                      : "bg-white dark:bg-slate-900 text-slate-400 border-slate-200")}>
+                  <Clock className="w-3 h-3" />
+                  {student.is_partial ? 'Parcial' : 'Parcial'}
+                </button>
                 <button onClick={() => handlePermission(student.id, !student.permission)}
-                  className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-semibold transition-all border",
+                  className={cn("flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[9px] font-semibold transition-all border",
                     student.permission
                       ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400"
                       : "bg-white dark:bg-slate-900 text-slate-400 border-slate-200")}>
                   <UserCheck className="w-3 h-3" />
-                  {student.permission ? 'Con Permiso' : 'Permiso'}
+                  {student.permission ? 'Permiso' : 'Permiso'}
                 </button>
                 <button onClick={() => handleJustify(student.id, !student.justified)}
-                  className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-semibold transition-all border",
+                  className={cn("flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[9px] font-semibold transition-all border",
                     student.justified
                       ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400"
                       : "bg-white dark:bg-slate-900 text-slate-400 border-slate-200")}>
@@ -263,6 +399,7 @@ export default function TakingAttendancePage() {
         <EduButton
           type="button"
           onClick={handleFinish}
+          loading={loading}
           icon={CheckCircle}
           fullWidth
         >

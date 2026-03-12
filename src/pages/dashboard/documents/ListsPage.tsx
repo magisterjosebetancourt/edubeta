@@ -34,6 +34,7 @@ export default function ListsPage() {
   const [selectedLevelId, setSelectedLevelId] = useState('');
   const [selectedGradeName, setSelectedGradeName] = useState('');
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+  const [numColumns, setNumColumns] = useState(10);
   const [institution, setInstitution] = useState<any>(null);
   
   const { data: gradesData = [] } = useGrades();
@@ -82,124 +83,138 @@ export default function ListsPage() {
       return;
     }
 
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
-    const margin = 15;
-    const pageWidth = doc.internal.pageSize.width;
-    const pageHeight = doc.internal.pageSize.height;
-    
-    // Periodo actual
-    const today = new Date().toISOString().split('T')[0];
-    const currentPeriod = periodsData.find((p: any) => today >= p.start_date && today <= p.end_date);
-    const periodLabel = currentPeriod ? `Periodo ${currentPeriod.period_number}` : 'Periodo N/A';
+    const toastId = toast.loading(`Generando PDF para ${selectedGroupIds.length} grupos...`);
 
-    toast.loading(`Generando PDF para ${selectedGroupIds.length} grupos...`, { id: 'pdf-gen' });
-
-    for (let i = 0; i < selectedGroupIds.length; i++) {
-      const groupId = selectedGroupIds[i];
-      const group = gradesData.find(g => g.id === groupId);
-      if (!group) continue;
-
-      if (i > 0) doc.addPage();
-
-      const students = studentsData
-        .filter(s => s.grade_id === groupId && s.state !== false)
-        .sort((a, b) => {
-          const nameA = `${a.last_name || ''} ${a.first_name || ''}`.toLowerCase();
-          const nameB = `${b.last_name || ''} ${b.first_name || ''}`.toLowerCase();
-          return nameA.localeCompare(nameB);
-        });
-
-      const director = teachersData.find(t => t.id === group.director_id);
-
-      // Logo
-      if (institution?.logo_url) {
-        try {
-          doc.addImage(institution.logo_url, 'PNG', margin, margin, 20, 20);
-        } catch (e) {
-          console.error("Error adding logo to PDF", e);
-        }
-      }
-
-      // Encabezado
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.text((institution?.school_name || 'INSTITUCIÓN EDUCATIVA').toUpperCase(), pageWidth / 2, margin + 5, { align: 'center' });
+    try {
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+      const margin = 15;
+      const pageWidth = doc.internal.pageSize.width;
+      const pageHeight = doc.internal.pageSize.height;
       
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'italic');
-      if (institution?.slogan) {
-        doc.text(institution.slogan.toUpperCase(), pageWidth / 2, margin + 10, { align: 'center' });
-      }
-      
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'bold');
-      doc.text('LISTADO AUXILIAR DE ESTUDIANTES', pageWidth / 2, margin + 16, { align: 'center' });
-      
-      doc.setDrawColor(200);
-      doc.line(margin, margin + 25, pageWidth - margin, margin + 25);
-      
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`GRADO: ${group.name}`, margin, margin + 32);
-      doc.text(`${periodLabel} - AÑO: ${institution?.academic_year || new Date().getFullYear()}`, pageWidth / 2, margin + 32, { align: 'center' });
-      doc.text(`DIRECTOR: ${director?.full_name || 'Sin asignar'}`, pageWidth - margin, margin + 32, { align: 'right' });
+      // Periodo actual
+      const today = new Date().toISOString().split('T')[0];
+      const currentPeriod = periodsData.find((p: any) => today >= p.start_date && today <= p.end_date);
+      const periodLabel = currentPeriod ? `Periodo ${currentPeriod.period_number}` : 'Periodo N/A';
 
-      // Tabla
-      const tableData = students.map((s, index) => [
-        index + 1,
-        `${s.last_name || ''} ${s.first_name || ''}`.toUpperCase(),
-        '', '', '', '', '', '', '', '', '', ''
-      ]);
+      for (let i = 0; i < selectedGroupIds.length; i++) {
+        const groupId = selectedGroupIds[i];
+        const group = gradesData.find(g => g.id === groupId);
+        if (!group) continue;
 
-      const headers = [['#', 'ESTUDIANTE', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10']];
+        if (i > 0) doc.addPage();
 
-      autoTable(doc, {
-        startY: margin + 35,
-        head: headers,
-        body: tableData,
-        theme: 'grid',
-        headStyles: { 
-          fillColor: [51, 65, 85], 
-          textColor: [255, 255, 255],
-          fontSize: 8,
-          halign: 'center'
-        },
-        styles: { 
-          fontSize: 8,
-          cellPadding: 1,
-          valign: 'middle'
-        },
-        columnStyles: {
-          0: { cellWidth: 8, halign: 'center' },
-          1: { cellWidth: 65 },
-          2: { halign: 'center' }, 3: { halign: 'center' }, 4: { halign: 'center' },
-          5: { halign: 'center' }, 6: { halign: 'center' }, 7: { halign: 'center' },
-          8: { halign: 'center' }, 9: { halign: 'center' }, 10: { halign: 'center' },
-          11: { halign: 'center' }
-        },
-        margin: { left: margin, right: margin },
-        didDrawPage: () => {
-          const footerY = pageHeight - 10;
-          doc.setFontSize(7);
-          doc.setFont('helvetica', 'normal');
-          doc.text('Diseño: Edubeta | Empresa: Betasoft (c)', margin, footerY);
-          
-          const printDate = new Date().toLocaleString('es-ES', { 
-            day: '2-digit', month: '2-digit', year: 'numeric', 
-            hour: '2-digit', minute: '2-digit' 
+        const students = studentsData
+          .filter(s => s.grade_id === groupId && s.state !== false)
+          .sort((a, b) => {
+            const nameA = `${a.last_name || ''} ${a.first_name || ''}`.toLowerCase();
+            const nameB = `${b.last_name || ''} ${b.first_name || ''}`.toLowerCase();
+            return nameA.localeCompare(nameB);
           });
-          doc.text(`Fecha de impresión: ${printDate}`, pageWidth - margin, footerY, { align: 'right' });
+
+        const director = teachersData.find(t => t.id === group.director_id);
+
+        // Logo
+        if (institution?.logo_url) {
+          try {
+            doc.addImage(institution.logo_url, 'PNG', margin, margin, 20, 20);
+          } catch (e) {
+            console.error("Error adding logo to PDF", e);
+          }
         }
-      });
+
+        // Encabezado
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text((institution?.school_name || 'INSTITUCIÓN EDUCATIVA').toUpperCase(), pageWidth / 2, margin + 5, { align: 'center' });
+        
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'italic');
+        if (institution?.slogan) {
+          doc.text(institution.slogan.toUpperCase(), pageWidth / 2, margin + 10, { align: 'center' });
+        }
+        
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text('LISTADO AUXILIAR DE ESTUDIANTES', pageWidth / 2, margin + 16, { align: 'center' });
+        
+        doc.setDrawColor(200);
+        doc.line(margin, margin + 25, pageWidth - margin, margin + 25);
+        
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`GRADO: ${group.name}`, margin, margin + 32);
+        doc.text(`${periodLabel} - AÑO: ${institution?.academic_year || new Date().getFullYear()}`, pageWidth / 2, margin + 32, { align: 'center' });
+        doc.text(`DIRECTOR: ${director?.full_name || 'Sin asignar'}`, pageWidth - margin, margin + 32, { align: 'right' });
+
+        // Tabla
+        const dynamicEmptyCols = Array(numColumns).fill('');
+        const tableData = students.map((s, index) => [
+          index + 1,
+          `${s.last_name || ''} ${s.first_name || ''}`.toUpperCase(),
+          ...dynamicEmptyCols
+        ]);
+
+        const dynamicHeaders = Array.from({ length: numColumns }, (_, i) => (i + 1).toString());
+        const headers = [['#', 'ESTUDIANTE', ...dynamicHeaders]];
+
+        // Calcular anchos de columna
+        const studentColWidth = 65;
+        const indexColWidth = 8;
+        const remainingWidth = (pageWidth - (margin * 2)) - studentColWidth - indexColWidth;
+        const dynamicColWidth = remainingWidth / numColumns;
+
+        const columnStyles: any = {
+          0: { cellWidth: indexColWidth, halign: 'center' },
+          1: { cellWidth: studentColWidth }
+        };
+        
+        for (let j = 0; j < numColumns; j++) {
+          columnStyles[j + 2] = { cellWidth: dynamicColWidth, halign: 'center' };
+        }
+
+        autoTable(doc, {
+          startY: margin + 35,
+          head: headers,
+          body: tableData,
+          theme: 'grid',
+          headStyles: { 
+            fillColor: [51, 65, 85], 
+            textColor: [255, 255, 255],
+            fontSize: numColumns > 12 ? 7 : 8,
+            halign: 'center'
+          },
+          styles: { 
+            fontSize: numColumns > 12 ? 7 : 8,
+            cellPadding: 1,
+            valign: 'middle'
+          },
+          columnStyles: columnStyles,
+          margin: { left: margin, right: margin },
+          didDrawPage: () => {
+            const footerY = pageHeight - 10;
+            doc.setFontSize(7);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Diseño: Edubeta | Empresa: Betasoft (c)', margin, footerY);
+            
+            const printDate = new Date().toLocaleString('es-ES', { 
+              day: '2-digit', month: '2-digit', year: 'numeric', 
+              hour: '2-digit', minute: '2-digit' 
+            });
+            doc.text(`Fecha de impresión: ${printDate}`, pageWidth - margin, footerY, { align: 'right' });
+          }
+        });
+      }
+
+      const fileName = selectedGroupIds.length === 1 
+        ? `Lista_${availableGrades.find(g => g.id === selectedGroupIds[0])?.name}.pdf`
+        : 'Listas_Escolares_Masivas.pdf';
+
+      doc.save(fileName);
+      toast.success(`PDF generado correctamente (${selectedGroupIds.length} listas).`, { id: toastId });
+    } catch (err: any) {
+      console.error("PDF generation error:", err);
+      toast.error('Error al generar el PDF', { id: toastId });
     }
-
-    const fileName = selectedGroupIds.length === 1 
-      ? `Lista_${availableGrades.find(g => g.id === selectedGroupIds[0])?.name}.pdf`
-      : 'Listas_Escolares_Masivas.pdf';
-
-    doc.save(fileName);
-    toast.dismiss('pdf-gen');
-    toast.success(`PDF generado correctamente (${selectedGroupIds.length} listas).`);
   };
 
 
@@ -249,7 +264,35 @@ export default function ListsPage() {
                       ))}
                     </EduSelect>
                   </div>
+
+                  <div className="space-y-2">
+                    <Label>Columnas de la Lista (1-15)</Label>
+                    <EduSelect 
+                      value={numColumns.toString()}
+                      onChange={(e) => setNumColumns(parseInt(e.target.value))}
+                      icon={ListChecks}
+                    >
+                      {Array.from({ length: 15 }, (_, i) => i + 1).map(n => (
+                        <option key={n} value={n.toString()}>{n} {n === 1 ? 'Columna' : 'Columnas'}</option>
+                      ))}
+                    </EduSelect>
+                  </div>
                 </>
+              )}
+
+              {!isAdminOrCoord && (
+                <div className="space-y-2">
+                  <Label>Columnas de la Lista (1-15)</Label>
+                  <EduSelect 
+                    value={numColumns.toString()}
+                    onChange={(e) => setNumColumns(parseInt(e.target.value))}
+                    icon={ListChecks}
+                  >
+                    {Array.from({ length: 15 }, (_, i) => i + 1).map(n => (
+                      <option key={n} value={n.toString()}>{n} {n === 1 ? 'Columna' : 'Columnas'}</option>
+                    ))}
+                  </EduSelect>
+                </div>
               )}
             </div>
 

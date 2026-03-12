@@ -68,11 +68,9 @@ export default function AttendancePage() {
         records = records.filter((r: any) => r.teacher_id === userId)
       }
 
-      // 1. Necesitamos teachers (profiles) sí o sí porque no lo guardamos en react-query
       const profilesSnap = await getDocs(collection(db, "profiles"))
       const profileMap = new Map(profilesSnap.docs.map(d => [d.id, d.data()]))
 
-      // 2. Mapas cacheados
       const studentMap = new Map(globalStudents.map(d => [d.id, d]))
       const subjectMap = new Map(globalSubjects.map(d => [d.id, d]))
       const gradeMap = new Map(globalGrades.map(d => [d.id, d]))
@@ -115,7 +113,7 @@ export default function AttendancePage() {
 
   const generateReport = async (session: AttendanceSession) => {
     if (!session.date || !session.subject_id || !session.grade_id) { toast.error('Datos de sesión incompletos'); return }
-    toast.loading('Generando informe...')
+    const toastId = toast.loading('Generando informe...')
     try {
       const [instSnap, recordsSnap, studentSnap] = await Promise.all([
         getDoc(doc(db, "settings", "institutional")),
@@ -151,9 +149,9 @@ export default function AttendancePage() {
       const a = document.createElement('a'); a.href = blobUrl; a.target = '_blank'; a.rel = 'noopener noreferrer'
       document.body.appendChild(a); a.click(); document.body.removeChild(a)
       setTimeout(() => URL.revokeObjectURL(blobUrl), 60000)
-      toast.dismiss()
+      toast.success('Informe generado', { id: toastId })
     } catch (err: any) {
-      toast.dismiss(); toast.error('Error al generar informe', { description: err.message })
+      toast.error('Error al generar informe', { id: toastId, description: err.message })
     }
   }
 
@@ -178,11 +176,10 @@ export default function AttendancePage() {
   }
 
   const shareWhatsAppReport = async (session: AttendanceSession) => {
+    const toastId = toast.loading('Preparando captura para WhatsApp...')
     try {
-      toast.loading('Preparando captura para WhatsApp...')
       setIsCapturing(true)
       
-      // 1. Fetch records and institutional settings
       const [instSnap, recordsSnap] = await Promise.all([
         getDoc(doc(db, "settings", "institutional")),
         getDocs(query(
@@ -218,77 +215,69 @@ export default function AttendancePage() {
       setSharingAbsents(absents)
       setSharingBranding(branding)
 
-      // Wait for re-render
       setTimeout(async () => {
-        const element = document.getElementById('attendance-share-card')
-        if (!element) {
-          toast.dismiss()
-          toast.error('Error al generar la captura')
-          setIsCapturing(false)
-          return
-        }
+        try {
+          const element = document.getElementById('attendance-share-card')
+          if (!element) throw new Error('Contenedor de captura no encontrado')
 
-        const canvas = await html2canvas(element, {
-          backgroundColor: null,
-          scale: 2, // Better quality
-          logging: false,
-          useCORS: true
-        })
+          const canvas = await html2canvas(element, {
+            backgroundColor: null,
+            scale: 2,
+            logging: false,
+            useCORS: true
+          })
 
-        const imageData = canvas.toDataURL('image/png')
-        
-        // Prepare WhatsApp Message
-        const dateStr = format(new Date(session.date + 'T00:00:00'), 'dd/MM/yyyy')
-        const absentsText = absents.length > 0 
-          ? absents.map(a => `• ${a.name} (${a.status === 'absent' ? 'Ausente' : 'Tarde'}${a.justified ? ' - Justificada' : ''})`).join('\n')
-          : '✓ Sin inasistencias registradas.'
-        
-        const message = `*INFORME DE INASISTENCIAS*\n\n` +
-          `*Institución:* ${session.grade_name}\n` +
-          `*Materia:* ${session.subject_name}\n` +
-          `*Fecha:* ${dateStr}\n` +
-          `*Docente:* ${session.teacher_name}\n\n` +
-          `*Resumen:* ${session.present_count} Presentes, ${session.absent_count} Ausentes, ${session.late_count} Tardes\n\n` +
-          `*Detalle:*\n${absentsText}\n\n` +
-          `_Generado por EduBeta_`
-
-        // Check if Web Share API is available (mostly mobile)
-        if (navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-          const blob = await (await fetch(imageData)).blob()
-          const file = new File([blob], `reporte-${session.date}.png`, { type: 'image/png' })
+          const imageData = canvas.toDataURL('image/png')
           
-          try {
-            await navigator.share({
-              title: 'Informe de Inasistencia',
-              text: message,
-              files: [file]
-            })
-            toast.dismiss()
-            toast.success('Informe listo para compartir')
-          } catch (err) {
-            // Fallback to simple WhatsApp link if sharing cancelled or failed
+          const dateStr = format(new Date(session.date + 'T00:00:00'), 'dd/MM/yyyy')
+          const absentsText = absents.length > 0 
+            ? absents.map(a => `• ${a.name} (${a.status === 'absent' ? 'Ausente' : 'Tarde'}${a.justified ? ' - Justificada' : ''})`).join('\n')
+            : '✓ Sin inasistencias registradas.'
+          
+          const message = `*INFORME DE INASISTENCIAS*\n\n` +
+            `*Institución:* ${session.grade_name}\n` +
+            `*Materia:* ${session.subject_name}\n` +
+            `*Fecha:* ${dateStr}\n` +
+            `*Docente:* ${session.teacher_name}\n\n` +
+            `*Resumen:* ${session.present_count} Presentes, ${session.absent_count} Ausentes, ${session.late_count} Tardes\n\n` +
+            `*Detalle:*\n${absentsText}\n\n` +
+            `_Generado por EduBeta_`
+
+          if (navigator.share && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            const blob = await (await fetch(imageData)).blob()
+            const file = new File([blob], `reporte-${session.date}.png`, { type: 'image/png' })
+            
+            try {
+              await navigator.share({
+                title: 'Informe de Inasistencia',
+                text: message,
+                files: [file]
+              })
+              toast.success('Informe compartido', { id: toastId })
+            } catch (err) {
+              window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank')
+              toast.dismiss(toastId)
+            }
+          } else {
+            const link = document.createElement('a')
+            link.download = `Reporte_${session.subject_name}_${session.date}.png`
+            link.href = imageData
+            link.click()
             window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank')
+            toast.success('Imagen descargada. Abre WhatsApp.', { id: toastId })
           }
-        } else {
-          // PC/Web Fallback: Download image and open WhatsApp
-          const link = document.createElement('a')
-          link.download = `Reporte_${session.subject_name}_${session.date}.png`
-          link.href = imageData
-          link.click()
-          
-          window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank')
-          toast.dismiss()
-          toast.success('Imagen descargada. Abre WhatsApp para enviarla.')
+        } catch (captureErr: any) {
+          console.error(captureErr)
+          toast.error('Error al capturar imagen', { id: toastId })
+        } finally {
+          setIsCapturing(false)
+          setSharingSession(null)
         }
-        
-        setIsCapturing(false)
-        setSharingSession(null)
       }, 500)
 
     } catch (err: any) {
       console.error(err)
-      toast.dismiss()
-      toast.error('Error al generar informe WhatsApp')
+      toast.error('Error al preparar reporte', { id: toastId })
       setIsCapturing(false)
     }
   }
@@ -393,10 +382,12 @@ export default function AttendancePage() {
                         className="p-1.5 bg-slate-50 dark:bg-slate-900 rounded-lg text-slate-400 hover:text-primary transition-colors">
                         <FileText className="w-4 h-4" />
                       </button>
-                      <button onClick={e => { e.stopPropagation(); shareWhatsAppReport(s) }}
-                        className="p-1.5 bg-green-50 dark:bg-green-900/30 rounded-lg text-green-500 hover:text-green-600 transition-colors">
-                        <MessageSquare className="w-4 h-4" />
-                      </button>
+                      {(appRole === 'admin' || appRole === 'coordinator') && (
+                        <button onClick={e => { e.stopPropagation(); shareWhatsAppReport(s) }}
+                          className="p-1.5 bg-green-50 dark:bg-green-900/30 rounded-lg text-green-500 hover:text-green-600 transition-colors">
+                          <MessageSquare className="w-4 h-4" />
+                        </button>
+                      )}
                       {(appRole === 'admin' || appRole === 'coordinator') && s.absent_count + s.late_count > 0 && (
                         <button onClick={e => { e.stopPropagation(); if (!s.all_processed) markSessionAsProcessed(s) }}
                           className={cn("p-1.5 rounded-lg transition-all",

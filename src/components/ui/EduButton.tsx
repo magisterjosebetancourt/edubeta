@@ -9,10 +9,11 @@ interface EduButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children?: React.ReactNode
   fullWidth?: boolean
   distributed?: boolean
+  loading?: boolean
 }
 
 const EduButton = React.forwardRef<HTMLButtonElement, EduButtonProps>(
-  ({ className, variant = "primary", icon: Icon, children, fullWidth = true, distributed = false, ...props }, ref) => {
+  ({ className, variant = "primary", icon: Icon, children, fullWidth = true, distributed = false, loading = false, ...props }, ref) => {
     
     const variants = {
       primary: "bg-[#0099FE] hover:bg-[#0081D6] text-white",
@@ -34,15 +35,21 @@ const EduButton = React.forwardRef<HTMLButtonElement, EduButtonProps>(
       <Button
         ref={ref}
         variant={variant === 'primary' ? 'default' : (variant === 'secondary' ? 'ghost' : variant)}
+        disabled={props.disabled || loading}
         className={cn(
           baseClasses,
           variantClasses,
           widthClasses,
-          className
+          className,
+          loading && "opacity-80 cursor-not-allowed"
         )}
         {...props}
       >
-        {Icon && <Icon className={cn("w-4 h-4 shrink-0", !children && "m-0")} />}
+        {loading ? (
+          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0" />
+        ) : (
+          Icon && <Icon className={cn("w-4 h-4 shrink-0", !children && "m-0")} />
+        )}
         {children && <span className="truncate">{children}</span>}
       </Button>
     )

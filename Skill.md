@@ -15,6 +15,22 @@
 - **Indicadores de Carga**: Siempre usar el componente `<LoadingSpinner />` en lugar de textos planos como "Cargando...". Este componente incluye el logotipo institucional animado y un mensaje descriptivo.
 - **Navegación Instantánea**: No usar retardos artificiales (`setTimeout`) ni efectos de transición laterales en los formularios. La navegación debe ser inmediata tras completar una acción exitosa.
 
+## Estructura y Orden de Elementos por Página
+### PÁGINAS PRINCIPALES (Con acceso desde menú)
+- **Texto descriptivo**: Breve párrafo informativo al inicio de la página.
+- **Campo de búsqueda**: Si aplica o es necesario para localizar registros.
+- **Filtros**: Selectores o toggles para refinar la vista si aplica.
+- **Botón de acción**: Botón "Nuevo" o "Agregar" si el módulo lo permite.
+- **Lista de datos**: Visualización principal mediante tarjetas o listas normales.
+
+### PÁGINAS SECUNDARIAS (Formularios y procesos)
+- **Texto descriptivo**: Explicación del propósito de la vista o formulario.
+- **Campo de búsqueda/Filtros**: Si es necesario buscar información previa para el proceso.
+- **Botón de carga**: Acciones como "Cargar" o "Mostrar" resultados previos.
+- **Cuerpo del proceso**: Formulario con los campos necesarios. **Importante**: El contenedor del formulario no debe tener color de fondo.
+- **Lista complementaria**: Si aplica, mostrar tarjetas con datos relacionados al proceso.
+- **Acciones finales**: Botón de "Guardar", "Actualizar" o "Comenzar" al final de la vista.
+
 ## Reglas de Identidad Visual
 - **Avatares de Usuarios**: 
   - **Prioridad**: Siempre mostrar la foto de perfil (`avatar_url`) si está disponible.

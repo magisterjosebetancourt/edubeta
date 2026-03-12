@@ -88,7 +88,8 @@ export default function DashboardLayout() {
       'menu': 'Menú',
       'infractions': 'Faltas',
       'schedules': 'Horarios de Clase',
-      'observations': 'Observador'
+      'observations': 'Observador',
+      'notifications': 'Notificaciones'
     }
 
     return titles[section] || section.charAt(0).toUpperCase() + section.slice(1)
