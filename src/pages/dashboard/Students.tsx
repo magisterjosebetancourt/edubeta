@@ -228,18 +228,18 @@ export default function StudentsPage() {
               <div className="grid grid-cols-3 md:flex gap-2 col-span-3 md:col-span-1 w-full">
                 <EduButton
                   onClick={() => navigate("/dashboard/students/import")}
-                  variant="outline"
+                  variant="secondary"
                   icon={FileUp}
-                  className="h-12 w-full flex-1 md:w-auto text-white"
+                  className="h-12 w-full flex-1 md:w-auto"
                 >
                   <span className="hidden lg:inline">Carga Masiva</span>
                   <span className="lg:hidden text-xs">CSV</span>
                 </EduButton>
                 <EduButton
                   onClick={() => navigate("/dashboard/students/move")}
-                  variant="outline"
+                  variant="secondary"
                   icon={ArrowRightLeft}
-                  className="h-12 w-full flex-1 md:w-auto text-white"
+                  className="h-12 w-full flex-1 md:w-auto"
                 >
                   <span className="hidden lg:inline">Trasladar</span>
                   <span className="lg:hidden text-xs">Mover</span>
