@@ -25,6 +25,7 @@ import {
   FileUp,
   FileSignature,
   Trash2,
+  ArrowRightLeft,
 } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
@@ -222,28 +223,35 @@ export default function StudentsPage() {
             </EduSelect>
           </div>
 
-          <div className="w-full grid grid-cols-2 md:flex gap-2">
+          <div className="w-full grid grid-cols-3 md:flex gap-2">
             {(userRole === "admin" || userRole === "coordinator") && (
-              <div className="grid grid-cols-2 md:flex gap-2 col-span-2 md:col-span-1">
-                <div className="grid grid-cols-2 md:flex gap-2 col-span-2 md:col-span-1">
-                  <EduButton
-                    onClick={() => navigate("/dashboard/students/import")}
-                    variant="outline"
-                    icon={FileUp}
-                    className="h-12 w-full flex-1 md:w-auto text-white"
-                  >
-                    <span className="hidden lg:inline">Carga Masiva</span>
-                    <span className="lg:hidden text-xs">CSV</span>
-                  </EduButton>
-                  <EduButton
-                    onClick={() => navigate("/dashboard/students/new")}
-                    icon={UserPlus}
-                    className="h-12 w-full flex-1 md:w-auto"
-                  >
-                    <span className="hidden lg:inline">Matricular</span>
-                    <span className="lg:hidden text-xs">Añadir</span>
-                  </EduButton>
-                </div>
+              <div className="grid grid-cols-3 md:flex gap-2 col-span-3 md:col-span-1 w-full">
+                <EduButton
+                  onClick={() => navigate("/dashboard/students/import")}
+                  variant="outline"
+                  icon={FileUp}
+                  className="h-12 w-full flex-1 md:w-auto text-white"
+                >
+                  <span className="hidden lg:inline">Carga Masiva</span>
+                  <span className="lg:hidden text-xs">CSV</span>
+                </EduButton>
+                <EduButton
+                  onClick={() => navigate("/dashboard/students/move")}
+                  variant="outline"
+                  icon={ArrowRightLeft}
+                  className="h-12 w-full flex-1 md:w-auto text-white"
+                >
+                  <span className="hidden lg:inline">Trasladar</span>
+                  <span className="lg:hidden text-xs">Mover</span>
+                </EduButton>
+                <EduButton
+                  onClick={() => navigate("/dashboard/students/new")}
+                  icon={UserPlus}
+                  className="h-12 w-full flex-1 md:w-auto"
+                >
+                  <span className="hidden lg:inline">Matricular</span>
+                  <span className="lg:hidden text-xs">Añadir</span>
+                </EduButton>
               </div>
             )}
           </div>

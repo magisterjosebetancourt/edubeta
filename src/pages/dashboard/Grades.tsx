@@ -11,7 +11,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { EduButton } from '@/components/ui/EduButton'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { toast } from 'sonner'
-import { Trash2, Plus, School, Layers, Pencil, Users, UserCheck, UserMinus } from 'lucide-react'
+import { Trash2, Plus, School, Layers, Pencil, Users, UserCheck, UserMinus, ArrowRightLeft } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
 type Grade = {
@@ -119,13 +119,23 @@ export default function GradesPage() {
               Gestión de grados y grupos según la Ley 115.
             </p>
           </div>
-          <EduButton
-            onClick={() => navigate('/dashboard/grades/new')}
-            icon={Plus}
-            className="h-12 px-6 w-full sm:w-auto"
-          >
-            Nuevo Grupo
-          </EduButton>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <EduButton
+              onClick={() => navigate('/dashboard/students/move')}
+              variant="outline"
+              icon={ArrowRightLeft}
+              className="h-12 px-6 w-full sm:w-auto text-white"
+            >
+              Mover Estudiantes
+            </EduButton>
+            <EduButton
+              onClick={() => navigate('/dashboard/grades/new')}
+              icon={Plus}
+              className="h-12 px-6 w-full sm:w-auto"
+            >
+              Nuevo Grupo
+            </EduButton>
+          </div>
         </div>
       </div>
 

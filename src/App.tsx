@@ -6,6 +6,7 @@ import StudentsPage from '@/pages/dashboard/Students';
 import NewStudentFormPage from '@/pages/dashboard/students/NewStudentFormPage';
 import EditStudentFormPage from '@/pages/dashboard/students/EditStudentFormPage';
 import ImportStudentsPage from '@/pages/dashboard/students/ImportStudentsPage';
+import MoveStudentsPage from '@/pages/dashboard/students/MoveStudentsPage';
 import TeachersPage from '@/pages/dashboard/Teachers';
 import NewTeacherFormPage from '@/pages/dashboard/teachers/NewTeacherFormPage';
 import EditTeacherFormPage from '@/pages/dashboard/teachers/EditTeacherFormPage';
@@ -80,6 +81,7 @@ function App() {
           <Route path="students/new" element={<NewStudentFormPage />} />
           <Route path="students/:id/edit" element={<EditStudentFormPage />} />
           <Route path="students/import" element={<ImportStudentsPage />} />
+          <Route path="students/move" element={<MoveStudentsPage />} />
           <Route path="students/:id" element={<StudentView />} />
           <Route path="teachers" element={<TeachersPage />} />
           <Route path="teachers/new" element={<NewTeacherFormPage />} />

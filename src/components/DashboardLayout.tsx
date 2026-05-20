@@ -46,6 +46,7 @@ export default function DashboardLayout() {
     if (section === 'students' && sub === 'new') return 'Matricular estudiante'
     if (section === 'students' && action === 'edit') return 'Editar estudiante'
     if (section === 'students' && sub === 'import') return 'Carga masiva'
+    if (section === 'students' && sub === 'move') return 'Mover estudiantes'
     if (section === 'teachers' && sub === 'new') return 'Nueva invitación'
     if (section === 'teachers' && action === 'edit') return 'Editar docente'
     if (section === 'subjects' && sub === 'new') return 'Nueva asignatura'
