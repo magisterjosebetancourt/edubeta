@@ -16,6 +16,7 @@ interface UserProfileContextType {
   profile: UserProfile | null
   firebaseUser: User | null
   loading: boolean
+  error: Error | null
   /** Llama esto después de actualizar el perfil en Firestore para refrescar el contexto */
   refreshProfile: () => Promise<void>
 }
@@ -24,6 +25,7 @@ const UserProfileContext = createContext<UserProfileContextType>({
   profile: null,
   firebaseUser: null,
   loading: true,
+  error: null,
   refreshProfile: async () => {},
 })
 
@@ -31,9 +33,11 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
 
   const fetchProfile = async (user: User) => {
     try {
+      setError(null)
       const snap = await getDoc(doc(db, 'profiles', user.uid))
       if (snap.exists()) {
         setProfile({ uid: user.uid, ...snap.data() } as UserProfile)
@@ -47,8 +51,9 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
           state: true,
         })
       }
-    } catch (error) {
-      console.error('[UserProfileContext] Error cargando perfil:', error)
+    } catch (err: any) {
+      console.error('[UserProfileContext] Error cargando perfil:', err)
+      setError(err)
     }
   }
 
@@ -59,6 +64,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
         await fetchProfile(user)
       } else {
         setProfile(null)
+        setError(null)
       }
       setLoading(false)
     })
@@ -72,7 +78,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <UserProfileContext.Provider value={{ profile, firebaseUser, loading, refreshProfile }}>
+    <UserProfileContext.Provider value={{ profile, firebaseUser, loading, error, refreshProfile }}>
       {children}
     </UserProfileContext.Provider>
   )
@@ -82,3 +88,4 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
 export function useUserProfile() {
   return useContext(UserProfileContext)
 }
+

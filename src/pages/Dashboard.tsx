@@ -19,7 +19,8 @@ import {
   BookOpen,
   Calculator,
   Compass,
-  GraduationCap
+  GraduationCap,
+  ShieldAlert
 } from 'lucide-react'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 
@@ -34,7 +35,7 @@ const getSubjectIcon = (name: string) => {
 }
 
 export default function DashboardPage() {
-  const { profile: userProfile, firebaseUser } = useUserProfile()
+  const { profile: userProfile, firebaseUser, loading: profileLoading, error: profileError } = useUserProfile()
   const navigate = useNavigate()
   const { data: gradesData = [] } = useGrades()
   const { data: subjectsData = [] } = useSubjects()
@@ -48,7 +49,11 @@ export default function DashboardPage() {
   const appRole = userProfile?.role as 'admin' | 'teacher' | 'coordinator' | null
 
   useEffect(() => {
-    if (!userProfile || !firebaseUser) return
+    if (profileLoading) return
+    if (!userProfile || !firebaseUser || profileError) {
+      setLoading(false)
+      return
+    }
 
     async function getInitialData() {
       try {
@@ -119,7 +124,7 @@ export default function DashboardPage() {
     }
 
     getInitialData()
-  }, [userProfile, firebaseUser])
+  }, [userProfile, firebaseUser, profileLoading, profileError])
 
   useEffect(() => {
     if (userProfile && (userProfile.role === 'admin' || userProfile.role === 'coordinator')) {
@@ -131,9 +136,32 @@ export default function DashboardPage() {
     }
   }, [gradesData.length, subjectsData.length, userProfile]);
 
-  if (loading) return <LoadingSpinner message="Cargando portal..." />;
+  if (profileLoading || (loading && !profileError)) return <LoadingSpinner message="Cargando portal..." />;
 
-  if (loading) return <LoadingSpinner message="Cargando portal..." />;
+  if (profileError || !userProfile) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center">
+        <div className="bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 p-8 rounded-2xl border border-red-100 dark:border-red-900/30 max-w-md shadow-xl transition-all">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-6">
+            <ShieldAlert className="w-8 h-8 animate-pulse" />
+          </div>
+          <h3 className="text-xl font-bold mb-3">Error de Acceso a Base de Datos</h3>
+          <p className="text-sm leading-relaxed mb-5 text-slate-600 dark:text-slate-300">
+            No se pudo obtener la información de tu perfil. Esto suele suceder cuando las <strong>reglas de seguridad de Cloud Firestore han expirado</strong> en la consola de Firebase.
+          </p>
+          {profileError && (
+            <div className="text-left text-xs bg-slate-900 text-slate-100 p-4 rounded-xl font-mono mb-5 break-all max-h-32 overflow-y-auto border border-slate-800">
+              {profileError.message}
+            </div>
+          )}
+          <div className="bg-amber-50 dark:bg-amber-950/10 border border-amber-200 dark:border-amber-900/30 rounded-xl p-4 text-xs text-amber-800 dark:text-amber-300 leading-relaxed text-left mb-6">
+            <strong className="block mb-1 font-bold">Solución sugerida:</strong>
+            Ve a la consola de Firebase &gt; Firestore Database &gt; pestaña <strong>Rules</strong>, y actualiza la fecha de vencimiento o configura accesos de lectura/escritura autenticados.
+          </div>
+        </div>
+      </div>
+    )
+  }
 
 
   return (

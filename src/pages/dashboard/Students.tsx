@@ -12,12 +12,20 @@ import {
 } from "firebase/firestore";
 import { useUserProfile } from "@/lib/context/UserProfileContext";
 import { useQueryClient } from "@tanstack/react-query";
-import { useStudents, useGrades } from '@/lib/hooks/useFirebaseData';
+import { useStudents, useGrades } from "@/lib/hooks/useFirebaseData";
 import { EduButton } from "@/components/ui/EduButton";
 import { EduInput } from "@/components/ui/EduInput";
 import { EduSelect } from "@/components/ui/EduSelect";
 import { toast } from "sonner";
-import { Search, Edit, MapPin, UserPlus, FileUp, FileSignature, Trash2 } from "lucide-react";
+import {
+  Search,
+  Edit,
+  MapPin,
+  UserPlus,
+  FileUp,
+  FileSignature,
+  Trash2,
+} from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 type Grade = { id: string; name: string };
@@ -48,14 +56,21 @@ export default function StudentsPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [loadingInitial, setLoadingInitial] = useState(true);
-  const userRole = profile?.role || 'user';
+  const userRole = profile?.role || "user";
   const [searchTerm, setSearchTerm] = useState("");
   const [filterGradeId, setFilterGradeId] = useState<string>("");
 
   useEffect(() => {
     if (isLoadingStudents || isLoadingGrades) return;
     fetchData();
-  }, [profile, firebaseUser, studentsData, gradesData, isLoadingStudents, isLoadingGrades]);
+  }, [
+    profile,
+    firebaseUser,
+    studentsData,
+    gradesData,
+    isLoadingStudents,
+    isLoadingGrades,
+  ]);
 
   const fetchData = async () => {
     try {
@@ -73,8 +88,8 @@ export default function StudentsPage() {
           query(
             collection(db, "assignments"),
             where("teacher_id", "==", user.uid),
-            where("state", "==", true)
-          )
+            where("state", "==", true),
+          ),
         );
         validGradeIds = assSnap.docs.map((d) => d.data().grade_id);
       }
@@ -82,27 +97,31 @@ export default function StudentsPage() {
       // Cargamos Grades desde RC Cache
       let gradesList = gradesData ? [...gradesData] : [];
       if (role === "teacher") {
-        gradesList = gradesList.filter(g => validGradeIds.includes(g.id));
+        gradesList = gradesList.filter((g) => validGradeIds.includes(g.id));
       } else if (role === "admin" || role === "coordinator") {
-        gradesList = gradesList.filter(g => g.state === true); // active grades only
+        gradesList = gradesList.filter((g) => g.state === true); // active grades only
       }
-      gradesList.sort((a,b) => a.name.localeCompare(b.name));
+      gradesList.sort((a, b) => a.name.localeCompare(b.name));
       setGrades(gradesList);
 
       // Cargamos estudiantes desde RC cache
       let studentsList = studentsData ? [...studentsData] : [];
       if (role === "teacher") {
-         studentsList = studentsList.filter(s => validGradeIds.includes(s.grade_id as string));
+        studentsList = studentsList.filter((s) =>
+          validGradeIds.includes(s.grade_id as string),
+        );
       }
 
       // Map grade names
-      const gradeMap = new Map((gradesData || []).map(g => [g.id, g.name]));
-      const enrichedStudents = studentsList.map(s => ({
-         ...s,
-         grades: { name: gradeMap.get(s.grade_id as string) || "Sin Asignar" }
+      const gradeMap = new Map((gradesData || []).map((g) => [g.id, g.name]));
+      const enrichedStudents = studentsList.map((s) => ({
+        ...s,
+        grades: { name: gradeMap.get(s.grade_id as string) || "Sin Asignar" },
       }));
-      
-      enrichedStudents.sort((a,b) => (a.last_name || "").localeCompare(b.last_name || "", "es"));
+
+      enrichedStudents.sort((a, b) =>
+        (a.last_name || "").localeCompare(b.last_name || "", "es"),
+      );
       setStudents(enrichedStudents);
     } catch (error: any) {
       console.error("Error loading students view context:", error);
@@ -118,15 +137,21 @@ export default function StudentsPage() {
     try {
       const newState = !student.state;
       await updateDoc(doc(db, "students", student.id), { state: newState });
-      
+
       // Actualización de cache y UI local simultánea
-      queryClient.setQueryData(['students'], (old: any) => 
-        old ? old.map((s: any) => (s.id === student.id ? { ...s, state: newState } : s)) : old
+      queryClient.setQueryData(["students"], (old: any) =>
+        old
+          ? old.map((s: any) =>
+              s.id === student.id ? { ...s, state: newState } : s,
+            )
+          : old,
       );
 
-      toast.success(newState ? "Estudiante activado" : "Estudiante desactivado");
+      toast.success(
+        newState ? "Estudiante activado" : "Estudiante desactivado",
+      );
       setStudents((prev) =>
-        prev.map((s) => (s.id === student.id ? { ...s, state: newState } : s))
+        prev.map((s) => (s.id === student.id ? { ...s, state: newState } : s)),
       );
     } catch (error: any) {
       toast.error("Error al cambiar estado", { description: error.message });
@@ -137,10 +162,10 @@ export default function StudentsPage() {
     if (!confirm("¿Estás seguro de eliminar este estudiante?")) return;
     try {
       await deleteDoc(doc(db, "students", id));
-      
+
       // Eliminar de caché local directamente, previniendo recarga
-      queryClient.setQueryData(['students'], (old: any) => 
-        old ? old.filter((s: any) => s.id !== id) : old
+      queryClient.setQueryData(["students"], (old: any) =>
+        old ? old.filter((s: any) => s.id !== id) : old,
       );
 
       toast.success("Estudiante eliminado exitosamente");
@@ -155,7 +180,8 @@ export default function StudentsPage() {
       const nameMatch = `${s.last_name} ${s.first_name} ${s.neighborhood || ""}`
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
-      const gradeMatch = filterGradeId === "" || String(s.grade_id) === filterGradeId;
+      const gradeMatch =
+        filterGradeId === "" || String(s.grade_id) === filterGradeId;
       return nameMatch && gradeMatch;
     });
   }, [students, searchTerm, filterGradeId]);
@@ -181,7 +207,7 @@ export default function StudentsPage() {
             />
           </div>
 
-          <div className="w-full grid grid-cols-2 md:flex gap-2">
+          <div className="relative flex-grow">
             <EduSelect
               value={filterGradeId}
               onChange={(e) => setFilterGradeId(e.target.value)}
@@ -189,31 +215,35 @@ export default function StudentsPage() {
             >
               <option value="">Grados</option>
               {grades.map((g) => (
-                <option key={g.id} value={g.id}>{g.name}</option>
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
               ))}
             </EduSelect>
+          </div>
 
+          <div className="w-full grid grid-cols-2 md:flex gap-2">
             {(userRole === "admin" || userRole === "coordinator") && (
               <div className="grid grid-cols-2 md:flex gap-2 col-span-2 md:col-span-1">
-              <div className="grid grid-cols-2 md:flex gap-2 col-span-2 md:col-span-1">
-                <EduButton
-                  onClick={() => navigate("/dashboard/students/import")}
-                  variant="outline"
-                  icon={FileUp}
-                  className="h-12 w-full flex-1 md:w-auto"
-                >
-                  <span className="hidden lg:inline">Carga Masiva</span>
-                  <span className="lg:hidden text-xs">CSV</span>
-                </EduButton>
-                <EduButton
-                  onClick={() => navigate("/dashboard/students/new")}
-                  icon={UserPlus}
-                  className="h-12 w-full flex-1 md:w-auto"
-                >
-                  <span className="hidden lg:inline">Matricular</span>
-                  <span className="lg:hidden text-xs">Añadir</span>
-                </EduButton>
-              </div>
+                <div className="grid grid-cols-2 md:flex gap-2 col-span-2 md:col-span-1">
+                  <EduButton
+                    onClick={() => navigate("/dashboard/students/import")}
+                    variant="outline"
+                    icon={FileUp}
+                    className="h-12 w-full flex-1 md:w-auto text-white"
+                  >
+                    <span className="hidden lg:inline">Carga Masiva</span>
+                    <span className="lg:hidden text-xs">CSV</span>
+                  </EduButton>
+                  <EduButton
+                    onClick={() => navigate("/dashboard/students/new")}
+                    icon={UserPlus}
+                    className="h-12 w-full flex-1 md:w-auto"
+                  >
+                    <span className="hidden lg:inline">Matricular</span>
+                    <span className="lg:hidden text-xs">Añadir</span>
+                  </EduButton>
+                </div>
               </div>
             )}
           </div>
@@ -240,7 +270,9 @@ export default function StudentsPage() {
                   </div>
                   <div
                     className="cursor-pointer"
-                    onClick={() => navigate(`/dashboard/students/${student.id}`)}
+                    onClick={() =>
+                      navigate(`/dashboard/students/${student.id}`)
+                    }
                   >
                     <div className="flex flex-col">
                       <h3 className="font-semibold text-slate-900 dark:text-white leading-tight uppercase tracking-tight">
@@ -278,15 +310,24 @@ export default function StudentsPage() {
                     </div>
                   )}
                   <div className="flex gap-1.5 mt-1">
-                    <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded text-[9px] font-semibold border border-green-100 dark:border-green-800" title="Asistencias">
+                    <div
+                      className="flex items-center gap-0.5 px-1.5 py-0.5 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded text-[9px] font-semibold border border-green-100 dark:border-green-800"
+                      title="Asistencias"
+                    >
                       <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
                       {student.attendance_stats?.present || 0}
                     </div>
-                    <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded text-[9px] font-semibold border border-red-100 dark:border-red-800" title="Inasistencias">
+                    <div
+                      className="flex items-center gap-0.5 px-1.5 py-0.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded text-[9px] font-semibold border border-red-100 dark:border-red-800"
+                      title="Inasistencias"
+                    >
                       <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
                       {student.attendance_stats?.absent || 0}
                     </div>
-                    <div className="flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded text-[9px] font-semibold border border-amber-100 dark:border-amber-800" title="Tardanzas">
+                    <div
+                      className="flex items-center gap-0.5 px-1.5 py-0.5 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded text-[9px] font-semibold border border-amber-100 dark:border-amber-800"
+                      title="Tardanzas"
+                    >
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                       {student.attendance_stats?.late || 0}
                     </div>
@@ -297,7 +338,11 @@ export default function StudentsPage() {
               {/* Acciones */}
               <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-nowrap items-center justify-end w-full gap-1 overflow-x-auto">
                 <button
-                  onClick={() => navigate(`/dashboard/students/${student.id}/observations`, { state: { student } })}
+                  onClick={() =>
+                    navigate(`/dashboard/students/${student.id}/observations`, {
+                      state: { student },
+                    })
+                  }
                   className="flex flex-1 min-w-0 items-center gap-2 px-2 py-2 rounded-[5px] text-xs font-semibold text-primary bg-primary/5 hover:bg-primary/10 transition-all border border-primary/20"
                 >
                   <FileSignature className="w-4 h-4" />
@@ -306,7 +351,9 @@ export default function StudentsPage() {
                 {userRole !== "teacher" && (
                   <>
                     <button
-                      onClick={() => navigate(`/dashboard/students/${student.id}/edit`)}
+                      onClick={() =>
+                        navigate(`/dashboard/students/${student.id}/edit`)
+                      }
                       className="flex flex-1 min-w-0 items-center gap-2 px-2 py-2 rounded-[5px] text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 transition-all"
                     >
                       <Edit className="w-4 h-4" />
@@ -326,7 +373,6 @@ export default function StudentsPage() {
           ))
         )}
       </main>
-
     </div>
   );
 }

@@ -1,135 +1,195 @@
-import { useState, useEffect } from 'react'
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import { useNavigate, useParams } from 'react-router-dom'
-import { FormView } from '@/components/ui/FormView'
-import { EduButton } from '@/components/ui/EduButton'
-import { EduInput } from '@/components/ui/EduInput'
-import { EduSelect } from '@/components/ui/EduSelect'
-import { Label } from '@/components/ui/label'
-import { toast } from 'sonner'
-import { Save, Loader2 } from 'lucide-react'
-import { auth, db } from '@/lib/firebase/config'
-import { collection, getDocs, addDoc, updateDoc, doc, getDoc, serverTimestamp } from 'firebase/firestore'
-import { format } from 'date-fns'
+import { useState, useEffect } from "react";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { useNavigate, useParams } from "react-router-dom";
+import { FormView } from "@/components/ui/FormView";
+import { EduButton } from "@/components/ui/EduButton";
+import { EduInput } from "@/components/ui/EduInput";
+import { EduSelect } from "@/components/ui/EduSelect";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { Save, Loader2 } from "lucide-react";
+import { auth, db } from "@/lib/firebase/config";
+import {
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  doc,
+  getDoc,
+  serverTimestamp,
+} from "firebase/firestore";
+import { format } from "date-fns";
 
-type InfractionType = 'leve' | 'grave' | 'gravisima'
-type InfractionStatus = 'abierto' | 'seguimiento' | 'cerrado'
-interface Student { id: string; first_name: string; last_name: string }
+type InfractionType = "leve" | "grave" | "gravisima";
+type InfractionStatus = "abierto" | "seguimiento" | "cerrado";
+interface Student {
+  id: string;
+  first_name: string;
+  last_name: string;
+}
 
 export default function InfractionFormPage() {
-  const navigate = useNavigate()
-  const { id } = useParams<{ id: string }>()
-  const isEdit = !!id
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const isEdit = !!id;
 
-  const [students, setStudents] = useState<Student[]>([])
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [currentUserName, setCurrentUserName] = useState('Docente')
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [currentUserName, setCurrentUserName] = useState("Docente");
 
   // Controlled values for edit pre-fill
-  const [studentId, setStudentId] = useState('')
-  const [type, setType] = useState<InfractionType>('leve')
-  const [status, setStatus] = useState<InfractionStatus>('abierto')
-  const [description, setDescription] = useState('')
-  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [studentId, setStudentId] = useState("");
+  const [type, setType] = useState<InfractionType>("leve");
+  const [status, setStatus] = useState<InfractionStatus>("abierto");
+  const [description, setDescription] = useState("");
+  const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
 
   useEffect(() => {
     const load = async () => {
-      const user = auth.currentUser
-      if (!user) return
+      const user = auth.currentUser;
+      if (!user) return;
 
       const [profileSnap, studentsSnap] = await Promise.all([
-        getDoc(doc(db, 'profiles', user.uid)),
-        getDocs(collection(db, 'students')),
-      ])
-      setCurrentUserName(profileSnap.data()?.full_name || 'Docente')
+        getDoc(doc(db, "profiles", user.uid)),
+        getDocs(collection(db, "students")),
+      ]);
+      setCurrentUserName(profileSnap.data()?.full_name || "Docente");
       const list = studentsSnap.docs
-        .map(d => ({ id: d.id, first_name: d.data().first_name, last_name: d.data().last_name } as Student))
-        .sort((a, b) => a.last_name.localeCompare(b.last_name, 'es'))
-      setStudents(list)
+        .map(
+          (d) =>
+            ({
+              id: d.id,
+              first_name: d.data().first_name,
+              last_name: d.data().last_name,
+            }) as Student,
+        )
+        .sort((a, b) => a.last_name.localeCompare(b.last_name, "es"));
+      setStudents(list);
 
       if (isEdit && id) {
-        const snap = await getDoc(doc(db, 'infractions', id))
+        const snap = await getDoc(doc(db, "infractions", id));
         if (snap.exists()) {
-          const data = snap.data()
-          setStudentId(data.student_id || '')
-          setType(data.type || 'leve')
-          setStatus(data.status || 'abierto')
-          setDescription(data.description || '')
-          setDate(data.date || format(new Date(), 'yyyy-MM-dd'))
+          const data = snap.data();
+          setStudentId(data.student_id || "");
+          setType(data.type || "leve");
+          setStatus(data.status || "abierto");
+          setDescription(data.description || "");
+          setDate(data.date || format(new Date(), "yyyy-MM-dd"));
         }
       }
-      setLoading(false)
-    }
-    load().catch(e => { toast.error('Error al cargar', { description: e.message }); setLoading(false) })
-  }, [id, isEdit])
-
+      setLoading(false);
+    };
+    load().catch((e) => {
+      toast.error("Error al cargar", { description: e.message });
+      setLoading(false);
+    });
+  }, [id, isEdit]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!studentId) { toast.error('Debes seleccionar un estudiante'); return }
-    if (!description.trim()) { toast.error('La descripción del hecho es obligatoria'); return }
-    setSaving(true)
+    e.preventDefault();
+    if (!studentId) {
+      toast.error("Debes seleccionar un estudiante");
+      return;
+    }
+    if (!description.trim()) {
+      toast.error("La descripción del hecho es obligatoria");
+      return;
+    }
+    setSaving(true);
 
-    const selectedStudent = students.find(s => s.id === studentId)
-    const studentName = selectedStudent ? `${selectedStudent.last_name}, ${selectedStudent.first_name}` : 'Desconocido'
+    const selectedStudent = students.find((s) => s.id === studentId);
+    const studentName = selectedStudent
+      ? `${selectedStudent.last_name}, ${selectedStudent.first_name}`
+      : "Desconocido";
 
     try {
       if (isEdit) {
-        await updateDoc(doc(db, 'infractions', id!), {
-          student_id: studentId, student_name: studentName,
-          type, description, date, status,
+        await updateDoc(doc(db, "infractions", id!), {
+          student_id: studentId,
+          student_name: studentName,
+          type,
+          description,
+          date,
+          status,
           updated_at: serverTimestamp(),
-        })
-        toast.success('Falta actualizada correctamente')
+        });
+        toast.success("Falta actualizada correctamente");
       } else {
-        await addDoc(collection(db, 'infractions'), {
-          student_id: studentId, student_name: studentName,
-          type, description, date, status,
+        await addDoc(collection(db, "infractions"), {
+          student_id: studentId,
+          student_name: studentName,
+          type,
+          description,
+          date,
+          status,
           reported_by_name: currentUserName,
           created_at: serverTimestamp(),
-        })
-        toast.success('Falta registrada correctamente')
+        });
+        toast.success("Falta registrada correctamente");
       }
-      toast.success('Falta registrada correctamente')
-      navigate('/dashboard/infractions', { replace: true })
+      toast.success("Falta registrada correctamente");
+      navigate("/dashboard/infractions", { replace: true });
     } catch (error: any) {
-      toast.error('Error al guardar', { description: error.message })
+      toast.error("Error al guardar", { description: error.message });
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
-
-  if (loading) return <LoadingSpinner message="Cargando datos de la falta..." />;
+  if (loading)
+    return <LoadingSpinner message="Cargando datos de la falta..." />;
 
   return (
     <FormView>
+      <p className="w-full text-sm text-slate-500 dark:text-slate-400">
+        {isEdit
+          ? "Modifica los datos del registro de falta."
+          : "Documenta una falta disciplinaria de un estudiante."}
+      </p>
       <form onSubmit={handleSubmit} className="space-y-5">
-        <p className="w-full h-6 dark:border-slate-800 bg-slate-100 dark:bg-[#1e2536] px-1 text-sm outline-none focus:ring-2 focus:ring-primary/50 flex items-center mb-1">
-          {isEdit ? 'Modifica los datos del registro de falta.' : 'Documenta una falta disciplinaria de un estudiante.'}
-        </p>
-
         <div className="space-y-2">
-          <Label className="text-[10px] font-black tracking-widest text-slate-400">Estudiante *</Label>
-          <EduSelect value={studentId} onChange={e => setStudentId(e.target.value)} required>
+          <Label className="text-[12px] font-black tracking-widest text-slate-400">
+            Estudiante *
+          </Label>
+          <EduSelect
+            value={studentId}
+            onChange={(e) => setStudentId(e.target.value)}
+            required
+          >
             <option value="">Seleccionar estudiante...</option>
-            {students.map(s => <option key={s.id} value={s.id}>{s.last_name}, {s.first_name}</option>)}
+            {students.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.last_name}, {s.first_name}
+              </option>
+            ))}
           </EduSelect>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label className="text-[10px] font-black tracking-widest text-slate-400">Tipo de falta</Label>
-            <EduSelect value={type} onChange={e => setType(e.target.value as InfractionType)} required>
+            <Label className="text-[12px] font-black tracking-widest text-slate-400">
+              Tipo de falta
+            </Label>
+            <EduSelect
+              value={type}
+              onChange={(e) => setType(e.target.value as InfractionType)}
+              required
+            >
               <option value="leve">Tipo I</option>
               <option value="grave">Tipo II</option>
               <option value="gravisima">Tipo III</option>
             </EduSelect>
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-black tracking-widest text-slate-400">Estado</Label>
-            <EduSelect value={status} onChange={e => setStatus(e.target.value as InfractionStatus)} required>
+            <Label className="text-[12px] font-black tracking-widest text-slate-400">
+              Estado
+            </Label>
+            <EduSelect
+              value={status}
+              onChange={(e) => setStatus(e.target.value as InfractionStatus)}
+              required
+            >
               <option value="abierto">Abierto</option>
               <option value="seguimiento">En seguimiento</option>
               <option value="cerrado">Cerrado</option>
@@ -138,20 +198,28 @@ export default function InfractionFormPage() {
         </div>
 
         <div className="space-y-2">
-          <Label className="text-[10px] font-black tracking-widest text-slate-400">Descripción del hecho *</Label>
+          <Label className="text-[12px] font-black tracking-widest text-slate-400">
+            Descripción del hecho *
+          </Label>
           <textarea
             value={description}
-            onChange={e => setDescription(e.target.value)}
-            required rows={4}
+            onChange={(e) => setDescription(e.target.value)}
+            required
+            rows={4}
             placeholder="Describe brevemente la situación ocurrida..."
-            className="w-full rounded-lg bg-slate-100 dark:bg-[#1e2536] px-4 py-3 text-sm outline-none border border-slate-200 dark:border-slate-800 resize-none dark:text-white"
+            className="w-full rounded-lg bg-white dark:bg-[#1e2536] px-4 py-3 text-sm outline-none border border-slate-200 dark:border-slate-800 shadow-sm resize-none dark:text-white"
           />
         </div>
 
         <div className="space-y-2">
-          <Label className="text-[10px] font-black tracking-widest text-slate-400">Fecha del hecho</Label>
+          <Label className="text-[12px] font-black tracking-widest text-slate-400">
+            Fecha del hecho
+          </Label>
           <EduInput
-            type="date" value={date} onChange={e => setDate(e.target.value)} required
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            required
           />
         </div>
 
@@ -162,10 +230,14 @@ export default function InfractionFormPage() {
             icon={saving ? Loader2 : Save}
             fullWidth
           >
-            {saving ? 'Guardando...' : (isEdit ? 'Guardar cambios' : 'Registrar falta')}
+            {saving
+              ? "Guardando..."
+              : isEdit
+                ? "Guardar cambios"
+                : "Registrar falta"}
           </EduButton>
         </div>
       </form>
     </FormView>
-  )
+  );
 }
